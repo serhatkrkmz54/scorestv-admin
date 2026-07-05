@@ -75,6 +75,15 @@ export interface EntityRef {
   logo: string | null;
 }
 
+// NewsDetail.FixtureRef — bagli mac hafif referansi.
+// name = "Ev - Deplasman", logo = ev takimi logosu (varsa), kickoff = mac zamani.
+export interface FixtureRef {
+  id: number;
+  name: string;
+  logo: string | null;
+  kickoff: string | null; // ISO Instant
+}
+
 // NewsDetail.java — admin detay (her durum) + bağlı varlıklar.
 export interface NewsDetail {
   id: number;
@@ -101,6 +110,7 @@ export interface NewsDetail {
   leagues: EntityRef[];
   countries: EntityRef[];
   players: EntityRef[];
+  fixtures: FixtureRef[];
 }
 
 /**
@@ -128,6 +138,7 @@ export interface NewsRequest {
   leagueIds?: number[];
   countryIds?: number[];
   playerIds?: number[];
+  fixtureIds?: number[];
   sendPush?: boolean;
   pushTarget?: "ALL" | "FAVORITES";
 }
@@ -199,7 +210,7 @@ export interface SearchResponse {
 }
 
 // ---- EntityLinker seçili varlık çipi (form state) ----
-export type EntityKind = "team" | "league" | "player" | "country";
+export type EntityKind = "team" | "league" | "player" | "country" | "fixture";
 
 export interface EntityChip {
   kind: EntityKind;

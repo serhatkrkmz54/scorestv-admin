@@ -18,18 +18,30 @@ export async function setAuthCookies(
   const secure = process.env.NODE_ENV === "production";
   const common = { httpOnly: true, sameSite: "lax" as const, secure, path: "/" };
 
-  store.set(ACCESS_COOKIE, accessToken, { ...common, maxAge: Math.max(expiresIn, 60) });
-  store.set(REFRESH_COOKIE, refreshToken, {
-    ...common,
-    // remember=false → oturum çerezi (tarayıcı kapanınca silinir)
-    ...(remember ? { maxAge: REFRESH_MAX_AGE } : {}),
-  });
+  try {
+    store.set(ACCESS_COOKIE, accessToken, { ...common, maxAge: Math.max(expiresIn, 60) });
+    store.set(REFRESH_COOKIE, refreshToken, {
+      ...common,
+      // remember=false → oturum çerezi (tarayıcı kapanınca silinir)
+      ...(remember ? { maxAge: REFRESH_MAX_AGE } : {}),
+    });
+  } catch {
+    // Next.js: Server Component RENDER sırasında cookie yazılamaz (yalnız
+    // Server Action / Route Handler). Layout'ta resolveUser access token
+    // dolmuşsa refresh yapıp buraya düşebilir → render'ı 500'e düşürmemek için
+    // sessizce yok say. İstek bellekteki taze token ile döner; cookie rotasyonu
+    // bir sonraki BFF (route handler) çağrısında kalıcılanır.
+  }
 }
 
 export async function clearAuthCookies(): Promise<void> {
   const store = await cookies();
-  store.delete(ACCESS_COOKIE);
-  store.delete(REFRESH_COOKIE);
+  try {
+    store.delete(ACCESS_COOKIE);
+    store.delete(REFRESH_COOKIE);
+  } catch {
+    // render bağlamında yazılamaz — bkz. setAuthCookies notu. Sessizce geç.
+  }
 }
 
 export async function getAccessToken(): Promise<string | undefined> {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiSearch } from "@/lib/api-client";
+import { formatDateShort } from "@/lib/format";
 import type { EntityChip, EntityKind, SearchResponse } from "@/lib/types";
 
 const KIND_LABELS: Record<EntityKind, string> = {
@@ -9,6 +10,7 @@ const KIND_LABELS: Record<EntityKind, string> = {
   league: "Lig",
   player: "Oyuncu",
   country: "Ülke",
+  fixture: "Maç",
 };
 
 /**
@@ -40,7 +42,7 @@ export default function EntityLinker({
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await apiSearch(term, "team,league,player,country");
+        const res = await apiSearch(term, "team,league,player,country,fixture");
         setResults(res);
         setOpen(true);
       } catch {
@@ -83,14 +85,20 @@ export default function EntityLinker({
   const leagues = results?.leagues ?? [];
   const players = results?.players ?? [];
   const countries = results?.countries ?? [];
+  const fixtures = results?.fixtures ?? [];
   const anyResults =
-    teams.length + leagues.length + players.length + countries.length > 0;
+    teams.length +
+      leagues.length +
+      players.length +
+      countries.length +
+      fixtures.length >
+    0;
 
   return (
     <div className="linker" ref={boxRef}>
       <input
         className="input"
-        placeholder="Takım, lig, oyuncu veya ülke ara..."
+        placeholder="Takım, lig, oyuncu, ülke veya maç ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => results && setOpen(true)}
@@ -210,6 +218,29 @@ export default function EntityLinker({
                   <span>{c.nameTr || c.name}</span>
                 </div>
               ))}
+            </>
+          )}
+
+          {fixtures.length > 0 && (
+            <>
+              <div className="linker-group-title">{KIND_LABELS.fixture}</div>
+              {fixtures.slice(0, 8).map((f) => {
+                const name = f.matchupTr || f.matchup || `Maç #${f.id}`;
+                const date = formatDateShort(f.kickoff);
+                return (
+                  <div
+                    key={`f-${f.id}`}
+                    className="linker-opt"
+                    onClick={() =>
+                      add({ kind: "fixture", id: f.id, name, logo: null })
+                    }
+                  >
+                    <span className="linker-logo" />
+                    <span>{name}</span>
+                    {f.kickoff && <span className="muted">— {date}</span>}
+                  </div>
+                );
+              })}
             </>
           )}
         </div>

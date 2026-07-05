@@ -78,6 +78,12 @@ export function initialFromDetail(d: NewsDetail, forCopy = false): NewsFormIniti
     ...d.leagues.map((e) => ({ kind: "league" as const, id: e.id, name: e.name, logo: e.logo })),
     ...d.players.map((e) => ({ kind: "player" as const, id: e.id, name: e.name, logo: e.logo })),
     ...d.countries.map((e) => ({ kind: "country" as const, id: e.id, name: e.name, logo: e.logo })),
+    ...(d.fixtures ?? []).map((e) => ({
+      kind: "fixture" as const,
+      id: e.id,
+      name: e.name,
+      logo: e.logo,
+    })),
   ];
   return {
     id: forCopy ? undefined : d.id,
@@ -164,13 +170,15 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
     const leagueIds: number[] = [];
     const countryIds: number[] = [];
     const playerIds: number[] = [];
+    const fixtureIds: number[] = [];
     for (const c of chips) {
       if (c.kind === "team") teamIds.push(c.id);
       else if (c.kind === "league") leagueIds.push(c.id);
       else if (c.kind === "country") countryIds.push(c.id);
       else if (c.kind === "player") playerIds.push(c.id);
+      else if (c.kind === "fixture") fixtureIds.push(c.id);
     }
-    return { teamIds, leagueIds, countryIds, playerIds };
+    return { teamIds, leagueIds, countryIds, playerIds, fixtureIds };
   }, [chips]);
 
   function buildRequest(): NewsRequest {
@@ -201,6 +209,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
       leagueIds: ids.leagueIds,
       countryIds: ids.countryIds,
       playerIds: ids.playerIds,
+      fixtureIds: ids.fixtureIds,
       // Bildirim: yalnız "yayınlarken gönder" işaretliyse backend push atar.
       // Push, haber PUBLISHED'a geçtiğinde (kaydet+yayınla ya da /publish) tetiklenir.
       sendPush: notifyOnPublish,
