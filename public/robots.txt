@@ -1,0 +1,3 @@
+# Editör paneli — arama motorları indekslemesin.
+User-agent: *
+Disallow: /
