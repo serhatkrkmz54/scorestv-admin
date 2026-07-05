@@ -106,8 +106,8 @@ export interface NewsDetail {
 /**
  * CreateNewsRequest / UpdateNewsRequest (Java) ile birebir eşleşen istek
  * gövdesi. coverImageKey — yüklenen görselin MinIO anahtarı (URL değil).
- * NOT: Backend DTO'sunda BİLDİRİM (notification) alanı YOKTUR; panel bildirim
- * bölümünü UI olarak gösterir ama bu alanları isteğe EKLEMEZ (400 önlemek için).
+ * sendPush + pushTarget: haber PUBLISHED'a geçtiğinde backend push tetikler
+ * (sendPush=false ise gönderilmez; pushTarget verilmezse FAVORITES).
  */
 export interface NewsRequest {
   lang: "tr" | "en";
@@ -128,6 +128,8 @@ export interface NewsRequest {
   leagueIds?: number[];
   countryIds?: number[];
   playerIds?: number[];
+  sendPush?: boolean;
+  pushTarget?: "ALL" | "FAVORITES";
 }
 
 // NewsAdminController.ImageUploadResult

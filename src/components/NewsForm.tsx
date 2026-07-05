@@ -201,7 +201,10 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
       leagueIds: ids.leagueIds,
       countryIds: ids.countryIds,
       playerIds: ids.playerIds,
-      // NOT: notifyTarget / notifyOnPublish backend DTO'sunda yok — GÖNDERİLMEZ.
+      // Bildirim: yalnız "yayınlarken gönder" işaretliyse backend push atar.
+      // Push, haber PUBLISHED'a geçtiğinde (kaydet+yayınla ya da /publish) tetiklenir.
+      sendPush: notifyOnPublish,
+      pushTarget: notifyTarget,
     };
   }
 
@@ -481,8 +484,8 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
           <div className="card card-pad">
             <div className="section-title">Bildirim</div>
             <div className="section-hint">
-              Bildirim gönderimi sonraki fazda etkinleşecek. Bu bölüm şimdilik yalnızca
-              arayüzdür; değerler backend&apos;e gönderilmez.
+              &quot;Yayınlarken bildirim gönder&quot; işaretliyse, haber yayınlandığında
+              seçtiğin hedefe push gönderilir. Her haber en fazla bir kez bildirilir.
             </div>
             <label className="label">Hedef</label>
             <div className="radio-row mb-3">
