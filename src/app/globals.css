@@ -1158,9 +1158,6 @@ table.data-table {
   padding: 8px 9px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
-  position: sticky;
-  top: var(--topbar-h);
-  z-index: 5;
 }
 
 .tb-btn {
