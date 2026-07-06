@@ -40,6 +40,20 @@ export default function NewsLivePreview(props: Props) {
   const mins = useMemo(() => readingMinutes(props.bodyHtml), [props.bodyHtml]);
   const read = mins > 0 ? (isTr ? `${mins} dk okuma` : `${mins} min read`) : "";
   const cat = props.category ? categoryLabel(props.category) : "";
+  // Tarayıcı çerçevesindeki adres çubuğu için başlıktan basit slug.
+  const slug =
+    props.title
+      .trim()
+      .toLowerCase()
+      .replace(/ğ/g, "g")
+      .replace(/ü/g, "u")
+      .replace(/ş/g, "s")
+      .replace(/ı/g, "i")
+      .replace(/ö/g, "o")
+      .replace(/ç/g, "c")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 40) || (isTr ? "haber-basligi" : "article-title");
 
   // Escape ile kapat.
   useEffect(() => {
@@ -137,7 +151,17 @@ export default function NewsLivePreview(props: Props) {
         </div>
         <div className="nlp-stage">
         {device === "web" ? (
-          <div className="nlp-web">{paper}</div>
+          <div className="nlp-browser">
+            <div className="nlp-browser-bar">
+              <span className="nlp-dot r" />
+              <span className="nlp-dot y" />
+              <span className="nlp-dot g" />
+              <span className="nlp-url">
+                scorestv.com/{isTr ? "haber" : "news"}/{slug}
+              </span>
+            </div>
+            <div className="nlp-browser-body">{paper}</div>
+          </div>
         ) : (
           <div className="nlp-phone">
             <div className="nlp-phone-screen">{paper}</div>

@@ -1538,13 +1538,14 @@ table.data-table {
 
 /* ---- Haber CANLI önizleme (editör): web + mobil çerçeve ---- */
 .nlp-stage {
-  background: #eef1f5;
+  background: linear-gradient(180deg, #eef1f5 0%, #e1e7ef 100%);
   border-radius: 12px;
-  padding: 18px;
+  padding: 22px 18px;
   overflow: auto;
   max-height: 72vh;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
 }
 /* Kağıt: yayınlanan makale gibi beyaz zemin + koyu metin (panel teması
    ne olursa olsun). --text-muted yerel override ile griye çekilir. */
@@ -1555,12 +1556,59 @@ table.data-table {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-.nlp-web {
+/* Web: gerçek tarayıcı penceresi görünümü (üst bar + trafik ışıkları + adres). */
+.nlp-browser {
   width: 100%;
-  max-width: 820px;
+  max-width: 900px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 14px 44px rgba(2, 12, 27, 0.3);
 }
-.nlp-web .nlp-paper {
-  padding: 32px 36px;
+.nlp-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #e7ebf1;
+  border-bottom: 1px solid #d5dbe4;
+}
+.nlp-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.nlp-dot.r {
+  background: #ff5f57;
+}
+.nlp-dot.y {
+  background: #febc2e;
+}
+.nlp-dot.g {
+  background: #28c840;
+}
+.nlp-url {
+  flex: 1;
+  margin-left: 6px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #667085;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nlp-browser-body {
+  padding: 30px 40px;
+  background: #fff;
+}
+.nlp-browser .nlp-paper {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 .nlp-phone {
   width: 390px;
@@ -1608,7 +1656,9 @@ table.data-table {
   overflow: hidden;
 }
 .nlp-modal-head {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 /* Modal içinde sahne, sabit yükseklik yerine kalan alanı doldurur + kaydırır. */
 .nlp-modal .nlp-stage {

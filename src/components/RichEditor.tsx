@@ -37,6 +37,23 @@ import {
 } from "lucide-react";
 import { apiUploadImage, ApiError } from "@/lib/api-client";
 
+// Resimlere "width" niteliği ekleyen genişletilmiş Image — editörde
+// boyutlandırma için. width, HTML NİTELİĞİ olarak render edilir (backend
+// sanitize 'width' niteliğine izin verir; style'a değil). Değer yüzde ("50%")
+// veya px olabilir; article-body CSS'i height:auto ile oranı korur.
+const ResizableImage = ImageExt.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("width"),
+        renderHTML: (attrs) => (attrs.width ? { width: attrs.width } : {}),
+      },
+    };
+  },
+});
+
 /**
  * TipTap zengin metin editörü. HTML çıktısı editor.getHTML() ile onChange'e
  * verilir. Görseller /api/news/images'e yüklenir, dönen URL editöre eklenir.
@@ -64,7 +81,7 @@ export default function RichEditor({
         autolink: true,
         HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
       }),
-      ImageExt.configure({ inline: false, allowBase64: false }),
+      ResizableImage.configure({ inline: false, allowBase64: false }),
       Placeholder.configure({ placeholder }),
       Youtube.configure({ controls: true, nocookie: true, width: 640, height: 360 }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -151,6 +168,13 @@ function Toolbar({ editor }: { editor: Editor }) {
       .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
       .run();
   }, [editor]);
+
+  // Seçili görselin genişliğini ayarla (width niteliği). null = orijinal boyut.
+  const setImageWidth = useCallback(
+    (w: string | null) =>
+      editor.chain().focus().updateAttributes("image", { width: w }).run(),
+    [editor],
+  );
 
   const B = ({
     onClick,
@@ -297,6 +321,28 @@ function Toolbar({ editor }: { editor: Editor }) {
       <B onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Yatay çizgi">
         <Minus size={16} />
       </B>
+
+      {/* Görsel seçiliyken boyut butonları çıkar (kendin boyutlandır). */}
+      {editor.isActive("image") && (
+        <>
+          <span className="tb-sep" />
+          <B onClick={() => setImageWidth("25%")} title="Görsel genişliği %25">
+            25%
+          </B>
+          <B onClick={() => setImageWidth("50%")} title="Görsel genişliği %50">
+            50%
+          </B>
+          <B onClick={() => setImageWidth("75%")} title="Görsel genişliği %75">
+            75%
+          </B>
+          <B onClick={() => setImageWidth("100%")} title="Görsel tam genişlik">
+            100%
+          </B>
+          <B onClick={() => setImageWidth(null)} title="Görseli orijinal boyuta döndür">
+            Sıfırla
+          </B>
+        </>
+      )}
 
       <span className="tb-sep" />
 
