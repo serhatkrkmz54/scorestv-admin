@@ -1654,11 +1654,19 @@ table.data-table {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Modal `card` sınıfını kullanıyor (card-pad yok) — iç boşluğu burada veriyoruz
+     ki başlık/butonlar kenara ve ayırıcı çizgiye yapışmasın. */
+  padding: 16px 22px 20px;
 }
 .nlp-modal-head {
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 16px;
+}
+.nlp-modal-head .section-title {
+  font-size: 15px;
+  font-weight: 800;
 }
 /* Modal içinde sahne, sabit yükseklik yerine kalan alanı doldurur + kaydırır. */
 .nlp-modal .nlp-stage {
