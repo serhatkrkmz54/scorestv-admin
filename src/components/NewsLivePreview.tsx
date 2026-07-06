@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EntityChip, NewsCategory } from "@/lib/types";
 import { categoryLabel } from "@/lib/labels";
 
@@ -22,6 +22,7 @@ interface Props {
   isBreaking: boolean;
   lang: "tr" | "en";
   chips: EntityChip[];
+  onClose: () => void;
 }
 
 type Device = "web" | "mobile";
@@ -39,6 +40,15 @@ export default function NewsLivePreview(props: Props) {
   const mins = useMemo(() => readingMinutes(props.bodyHtml), [props.bodyHtml]);
   const read = mins > 0 ? (isTr ? `${mins} dk okuma` : `${mins} min read`) : "";
   const cat = props.category ? categoryLabel(props.category) : "";
+
+  // Escape ile kapat.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") props.onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [props]);
 
   const bodyFallback = isTr ? "İçerik burada görünecek…" : "Body appears here…";
 
@@ -89,29 +99,43 @@ export default function NewsLivePreview(props: Props) {
   );
 
   return (
-    <div className="card card-pad">
-      <div className="spread" style={{ marginBottom: 14 }}>
-        <div className="section-title" style={{ margin: 0 }}>
-          {isTr ? "Canlı Önizleme" : "Live Preview"}
+    <div className="nlp-modal-backdrop" onClick={props.onClose}>
+      <div
+        className="nlp-modal card"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="spread nlp-modal-head">
+          <div className="section-title" style={{ margin: 0 }}>
+            {isTr ? "Canlı Önizleme" : "Live Preview"}
+          </div>
+          <div className="row" style={{ gap: 6 }}>
+            <button
+              type="button"
+              className={device === "web" ? "btn btn-primary" : "btn"}
+              onClick={() => setDevice("web")}
+            >
+              Web
+            </button>
+            <button
+              type="button"
+              className={device === "mobile" ? "btn btn-primary" : "btn"}
+              onClick={() => setDevice("mobile")}
+            >
+              Mobil
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={props.onClose}
+              aria-label="Kapat"
+            >
+              ✕
+            </button>
+          </div>
         </div>
-        <div className="row" style={{ gap: 6 }}>
-          <button
-            type="button"
-            className={device === "web" ? "btn btn-primary" : "btn"}
-            onClick={() => setDevice("web")}
-          >
-            Web
-          </button>
-          <button
-            type="button"
-            className={device === "mobile" ? "btn btn-primary" : "btn"}
-            onClick={() => setDevice("mobile")}
-          >
-            Mobil
-          </button>
-        </div>
-      </div>
-      <div className="nlp-stage">
+        <div className="nlp-stage">
         {device === "web" ? (
           <div className="nlp-web">{paper}</div>
         ) : (
@@ -119,6 +143,7 @@ export default function NewsLivePreview(props: Props) {
             <div className="nlp-phone-screen">{paper}</div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

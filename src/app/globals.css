@@ -1589,6 +1589,34 @@ table.data-table {
   line-height: 1.7;
 }
 
+/* Canlı önizleme MODAL — sayfayı uzatmaz; ekranın üstünde overlay açılır. */
+.nlp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.nlp-modal {
+  width: min(1040px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.nlp-modal-head {
+  margin-bottom: 12px;
+}
+/* Modal içinde sahne, sabit yükseklik yerine kalan alanı doldurur + kaydırır. */
+.nlp-modal .nlp-stage {
+  max-height: none;
+  flex: 1;
+  min-height: 0;
+}
+
 .article-body {
   font-size: 16px;
   line-height: 1.8;

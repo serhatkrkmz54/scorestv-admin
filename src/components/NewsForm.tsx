@@ -36,7 +36,8 @@ import { isoToLocalInput, localInputToIso } from "@/lib/format";
 // akışında publish çağrısıyla (taslak → yayın yolunda) backend'e iletilir.
 // Push, haber PUBLISHED'a geçtiğinde bir kez tetiklenir (news_push_log
 // idempotent — aynı habere ikinci kez gönderilmez).
-type NotifyTarget = "ALL" | "FAVORITES";
+// Yayınlarken bildirim modu: "none" = kimseye gönderme (yalnızca yayınla).
+type NotifyMode = "none" | "favorites" | "all";
 
 export interface NewsFormInitial {
   id?: number;
@@ -162,9 +163,11 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
   const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
   const [chips, setChips] = useState<EntityChip[]>(initial.chips);
 
-  // Bildirim (UI-only — bkz. üstteki not).
-  const [notifyTarget, setNotifyTarget] = useState<NotifyTarget>("ALL");
-  const [notifyOnPublish, setNotifyOnPublish] = useState(false);
+  // Bildirim modu — varsayılan "none" (kimseye gönderme, sadece yayınla).
+  const [notifyMode, setNotifyMode] = useState<NotifyMode>("none");
+  const notifySendPush = notifyMode !== "none";
+  const notifyPushTarget: "ALL" | "FAVORITES" =
+    notifyMode === "all" ? "ALL" : "FAVORITES";
 
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -236,10 +239,10 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
       countryIds: ids.countryIds,
       playerIds: ids.playerIds,
       fixtureIds: ids.fixtureIds,
-      // Bildirim: yalnız "yayınlarken gönder" işaretliyse backend push atar.
+      // Bildirim: "Kimseye gönderme" seçiliyse push atılmaz (sendPush=false).
       // Push, haber PUBLISHED'a geçtiğinde (kaydet+yayınla ya da /publish) tetiklenir.
-      sendPush: notifyOnPublish,
-      pushTarget: notifyTarget,
+      sendPush: notifySendPush,
+      pushTarget: notifyPushTarget,
     };
   }
 
@@ -277,8 +280,8 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
         // Taslak → yayınla yolu: push niyetini publish ucuna taşı (aksi halde
         // "yayınlarken bildir" işaretli olsa bile bu yolda push kaçıyordu).
         saved = await apiPublishNews(saved.id, {
-          sendPush: notifyOnPublish,
-          pushTarget: notifyTarget,
+          sendPush: notifySendPush,
+          pushTarget: notifyPushTarget,
         });
       }
       setOk(publishAfter ? "Haber kaydedildi ve yayınlandı." : "Haber kaydedildi.");
@@ -411,6 +414,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
           isBreaking={isBreaking}
           lang={lang}
           chips={chips}
+          onClose={() => setShowPreview(false)}
         />
       )}
 
@@ -618,42 +622,44 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
           <div className="card card-pad">
             <div className="section-title">Bildirim</div>
             <div className="section-hint">
-              &quot;Yayınlarken bildirim gönder&quot; işaretliyse, haber yayınlandığında
-              seçtiğin hedefe push gönderilir. Her haber en fazla bir kez bildirilir.
+              Haber yayınlandığında push gönderilsin mi? Her haber en fazla bir
+              kez bildirilir.
             </div>
-            <label className="label">Hedef</label>
-            <div className="radio-row mb-3">
+            <div className="radio-row" style={{ flexDirection: "column", gap: 8 }}>
               <label
-                className={`radio-opt ${notifyTarget === "ALL" ? "selected" : ""}`}
+                className={`radio-opt ${notifyMode === "none" ? "selected" : ""}`}
               >
                 <input
                   type="radio"
-                  name="notify-target"
-                  checked={notifyTarget === "ALL"}
-                  onChange={() => setNotifyTarget("ALL")}
+                  name="notify-mode"
+                  checked={notifyMode === "none"}
+                  onChange={() => setNotifyMode("none")}
                 />
-                Herkes
+                Kimseye gönderme (yalnızca yayınla)
               </label>
               <label
-                className={`radio-opt ${notifyTarget === "FAVORITES" ? "selected" : ""}`}
+                className={`radio-opt ${notifyMode === "favorites" ? "selected" : ""}`}
               >
                 <input
                   type="radio"
-                  name="notify-target"
-                  checked={notifyTarget === "FAVORITES"}
-                  onChange={() => setNotifyTarget("FAVORITES")}
+                  name="notify-mode"
+                  checked={notifyMode === "favorites"}
+                  onChange={() => setNotifyMode("favorites")}
                 />
-                İlgili favoriler
+                İlgili favorilere gönder
+              </label>
+              <label
+                className={`radio-opt ${notifyMode === "all" ? "selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="notify-mode"
+                  checked={notifyMode === "all"}
+                  onChange={() => setNotifyMode("all")}
+                />
+                Herkese gönder
               </label>
             </div>
-            <label className="check-row" style={{ margin: 0 }}>
-              <input
-                type="checkbox"
-                checked={notifyOnPublish}
-                onChange={(e) => setNotifyOnPublish(e.target.checked)}
-              />
-              Yayınlarken bildirim gönder
-            </label>
           </div>
         </div>
       </div>
