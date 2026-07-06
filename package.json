@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tiptap/extension-color": "^2.27.2",
     "@tiptap/extension-image": "^2.11.5",
     "@tiptap/extension-link": "^2.11.5",
     "@tiptap/extension-placeholder": "^2.11.5",
@@ -17,6 +18,7 @@
     "@tiptap/extension-table-header": "^2.11.5",
     "@tiptap/extension-table-row": "^2.11.5",
     "@tiptap/extension-text-align": "^2.11.5",
+    "@tiptap/extension-text-style": "^2.27.2",
     "@tiptap/extension-underline": "^2.11.5",
     "@tiptap/extension-youtube": "^2.11.5",
     "@tiptap/pm": "^2.11.5",

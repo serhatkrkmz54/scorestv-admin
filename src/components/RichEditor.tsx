@@ -13,6 +13,9 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import TextStyle from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
+import { Mark, mergeAttributes } from "@tiptap/core";
 import {
   Bold,
   Italic,
@@ -34,6 +37,8 @@ import {
   Minus,
   Undo2,
   Redo2,
+  Baseline,
+  Sparkles,
 } from "lucide-react";
 import { apiUploadImage, ApiError } from "@/lib/api-client";
 
@@ -51,6 +56,26 @@ const ResizableImage = ImageExt.extend({
         renderHTML: (attrs) => (attrs.width ? { width: attrs.width } : {}),
       },
     };
+  },
+});
+
+// Glow (parlama) — seçili metni text-shadow ile parlatan özel mark. Parlama
+// rengi currentColor: metnin rengiyle (Color eklentisi) birlikte parlar.
+// Backend sanitize span[data-glow] + style'a izin verir (yoksa kayıtta silinir).
+const Glow = Mark.create({
+  name: "glow",
+  parseHTML() {
+    return [{ tag: "span[data-glow]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-glow": "true",
+        style: "text-shadow: 0 0 6px currentColor, 0 0 14px currentColor;",
+      }),
+      0,
+    ];
   },
 });
 
@@ -76,6 +101,9 @@ export default function RichEditor({
         heading: { levels: [2, 3, 4] },
       }),
       Underline,
+      TextStyle,
+      Color,
+      Glow,
       LinkExt.configure({
         openOnClick: false,
         autolink: true,
@@ -302,6 +330,39 @@ function Toolbar({ editor }: { editor: Editor }) {
         title="Sağa hizala"
       >
         <AlignRight size={16} />
+      </B>
+
+      <span className="tb-sep" />
+
+      {/* Metin rengi — native renk seçici. .focus() seçimi geri yükler. */}
+      <label
+        className="tb-btn"
+        title="Metin rengi"
+        style={{ padding: 3, cursor: "pointer" }}
+      >
+        <input
+          type="color"
+          aria-label="Metin rengi"
+          onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
+          style={{
+            width: 22,
+            height: 22,
+            padding: 0,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+          }}
+        />
+      </label>
+      <B onClick={() => editor.chain().focus().unsetColor().run()} title="Rengi temizle">
+        <Baseline size={16} />
+      </B>
+      <B
+        onClick={() => editor.chain().focus().toggleMark("glow").run()}
+        active={editor.isActive("glow")}
+        title="Parlama (glow)"
+      >
+        <Sparkles size={16} />
       </B>
 
       <span className="tb-sep" />
