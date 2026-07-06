@@ -159,8 +159,11 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
   const [publishedAtLocal, setPublishedAtLocal] = useState(
     isoToLocalInput(initial.publishedAt),
   );
-  const [source, setSource] = useState(initial.source);
-  const [sourceUrl, setSourceUrl] = useState(initial.sourceUrl);
+  // Kaynak alanları — UI ŞİMDİLİK GİZLİ (aşağıda yorumda). Değerler yine de
+  // gönderilir: yeni haberde "MANUAL", düzenlemede mevcut değer korunur.
+  // Geri açmak için: setter'ları geri ekle + aşağıdaki Kaynak bloğunu aç.
+  const [source] = useState(initial.source);
+  const [sourceUrl] = useState(initial.sourceUrl);
   const [chips, setChips] = useState<EntityChip[]>(initial.chips);
 
   // Bildirim modu — varsayılan "none" (kimseye gönderme, sadece yayınla).
@@ -594,30 +597,23 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
             />
           </div>
 
+          {/* Kaynak bölümü — ŞİMDİLİK GİZLİ. Geri açmak için: yukarıdaki state'te
+              setSource/setSourceUrl'i geri ekle, bu bloğu yorumdan çıkar.
           <div className="card card-pad">
             <div className="section-title">Kaynak</div>
             <div className="field">
               <label className="label">Kaynak</label>
-              <input
-                className="input"
-                value={source}
-                maxLength={64}
-                onChange={(e) => setSource(e.target.value)}
-                placeholder="MANUAL"
-              />
-              <div className="hint">Elle girilen haberlerde varsayılan MANUAL.</div>
+              <input className="input" value={source} maxLength={64}
+                onChange={(e) => setSource(e.target.value)} placeholder="MANUAL" />
+              <div className="hint">Elle girilen haberlerde varsayilan MANUAL.</div>
             </div>
             <div className="field">
               <label className="label">Kaynak URL</label>
-              <input
-                className="input"
-                value={sourceUrl}
-                maxLength={1024}
-                onChange={(e) => setSourceUrl(e.target.value)}
-                placeholder="https://..."
-              />
+              <input className="input" value={sourceUrl} maxLength={1024}
+                onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://..." />
             </div>
           </div>
+          */}
 
           <div className="card card-pad">
             <div className="section-title">Bildirim</div>

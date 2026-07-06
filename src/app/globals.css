@@ -1470,6 +1470,15 @@ table.data-table {
   border: 1px solid var(--border);
 }
 
+/* Kapak boyutlandırma canlı önizleme çerçevesi (seçilen boyut oranında). */
+.cover-resize-preview {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: #f1f4f8;
+}
+
 /* ---------- Form layout ---------- */
 .form-grid {
   display: grid;
