@@ -149,6 +149,21 @@ export interface ImageUploadResult {
   url: string;
 }
 
+// TranslateNewsRequest / TranslateNewsResult (Java) — DeepL tabanlı çeviri.
+// body HTML tag-korumalı çevrilir. Kayıt oluşturmaz; sadece çevrilmiş metin.
+export interface TranslateNewsRequest {
+  title: string;
+  summary: string;
+  body: string;
+  sourceLang: string; // "tr" | "en"
+  targetLang: string; // "tr" | "en"
+}
+export interface TranslateNewsResult {
+  title: string;
+  summary: string;
+  body: string;
+}
+
 // ---- Search (arama) — entity linking ----
 // SearchResponse.java (public /api/v1/search)
 export interface SearchTeamHit {

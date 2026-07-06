@@ -1536,6 +1536,59 @@ table.data-table {
   margin-bottom: 22px;
 }
 
+/* ---- Haber CANLI önizleme (editör): web + mobil çerçeve ---- */
+.nlp-stage {
+  background: #eef1f5;
+  border-radius: 12px;
+  padding: 18px;
+  overflow: auto;
+  max-height: 72vh;
+  display: flex;
+  justify-content: center;
+}
+/* Kağıt: yayınlanan makale gibi beyaz zemin + koyu metin (panel teması
+   ne olursa olsun). --text-muted yerel override ile griye çekilir. */
+.nlp-paper {
+  --text-muted: #667085;
+  background: #ffffff;
+  color: #0b1220;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.nlp-web {
+  width: 100%;
+  max-width: 820px;
+}
+.nlp-web .nlp-paper {
+  padding: 32px 36px;
+}
+.nlp-phone {
+  width: 390px;
+  max-width: 100%;
+  background: #0b1220;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  flex: 0 0 auto;
+}
+.nlp-phone-screen {
+  background: #fff;
+  border-radius: 30px;
+  overflow: hidden;
+}
+.nlp-phone .nlp-paper {
+  border-radius: 30px;
+  box-shadow: none;
+  padding: 20px 16px;
+}
+.nlp-phone .article-render h1 {
+  font-size: 22px;
+}
+.nlp-phone .article-body {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
 .article-body {
   font-size: 16px;
   line-height: 1.8;

@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import RichEditor from "./RichEditor";
 import EntityLinker from "./EntityLinker";
 import CoverUploader from "./CoverUploader";
+import NewsLivePreview from "./NewsLivePreview"; // editör canlı önizleme
 import {
   apiCreateNews,
   apiUpdateNews,
   apiPublishNews,
+  apiTranslateNews,
+  apiTranslateStatus,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -164,6 +167,10 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
   const [notifyOnPublish, setNotifyOnPublish] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  // Çeviri servisi (DeepL) yapılandırılmış mı — buton yalnızca açıksa görünür.
+  const [translateEnabled, setTranslateEnabled] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [ok, setOk] = useState<string | null>(null);
@@ -183,6 +190,22 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
     }
     return { teamIds, leagueIds, countryIds, playerIds, fixtureIds };
   }, [chips]);
+
+  // Çeviri servisi (DeepL) yapılandırılmış mı — düzenleme modunda bir kez sorulur.
+  useEffect(() => {
+    if (!isEdit) return;
+    let alive = true;
+    apiTranslateStatus()
+      .then((s) => {
+        if (alive) setTranslateEnabled(!!s.enabled);
+      })
+      .catch(() => {
+        if (alive) setTranslateEnabled(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [isEdit]);
 
   function buildRequest(): NewsRequest {
     return {
@@ -276,6 +299,66 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
     }
   }
 
+  /**
+   * Bu haberi DİĞER dile çevirip BAĞLI bir taslak oluşturur (seçim: "ayrı
+   * makale + çeviri ekle"). Çeviri DeepL ile; sonuç DRAFT açılır, editör
+   * gözden geçirir. translationGroupId ile iki dil karşılıklı eşleşir.
+   */
+  async function translateAndCreate() {
+    if (!isEdit || initial.id === undefined) return;
+    setError(null);
+    setOk(null);
+    const bodyText = body.replace(/<[^>]*>/g, "").trim();
+    if (!title.trim() || !bodyText) {
+      setError("Çeviri için başlık ve içerik dolu olmalı.");
+      return;
+    }
+    const target = lang === "tr" ? "en" : "tr";
+    setTranslating(true);
+    try {
+      const t = await apiTranslateNews({
+        title: title.trim(),
+        summary: summary.trim(),
+        body,
+        sourceLang: lang,
+        targetLang: target,
+      });
+      const groupId = initial.translationGroupId ?? initial.id;
+      const created = await apiCreateNews({
+        lang: target,
+        translationGroupId: groupId,
+        title: t.title,
+        summary: t.summary || null,
+        body: t.body,
+        coverImageKey: coverKey ?? null,
+        category: category || null,
+        sport: sport || null,
+        isBreaking,
+        isFeatured,
+        status: "DRAFT",
+        source: source.trim() || null,
+        sourceUrl: sourceUrl.trim() || null,
+        teamIds: ids.teamIds,
+        leagueIds: ids.leagueIds,
+        countryIds: ids.countryIds,
+        playerIds: ids.playerIds,
+        fixtureIds: ids.fixtureIds,
+      });
+      // Kaynak makalede grup id yoksa onu da bağla (iki dil karşılıklı eşleşsin).
+      if (initial.translationGroupId == null) {
+        await apiUpdateNews(initial.id, {
+          ...buildRequest(),
+          translationGroupId: groupId,
+        });
+      }
+      router.push(`/news/${created.id}/edit`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Çeviri oluşturulamadı.");
+    } finally {
+      setTranslating(false);
+    }
+  }
+
   return (
     <div className="stack">
       <div className="spread">
@@ -288,6 +371,27 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
           </div>
         </div>
         <div className="row">
+          {isEdit && translateEnabled && (
+            <button
+              className="btn"
+              onClick={translateAndCreate}
+              disabled={saving || translating}
+              title="Bu haberi diğer dile çevirip bağlı bir taslak oluşturur"
+            >
+              {translating
+                ? "Çevriliyor…"
+                : lang === "tr"
+                  ? "İngilizce çeviri oluştur"
+                  : "Türkçe çeviri oluştur"}
+            </button>
+          )}
+          <button
+            className={showPreview ? "btn btn-primary" : "btn"}
+            onClick={() => setShowPreview((v) => !v)}
+            disabled={saving}
+          >
+            {showPreview ? "Önizlemeyi Gizle" : "Önizle"}
+          </button>
           <button className="btn" onClick={() => router.push("/")} disabled={saving}>
             Listeye Dön
           </button>
@@ -296,6 +400,19 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
 
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-success">{ok}</div>}
+
+      {showPreview && (
+        <NewsLivePreview
+          title={title}
+          summary={summary}
+          bodyHtml={body}
+          coverUrl={coverUrl}
+          category={category}
+          isBreaking={isBreaking}
+          lang={lang}
+          chips={chips}
+        />
+      )}
 
       <div className="form-grid">
         {/* ---- Sol: içerik ---- */}

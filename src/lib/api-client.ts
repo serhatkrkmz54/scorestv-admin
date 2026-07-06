@@ -10,6 +10,8 @@ import type {
   NewsPageResponse,
   NewsRequest,
   SearchResponse,
+  TranslateNewsRequest,
+  TranslateNewsResult,
 } from "./types";
 
 export class ApiError extends Error {
@@ -126,6 +128,20 @@ export async function apiUnpublishNews(id: number): Promise<NewsDetail> {
 export async function apiDeleteNews(id: number): Promise<void> {
   const res = await fetch(`/api/news/${id}`, { method: "DELETE" });
   await parse<{ ok: boolean }>(res);
+}
+
+// ---- Çeviri (DeepL) ----
+export async function apiTranslateNews(
+  payload: TranslateNewsRequest,
+): Promise<TranslateNewsResult> {
+  const res = await fetch("/api/news/translate", jsonInit("POST", payload));
+  return parse<TranslateNewsResult>(res);
+}
+
+/** Çeviri servisi yapılandırılmış mı (DeepL anahtarı var mı)? */
+export async function apiTranslateStatus(): Promise<{ enabled: boolean }> {
+  const res = await fetch("/api/news/translate/status", { method: "GET" });
+  return parse<{ enabled: boolean }>(res);
 }
 
 // ---- Image upload ----
