@@ -26,10 +26,13 @@ import {
 } from "@/lib/labels";
 import { isoToLocalInput, localInputToIso } from "@/lib/format";
 
-// Bildirim hedefi — UI durumu. NOT: Backend CreateNewsRequest/UpdateNewsRequest
-// DTO'sunda bildirim alanı YOKTUR; bu değerler İSTEĞE EKLENMEZ (400 önlemek
-// için). Sadece arayüzde tutulur; backend bildirim alanlarını kabul edecek
-// şekilde genişletildiğinde bağlanacaktır.
+// Bildirim hedefi. Backend artık CreateNewsRequest/UpdateNewsRequest'te
+// sendPush + pushTarget alanlarını KABUL EDİYOR; ayrıca publish ucu da
+// ?sendPush=&pushTarget= query param'larını destekliyor. Bu değerler
+// buildRequest() ile (status=PUBLISHED yolunda) ve "Kaydet & Yayınla"
+// akışında publish çağrısıyla (taslak → yayın yolunda) backend'e iletilir.
+// Push, haber PUBLISHED'a geçtiğinde bir kez tetiklenir (news_push_log
+// idempotent — aynı habere ikinci kez gönderilmez).
 type NotifyTarget = "ALL" | "FAVORITES";
 
 export interface NewsFormInitial {
@@ -248,7 +251,12 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
         saved = await apiCreateNews(req);
       }
       if (publishAfter && saved.status !== "PUBLISHED") {
-        saved = await apiPublishNews(saved.id);
+        // Taslak → yayınla yolu: push niyetini publish ucuna taşı (aksi halde
+        // "yayınlarken bildir" işaretli olsa bile bu yolda push kaçıyordu).
+        saved = await apiPublishNews(saved.id, {
+          sendPush: notifyOnPublish,
+          pushTarget: notifyTarget,
+        });
       }
       setOk(publishAfter ? "Haber kaydedildi ve yayınlandı." : "Haber kaydedildi.");
       // Yeni oluşturmada düzenleme sayfasına geç.

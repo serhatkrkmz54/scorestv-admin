@@ -99,6 +99,7 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
         status: tab === "ALL" ? undefined : tab,
         lang: lang || undefined,
         category: category || undefined,
+        sport: sport || undefined,
         q: debouncedQ || undefined,
         page,
         size: PAGE_SIZE,
@@ -110,19 +111,15 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [tab, lang, category, debouncedQ, page]);
-  // NOT: sport backend admin liste filtresinde yok; istemci tarafı süzeriz.
+  }, [tab, lang, category, sport, debouncedQ, page]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  // sport filtresi backend admin liste param'ında olmadığından istemci tarafında uygula.
-  const rows = useMemo(() => {
-    const items = data?.items ?? [];
-    if (!sport) return items;
-    return items.filter((it) => (it.sport ?? "") === sport);
-  }, [data, sport]);
+  // Spor filtresi artık backend'de (sport param) uygulanıyor; sayfalama da
+  // doğru çalışsın diye istemci tarafında ayrıca süzmüyoruz.
+  const rows = useMemo(() => data?.items ?? [], [data]);
 
   async function doPublish(id: number) {
     setRowBusy(id);

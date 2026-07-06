@@ -70,6 +70,7 @@ export interface NewsListParams {
   status?: string;
   lang?: string;
   category?: string;
+  sport?: string;
   q?: string;
   page?: number;
   size?: number;
@@ -80,6 +81,7 @@ export async function apiListNews(params: NewsListParams): Promise<NewsPageRespo
   if (params.status) qs.set("status", params.status);
   if (params.lang) qs.set("lang", params.lang);
   if (params.category) qs.set("category", params.category);
+  if (params.sport) qs.set("sport", params.sport);
   if (params.q) qs.set("q", params.q);
   if (params.page !== undefined) qs.set("page", String(params.page));
   if (params.size !== undefined) qs.set("size", String(params.size));
@@ -102,8 +104,17 @@ export async function apiUpdateNews(id: number, data: NewsRequest): Promise<News
   return parse<NewsDetail>(res);
 }
 
-export async function apiPublishNews(id: number): Promise<NewsDetail> {
-  const res = await fetch(`/api/news/${id}/publish`, { method: "POST" });
+export async function apiPublishNews(
+  id: number,
+  opts?: { sendPush?: boolean; pushTarget?: "ALL" | "FAVORITES" },
+): Promise<NewsDetail> {
+  // sendPush/pushTarget query param olarak backend publish ucuna iletilir.
+  // Verilmezse push gönderilmez (liste "Yayınla" aksiyonu bilerek sessiz).
+  const qs = new URLSearchParams();
+  if (opts?.sendPush) qs.set("sendPush", "true");
+  if (opts?.pushTarget) qs.set("pushTarget", opts.pushTarget);
+  const url = `/api/news/${id}/publish${qs.toString() ? `?${qs.toString()}` : ""}`;
+  const res = await fetch(url, { method: "POST" });
   return parse<NewsDetail>(res);
 }
 

@@ -12,8 +12,16 @@ export async function POST(
   if (bad) return bad;
 
   const { id } = await ctx.params;
+  // Push niyeti query param olarak backend'e iletilir: ?sendPush=true&pushTarget=
+  // Verilmezse backend push göndermez.
+  const sp = req.nextUrl.searchParams;
+  const qs = new URLSearchParams();
+  if (sp.get("sendPush") === "true") qs.set("sendPush", "true");
+  const pushTarget = sp.get("pushTarget");
+  if (pushTarget) qs.set("pushTarget", pushTarget);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
   const r = await authorizedBackendJson<NewsDetail>(
-    `/api/v1/admin/news/${encodeURIComponent(id)}/publish`,
+    `/api/v1/admin/news/${encodeURIComponent(id)}/publish${suffix}`,
     { method: "POST" },
   );
   if (r.unauthorized) {

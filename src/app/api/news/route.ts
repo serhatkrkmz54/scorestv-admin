@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const qs = new URLSearchParams();
   // Backend'in tanıdığı param'ları geçirgen bırak.
-  for (const key of ["status", "lang", "category", "q", "page", "size"]) {
+  for (const key of ["status", "lang", "category", "sport", "q", "page", "size"]) {
     const v = sp.get(key);
     if (v !== null && v !== "") qs.set(key, v);
   }
