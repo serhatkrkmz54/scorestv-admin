@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Newspaper } from "lucide-react";
 import { apiLogin, ApiError } from "@/lib/api-client";
 
 export default function LoginForm({ next }: { next: string }) {
@@ -41,7 +40,10 @@ export default function LoginForm({ next }: { next: string }) {
   return (
     <form className="login-card" onSubmit={onSubmit}>
       <div className="login-brand">
-        <div className="logo">S</div>
+        <div className="logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/app_icon.png" alt="ScoresTV" />
+        </div>
         <div>
           <h1>Scores TV</h1>
           <p>Editör Paneli</p>

@@ -424,6 +424,7 @@ function NewsFormInner(
   return (
     <div className="stack">
       {!embedded && (
+        <>
         <div className="spread">
           <div>
             <h2 style={{ margin: 0, fontSize: 20 }}>
@@ -470,6 +471,25 @@ function NewsFormInner(
             </button>
           </div>
         </div>
+        <div
+          style={{
+            marginTop: 2,
+            padding: "11px 14px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--brand-soft)",
+            borderLeft: "3px solid var(--brand)",
+            background: "var(--brand-soft)",
+            color: "var(--text)",
+            fontSize: 13,
+            lineHeight: 1.5,
+          }}
+        >
+          <strong>İpucu:</strong> Herhangi bir dilde haberi yazıp kaydettikten
+          sonra, taslak durumundayken{" "}
+          <strong>&quot;İngilizce çeviri oluştur&quot;</strong>a bastığınızda
+          haber otomatik olarak İngilizceye çevrilir.
+        </div>
+        </>
       )}
 
       {embedded && paneTitle && (
