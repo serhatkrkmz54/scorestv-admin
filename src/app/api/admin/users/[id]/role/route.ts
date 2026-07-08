@@ -24,7 +24,7 @@ export async function PATCH(
   }
 
   const r = await authorizedBackendJson<AdminUserView>(
-    `/api/v1/admin/users/${encodeURIComponent(id)}/role`,
+    `/api/v1/admin/staff/${encodeURIComponent(id)}/role`,
     { method: "PATCH", body: JSON.stringify({ role: payload.role }) },
   );
 

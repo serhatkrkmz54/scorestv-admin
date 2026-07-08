@@ -11,7 +11,7 @@ import type { AdminUserView, CreateEditorRequest } from "@/lib/types";
  * Rol kontrolü backend'de (@PreAuthorize("hasRole('ADMIN')")); EDITOR 403 alır.
  */
 export async function GET() {
-  const r = await authorizedBackendJson<AdminUserView[]>("/api/v1/admin/users");
+  const r = await authorizedBackendJson<AdminUserView[]>("/api/v1/admin/staff");
 
   if (r.unauthorized) {
     return NextResponse.json({ message: "Oturum gerekli." }, { status: 401 });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Geçersiz istek." }, { status: 400 });
   }
 
-  const r = await authorizedBackendJson<AdminUserView>("/api/v1/admin/users", {
+  const r = await authorizedBackendJson<AdminUserView>("/api/v1/admin/staff", {
     method: "POST",
     body: JSON.stringify(payload),
   });
