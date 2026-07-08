@@ -60,6 +60,8 @@ export interface NewsFormInitial {
   sport: string;
   isBreaking: boolean;
   isFeatured: boolean;
+  inSlider: boolean;
+  sliderOrder: number;
   status: NewsStatus;
   publishedAt: string | null;
   source: string;
@@ -79,6 +81,8 @@ export const EMPTY_INITIAL: NewsFormInitial = {
   sport: "football",
   isBreaking: false,
   isFeatured: false,
+  inSlider: false,
+  sliderOrder: 0,
   status: "DRAFT",
   publishedAt: null,
   source: "MANUAL",
@@ -115,6 +119,8 @@ export function initialFromDetail(d: NewsDetail, forCopy = false): NewsFormIniti
     sport: d.sport ?? "football",
     isBreaking: d.isBreaking,
     isFeatured: d.isFeatured,
+    inSlider: forCopy ? false : d.inSlider,
+    sliderOrder: forCopy ? 0 : d.sliderOrder,
     status: forCopy ? "DRAFT" : d.status,
     publishedAt: forCopy ? null : d.publishedAt,
     source: d.source ?? "MANUAL",
@@ -183,6 +189,8 @@ function NewsFormInner(
   const [sport, setSport] = useState(initial.sport);
   const [isBreaking, setIsBreaking] = useState(initial.isBreaking);
   const [isFeatured, setIsFeatured] = useState(initial.isFeatured);
+  const [inSlider, setInSlider] = useState(initial.inSlider);
+  const [sliderOrder, setSliderOrder] = useState<number>(initial.sliderOrder);
   const [status, setStatus] = useState<NewsStatus>(initial.status);
   const [publishedAtLocal, setPublishedAtLocal] = useState(
     isoToLocalInput(initial.publishedAt),
@@ -254,6 +262,8 @@ function NewsFormInner(
       sport: sport || null,
       isBreaking,
       isFeatured,
+      inSlider,
+      sliderOrder,
       status,
       // publishedAt yalnız SCHEDULED (veya PUBLISHED elle tarih) için gönderilir.
       publishedAt:
@@ -375,6 +385,8 @@ function NewsFormInner(
         sport: sport || null,
         isBreaking,
         isFeatured,
+        inSlider,
+        sliderOrder,
         status: "DRAFT",
         source: source.trim() || null,
         sourceUrl: sourceUrl.trim() || null,
@@ -669,6 +681,27 @@ function NewsFormInner(
               checked={isFeatured}
               onChange={setIsFeatured}
             />
+            <Toggle
+              label="Slider'da Göster"
+              hint="Web haberler sayfası üst slider'ında görünür"
+              checked={inSlider}
+              onChange={setInSlider}
+            />
+            {inSlider && (
+              <div className="field" style={{ marginTop: 10 }}>
+                <label className="label">Slider Sırası</label>
+                <input
+                  className="input"
+                  type="number"
+                  value={sliderOrder}
+                  onChange={(e) => setSliderOrder(Number(e.target.value) || 0)}
+                  placeholder="0"
+                />
+                <div className="hint">
+                  Küçük numara önce gösterilir (0, 1, 2…). Aynı numarada en yeni önce.
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="card card-pad">

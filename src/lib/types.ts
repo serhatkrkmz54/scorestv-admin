@@ -99,6 +99,8 @@ export interface NewsDetail {
   sport: string | null;
   isBreaking: boolean;
   isFeatured: boolean;
+  inSlider: boolean; // web slider'da göster
+  sliderOrder: number; // slider sırası (küçükten büyüğe)
   authorName: string | null;
   viewCount: number;
   readingMinutes: number | null;
@@ -131,6 +133,8 @@ export interface NewsRequest {
   sport?: string | null;
   isBreaking: boolean;
   isFeatured: boolean;
+  inSlider?: boolean; // web slider'da göster
+  sliderOrder?: number; // slider sırası
   status?: NewsStatus | null;
   publishedAt?: string | null; // ISO Instant
   source?: string | null;
