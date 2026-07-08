@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { resolveUser, isEditorOrAdmin } from "@/lib/auth-server";
+import { resolveUserAllowRefresh, isEditorOrAdmin } from "@/lib/auth-server";
 
 export async function GET() {
-  const user = await resolveUser();
+  // Route handler → cookie yazılabilir; süresi dolmuşsa refresh dener.
+  const user = await resolveUserAllowRefresh();
   if (!user) {
     return NextResponse.json({ message: "Oturum yok." }, { status: 401 });
   }

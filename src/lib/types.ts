@@ -93,6 +93,7 @@ export interface NewsDetail {
   summary: string | null;
   body: string; // sanitize edilmiş HTML
   coverImageUrl: string | null;
+  coverImageKey: string | null; // MinIO anahtarı — düzenleme/çeviride kapağı korumak için
   status: NewsStatus;
   category: NewsCategory | null;
   sport: string | null;
@@ -147,6 +148,48 @@ export interface NewsRequest {
 export interface ImageUploadResult {
   key: string;
   url: string;
+}
+
+// NewsAdminController.MediaItem — medya kütüphanesi ögesi (yüklenmiş görsel).
+export interface MediaItem {
+  key: string;
+  url: string;
+  size: number;
+  lastModified: string | null; // ISO Instant
+}
+
+// Broadcast — habere/maça bağlı OLMAYAN genel push bildirimi.
+export type BroadcastPlatform = "ALL" | "IOS" | "ANDROID";
+export type BroadcastLang = "ALL" | "TR" | "EN";
+export type BroadcastStatus = "QUEUED" | "SENT" | "FAILED";
+
+export interface BroadcastRequest {
+  title: string;
+  body: string;
+  link?: string | null; // opsiyonel; dokununca açılır
+  platform: BroadcastPlatform;
+  lang: BroadcastLang;
+}
+
+// Enqueue yanıtı — gönderim arka planda; status=QUEUED, sentCount=0 döner.
+export interface BroadcastResult {
+  id: number;
+  status: BroadcastStatus;
+  recipientCount: number; // hedeflenen cihaz
+  sentCount: number; // FCM başarılı gönderim
+}
+
+export interface BroadcastListItem {
+  id: number;
+  title: string;
+  body: string;
+  link: string | null;
+  platformTarget: BroadcastPlatform;
+  langTarget: BroadcastLang;
+  status: BroadcastStatus;
+  recipientCount: number;
+  sentCount: number;
+  createdAt: string; // ISO Instant
 }
 
 // TranslateNewsRequest / TranslateNewsResult (Java) — DeepL tabanlı çeviri.

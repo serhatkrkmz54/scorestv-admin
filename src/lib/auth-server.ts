@@ -9,33 +9,39 @@ import {
 import type { AppUser, AuthResponse } from "./types";
 
 /**
- * Geçerli oturumun kullanıcısını çözer.
- * access token geçerliyse /me döner; 401 ise refresh dener ve çerezleri tazeler.
- * (Public web auth-server.ts ile aynı desen.)
+ * Geçerli oturumun kullanıcısını çözer (LAYOUT RENDER'ında çağrılır).
+ *
+ * access token geçerliyse /me döner. Süresi dolmuşsa BURADA rotasyon YAPMAZ:
+ * Next.js render sırasında cookie yazılamadığı için yeni refresh token
+ * kaybolur, eski token "yeniden kullanıldı" sanılıp backend TÜM oturumları
+ * kapatırdı. Tazeleme artık middleware'de (çerezi kalıcı yazan yer) yapılıyor;
+ * bu fonksiyon render'a geldiğinde access token zaten taze olur. Taze değilse
+ * null döneriz (layout /login'e yönlendirir) — asla oturum-nuke tetiklemeyiz.
  */
 export async function resolveUser(): Promise<AppUser | null> {
   const accessToken = await getAccessToken();
-  if (accessToken) {
-    const r = await backendJson<AppUser>("/api/v1/auth/me", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (r.ok && r.body) return r.body;
-  }
-
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
-
-  const rr = await backendJson<AuthResponse>("/api/v1/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
+  if (!accessToken) return null;
+  const r = await backendJson<AppUser>("/api/v1/auth/me", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!rr.ok || !rr.body) {
-    await clearAuthCookies();
-    return null;
-  }
-  await setAuthCookies(rr.body.accessToken, rr.body.refreshToken, rr.body.expiresIn, true);
-  return rr.body.user;
+  if (r.ok && r.body) return r.body;
+  return null;
+}
+
+/**
+ * ROUTE HANDLER için kullanıcı çözümü — resolveUser gibidir ama access token
+ * süresi dolmuşsa refresh + persist DENER (route handler'da cookie yazılabilir).
+ * RENDER'da KULLANMA (orada resolveUser kullan; render'da cookie yazılamaz).
+ */
+export async function resolveUserAllowRefresh(): Promise<AppUser | null> {
+  const token = await getForwardAccessToken();
+  if (!token) return null;
+  const r = await backendJson<AppUser>("/api/v1/auth/me", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return r.ok && r.body ? r.body : null;
 }
 
 /** EDITOR veya ADMIN mı? Panel erişim yetkisi bu koşula bağlı. */

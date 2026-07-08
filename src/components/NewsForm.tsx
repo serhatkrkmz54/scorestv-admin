@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import RichEditor from "./RichEditor";
 import EntityLinker from "./EntityLinker";
 import CoverUploader from "./CoverUploader";
+import MediaPicker from "./MediaPicker";
 import NewsLivePreview from "./NewsLivePreview"; // editör canlı önizleme
 import {
   apiCreateNews,
@@ -99,7 +100,9 @@ export function initialFromDetail(d: NewsDetail, forCopy = false): NewsFormIniti
     title: forCopy ? `${d.title} (kopya)` : d.title,
     summary: d.summary ?? "",
     body: d.body ?? "",
-    coverImageKey: null, // detay yalnızca URL döner; key yeniden yüklemede belirlenir
+    // Detay artık coverImageKey de döndürüyor → kaydet/çeviri kapağı korur
+    // (kopyalamada yeni makale kendi kapağını alsın diye null).
+    coverImageKey: forCopy ? null : (d.coverImageKey ?? null),
     coverImageUrl: forCopy ? null : d.coverImageUrl,
     category: d.category ?? "",
     sport: d.sport ?? "football",
@@ -151,6 +154,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
   const [body, setBody] = useState(initial.body);
   const [coverKey, setCoverKey] = useState<string | null>(initial.coverImageKey);
   const [coverUrl, setCoverUrl] = useState<string | null>(initial.coverImageUrl);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const [category, setCategory] = useState<NewsCategory | "">(initial.category);
   const [sport, setSport] = useState(initial.sport);
   const [isBreaking, setIsBreaking] = useState(initial.isBreaking);
@@ -578,7 +582,23 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
                 setCoverUrl(u);
               }}
             />
+            <button
+              type="button"
+              className="media-open-btn"
+              onClick={() => setMediaOpen(true)}
+            >
+              Medyadan seç
+            </button>
           </div>
+
+          <MediaPicker
+            open={mediaOpen}
+            onClose={() => setMediaOpen(false)}
+            onSelect={(k, u) => {
+              setCoverKey(k);
+              setCoverUrl(u);
+            }}
+          />
 
           <div className="card card-pad">
             <div className="section-title">Etiketler</div>

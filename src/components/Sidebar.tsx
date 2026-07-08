@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   Newspaper,
   PlusCircle,
+  Bell,
   Image as ImageIcon,
   Settings,
   LogOut,
@@ -28,6 +29,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     pathname === "/" ||
     (pathname.startsWith("/news") && !pathname.endsWith("/new"));
   const isNew = pathname === "/news/new";
+  const isNotifications = pathname.startsWith("/notifications");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -66,6 +68,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
         <Link href="/news/new" className={`nav-item ${isNew ? "active" : ""}`}>
           <PlusCircle className="icon" size={22} />
           Yeni Haber
+        </Link>
+        <Link
+          href="/notifications"
+          className={`nav-item ${isNotifications ? "active" : ""}`}
+        >
+          <Bell className="icon" size={22} />
+          Bildirim Gönder
         </Link>
 
         <div className="sidebar-section">Yakında</div>

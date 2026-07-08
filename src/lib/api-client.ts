@@ -5,7 +5,11 @@
 
 import type {
   AppUser,
+  BroadcastListItem,
+  BroadcastRequest,
+  BroadcastResult,
   ImageUploadResult,
+  MediaItem,
   NewsDetail,
   NewsPageResponse,
   NewsRequest,
@@ -150,6 +154,27 @@ export async function apiUploadImage(file: File): Promise<ImageUploadResult> {
   form.append("file", file);
   const res = await fetch("/api/news/images", { method: "POST", body: form });
   return parse<ImageUploadResult>(res);
+}
+
+/** Medya kütüphanesi — daha önce yüklenmiş görseller (en yeni üstte). */
+export async function apiListMedia(limit = 120): Promise<MediaItem[]> {
+  const res = await fetch(`/api/news/media?limit=${limit}`, { method: "GET" });
+  return parse<MediaItem[]>(res);
+}
+
+// ---- Broadcast (genel bildirim) ----
+export async function apiSendBroadcast(
+  data: BroadcastRequest,
+): Promise<BroadcastResult> {
+  const res = await fetch("/api/notifications/broadcast", jsonInit("POST", data));
+  return parse<BroadcastResult>(res);
+}
+
+export async function apiListBroadcasts(limit = 50): Promise<BroadcastListItem[]> {
+  const res = await fetch(`/api/notifications/broadcast?limit=${limit}`, {
+    method: "GET",
+  });
+  return parse<BroadcastListItem[]>(res);
 }
 
 // ---- Search ----
