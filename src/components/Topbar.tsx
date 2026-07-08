@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { apiLogout } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
-import { useTopbarSearchValue } from "@/lib/topbar-search";
 
 /** Rota → sayfa başlığı. Liste dışı rotalar için basit eşleme. */
 function pageTitle(pathname: string): string {
@@ -19,9 +18,16 @@ export default function Topbar({ user }: { user: AppUser }) {
   const router = useRouter();
   const pathname = usePathname();
   const [busy, setBusy] = useState(false);
-  const [search, setSearch] = useTopbarSearchValue();
 
-  const isList = pathname === "/";
+  // Canlı tarih & saat (topbar ortası). SSR/hydration uyuşmazlığı olmasın diye
+  // başlangıçta null; mount sonrası saniyede bir güncellenir.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const title = pageTitle(pathname);
   const roleBadge = user.role === "ADMIN" ? "Süper Admin" : "Editör";
 
@@ -32,14 +38,21 @@ export default function Topbar({ user }: { user: AppUser }) {
     .join("")
     .toUpperCase();
 
-  const onSearch = useCallback(
-    (v: string) => {
-      setSearch(v);
-      // Liste dışındaysak, arama yazılınca listeye dön (arama orada uygulanır).
-      if (!isList && v.trim()) router.push("/");
-    },
-    [setSearch, isList, router],
-  );
+  const timeStr = now
+    ? now.toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "--:--:--";
+  const dateStr = now
+    ? now.toLocaleDateString("tr-TR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
 
   async function logout() {
     setBusy(true);
@@ -52,14 +65,9 @@ export default function Topbar({ user }: { user: AppUser }) {
     <header className="topbar">
       <div className="topbar-title">{title}</div>
 
-      <div className="topbar-search">
-        <Search className="icon" size={18} />
-        <input
-          type="search"
-          placeholder="Haberlerde ara..."
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-        />
+      <div className="topbar-clock" suppressHydrationWarning>
+        <span className="clock-time">{timeStr}</span>
+        <span className="clock-date">{dateStr}</span>
       </div>
 
       <div className="topbar-user">

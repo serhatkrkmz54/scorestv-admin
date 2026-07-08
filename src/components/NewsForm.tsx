@@ -36,6 +36,7 @@ import {
   STATUS_LABELS,
 } from "@/lib/labels";
 import { isoToLocalInput, localInputToIso } from "@/lib/format";
+import { getNotifyDefault } from "@/lib/prefs";
 
 // Bildirim hedefi. Backend artık CreateNewsRequest/UpdateNewsRequest'te
 // sendPush + pushTarget alanlarını KABUL EDİYOR; ayrıca publish ucu da
@@ -202,6 +203,9 @@ function NewsFormInner(
   const [chips, setChips] = useState<EntityChip[]>(initial.chips);
 
   // Bildirim modu — varsayılan "none" (kimseye gönderme, sadece yayınla).
+  // YENİ haberde editörün Ayarlar'daki bildirim varsayılanı (localStorage)
+  // uygulanır; DÜZENLEMEDE dokunulmaz. localStorage yalnız istemcide okunabildiği
+  // için mount sonrası (useEffect) set edilir — hidrasyon uyuşmazlığını önler.
   const [notifyMode, setNotifyMode] = useState<NotifyMode>("none");
   const notifySendPush = notifyMode !== "none";
   const notifyPushTarget: "ALL" | "FAVORITES" =
@@ -246,6 +250,11 @@ function NewsFormInner(
     return () => {
       alive = false;
     };
+  }, [isEdit]);
+
+  // YENİ haberde bildirim modunu Ayarlar'daki varsayılana ayarla (istemci-only).
+  useEffect(() => {
+    if (!isEdit) setNotifyMode(getNotifyDefault());
   }, [isEdit]);
 
   function buildRequest(): NewsRequest {

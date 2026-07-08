@@ -31,6 +31,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isNew = pathname === "/news/new";
   const isNotifications = pathname.startsWith("/notifications");
   const isMedia = pathname.startsWith("/media");
+  const isSettings = pathname.startsWith("/settings");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -82,16 +83,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <ImageIcon className="icon" size={22} />
           Medya
         </Link>
-
-        <div className="sidebar-section">Yakında</div>
-        <span
-          className="nav-item disabled"
-          aria-disabled
-          title="Yakında eklenecek"
+        <Link
+          href="/settings"
+          className={`nav-item ${isSettings ? "active" : ""}`}
         >
           <Settings className="icon" size={22} />
           Ayarlar
-        </span>
+        </Link>
       </nav>
 
       <div className="sidebar-footer">

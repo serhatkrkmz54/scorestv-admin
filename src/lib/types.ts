@@ -282,6 +282,39 @@ export interface SearchResponse {
   coaches: unknown[];
 }
 
+// ---- Ayarlar → Profil (mevcut auth uçlarına eşlenir) ----
+// UpdateProfileRequest.java — PUT /api/v1/auth/me. birthDate + country backend
+// tarafında ZORUNLUdur (@NotNull / @NotBlank), bu yüzden panelde de gönderilir.
+export interface UpdateProfileRequest {
+  displayName: string;
+  birthDate: string; // yyyy-MM-dd
+  country: string;
+}
+
+// ChangePasswordRequest.java — POST /api/v1/auth/change-password.
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+// ---- Ayarlar → Editör Yönetimi (ADMIN) ----
+// AdminUserView.java — GET /api/v1/admin/users (şifre hash'i içermez).
+export interface AdminUserView {
+  id: number;
+  email: string;
+  displayName: string;
+  role: Role;
+  enabled: boolean;
+}
+
+// CreateEditorRequest.java — POST /api/v1/admin/users.
+export interface CreateEditorRequest {
+  email: string;
+  displayName: string;
+  password: string;
+  role: "EDITOR" | "ADMIN";
+}
+
 // ---- EntityLinker seçili varlık çipi (form state) ----
 export type EntityKind = "team" | "league" | "player" | "country" | "fixture";
 

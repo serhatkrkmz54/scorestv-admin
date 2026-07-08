@@ -57,6 +57,60 @@
   --topbar-h: 72px;
 }
 
+/* ---------- Koyu tema ----------
+   Panelin VARSAYILAN görünümü açıktır (yukarıdaki :root). Kullanıcı Ayarlar →
+   Panel Teması'ndan "Koyu" veya OS'i koyu iken "Sistem" seçerse <html data-theme
+   ="dark"> olur ve buradaki değerler mevcut token'ları ezip tutarlı bir koyu
+   palet uygular. Marka (--brand) korunur. Kart/sidebar/topbar/input/badge'lerin
+   hepsi bu token'lardan beslendiği için otomatik uyum sağlar. */
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #131c2e;
+  --surface-2: #1a2438;
+  --tint: #17233b;
+
+  --border: #24304a;
+  --border-strong: #33415f;
+
+  --text: #e7edf7;
+  --text-muted: #9db0cc;
+  --text-faint: #6c7d98;
+
+  --brand: #3b8cff;
+  --brand-hover: #5aa0ff;
+  --brand-soft: rgba(59, 140, 255, 0.2);
+
+  --success: #2ee6c6;
+  --success-soft: rgba(0, 182, 155, 0.18);
+  --warning: #f0a94a;
+  --warning-soft: rgba(240, 169, 74, 0.16);
+  --danger: #ff6b60;
+  --danger-soft: rgba(255, 107, 96, 0.18);
+  --danger-base: #ff6b60;
+  --neutral: #9db0cc;
+  --neutral-soft: rgba(157, 176, 204, 0.14);
+  --archive: #8aa0be;
+  --archive-soft: rgba(138, 160, 190, 0.16);
+  --info: #3b8cff;
+  --info-soft: rgba(59, 140, 255, 0.2);
+
+  /* Sidebar zaten koyu lacivert — koyu temada biraz daha derinleştir. */
+  --sidebar-bg: #060e1c;
+  --sidebar-text: #e6edf7;
+  --sidebar-muted: #8ea6c6;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(59, 140, 255, 0.2);
+
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.25);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Rich editor toolbar hover (koyu temada sabit açık renk flash'ını önle). */
+:root[data-theme="dark"] .tb-btn:hover {
+  background: var(--surface-2);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -305,6 +359,33 @@ a {
   font-size: 19px;
   color: var(--text);
   white-space: nowrap;
+}
+
+/* Canlı tarih & saat (arama kutusunun yerine). */
+.topbar-clock {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+  user-select: none;
+}
+
+.topbar-clock .clock-time {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar-clock .clock-date {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: capitalize;
 }
 
 .topbar-search {

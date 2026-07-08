@@ -4,10 +4,13 @@
 // gider (backend'e ASLA doğrudan değil). Çerezler otomatik iletilir.
 
 import type {
+  AdminUserView,
   AppUser,
   BroadcastListItem,
   BroadcastRequest,
   BroadcastResult,
+  ChangePasswordRequest,
+  CreateEditorRequest,
   ImageUploadResult,
   MediaItem,
   MediaUsage,
@@ -17,6 +20,7 @@ import type {
   SearchResponse,
   TranslateNewsRequest,
   TranslateNewsResult,
+  UpdateProfileRequest,
 } from "./types";
 
 export class ApiError extends Error {
@@ -70,6 +74,53 @@ export async function apiLogout(): Promise<void> {
 export async function apiMe(): Promise<AppUser> {
   const res = await fetch("/api/auth/me", { method: "GET" });
   return parse<AppUser>(res);
+}
+
+// ---- Ayarlar → Profil ----
+export async function apiUpdateProfile(
+  data: UpdateProfileRequest,
+): Promise<AppUser> {
+  const res = await fetch("/api/auth/profile", jsonInit("PUT", data));
+  return parse<AppUser>(res);
+}
+
+export async function apiChangePassword(
+  data: ChangePasswordRequest,
+): Promise<void> {
+  const res = await fetch("/api/auth/password", jsonInit("POST", data));
+  await parse<{ ok: boolean }>(res);
+}
+
+// ---- Ayarlar → Editör Yönetimi (ADMIN) ----
+export async function apiListUsers(): Promise<AdminUserView[]> {
+  const res = await fetch("/api/admin/users", { method: "GET" });
+  return parse<AdminUserView[]>(res);
+}
+
+export async function apiCreateUser(
+  data: CreateEditorRequest,
+): Promise<AdminUserView> {
+  const res = await fetch("/api/admin/users", jsonInit("POST", data));
+  return parse<AdminUserView>(res);
+}
+
+export async function apiUpdateUserRole(
+  id: number,
+  role: "EDITOR" | "ADMIN",
+): Promise<AdminUserView> {
+  const res = await fetch(`/api/admin/users/${id}/role`, jsonInit("PATCH", { role }));
+  return parse<AdminUserView>(res);
+}
+
+export async function apiUpdateUserEnabled(
+  id: number,
+  enabled: boolean,
+): Promise<AdminUserView> {
+  const res = await fetch(
+    `/api/admin/users/${id}/enabled`,
+    jsonInit("PATCH", { enabled }),
+  );
+  return parse<AdminUserView>(res);
 }
 
 // ---- News ----
