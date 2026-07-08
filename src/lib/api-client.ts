@@ -10,6 +10,7 @@ import type {
   BroadcastResult,
   ImageUploadResult,
   MediaItem,
+  MediaUsage,
   NewsDetail,
   NewsPageResponse,
   NewsRequest,
@@ -160,6 +161,31 @@ export async function apiUploadImage(file: File): Promise<ImageUploadResult> {
 export async function apiListMedia(limit = 120): Promise<MediaItem[]> {
   const res = await fetch(`/api/news/media?limit=${limit}`, { method: "GET" });
   return parse<MediaItem[]>(res);
+}
+
+/** Bir görselin hangi haber(ler)de kullanıldığı (kapak/gövde). */
+export async function apiMediaUsage(key: string): Promise<MediaUsage[]> {
+  const res = await fetch(
+    `/api/news/media/usage?key=${encodeURIComponent(key)}`,
+    { method: "GET" },
+  );
+  return parse<MediaUsage[]>(res);
+}
+
+/** Bir görseli MinIO'dan siler. */
+export async function apiDeleteMedia(key: string): Promise<void> {
+  const res = await fetch(`/api/news/media?key=${encodeURIComponent(key)}`, {
+    method: "DELETE",
+  });
+  if (res.ok) return;
+  let message = "Görsel silinemedi.";
+  try {
+    const b = await res.json();
+    if (b?.message) message = b.message;
+  } catch {
+    // gövde yok/parse edilemedi
+  }
+  throw new ApiError(res.status, message);
 }
 
 // ---- Broadcast (genel bildirim) ----

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { authorizedBackendJson } from "@/lib/auth-server";
+import { checkSameOrigin } from "@/lib/origin-check";
 import type { MediaItem } from "@/lib/types";
 
 /**
@@ -24,4 +25,33 @@ export async function GET(req: NextRequest) {
     );
   }
   return NextResponse.json(r.body);
+}
+
+/**
+ * Görseli sil (DELETE) → backend DELETE /api/v1/admin/news/media?key=...
+ * Panel, görsel bir habere bağlıysa kullanıcıyı önceden uyarır; onaydan sonra
+ * bu çağrılır.
+ */
+export async function DELETE(req: NextRequest) {
+  const bad = checkSameOrigin(req);
+  if (bad) return bad;
+
+  const key = req.nextUrl.searchParams.get("key");
+  if (!key) {
+    return NextResponse.json({ message: "key gerekli." }, { status: 400 });
+  }
+  const r = await authorizedBackendJson(
+    `/api/v1/admin/news/media?key=${encodeURIComponent(key)}`,
+    { method: "DELETE" },
+  );
+  if (r.unauthorized) {
+    return NextResponse.json({ message: "Oturum gerekli." }, { status: 401 });
+  }
+  if (!r.ok) {
+    return NextResponse.json(
+      r.body ?? { message: "Görsel silinemedi." },
+      { status: r.status },
+    );
+  }
+  return new NextResponse(null, { status: 204 });
 }

@@ -158,6 +158,17 @@ export interface MediaItem {
   lastModified: string | null; // ISO Instant
 }
 
+// MediaUsage — bir görselin hangi haberde kullanıldığı (kapak/gövde).
+export interface MediaUsage {
+  articleId: number;
+  title: string;
+  slug: string;
+  lang: string;
+  status: string;
+  cover: boolean; // haberin kapağı mı
+  inBody: boolean; // haberin gövdesinde mi geçiyor
+}
+
 // Broadcast — habere/maça bağlı OLMAYAN genel push bildirimi.
 export type BroadcastPlatform = "ALL" | "IOS" | "ANDROID";
 export type BroadcastLang = "ALL" | "TR" | "EN";

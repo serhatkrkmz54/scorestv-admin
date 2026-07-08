@@ -30,6 +30,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     (pathname.startsWith("/news") && !pathname.endsWith("/new"));
   const isNew = pathname === "/news/new";
   const isNotifications = pathname.startsWith("/notifications");
+  const isMedia = pathname.startsWith("/media");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -76,16 +77,12 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <Bell className="icon" size={22} />
           Bildirim Gönder
         </Link>
-
-        <div className="sidebar-section">Yakında</div>
-        <span
-          className="nav-item disabled"
-          aria-disabled
-          title="Yakında eklenecek"
-        >
+        <Link href="/media" className={`nav-item ${isMedia ? "active" : ""}`}>
           <ImageIcon className="icon" size={22} />
           Medya
-        </span>
+        </Link>
+
+        <div className="sidebar-section">Yakında</div>
         <span
           className="nav-item disabled"
           aria-disabled
