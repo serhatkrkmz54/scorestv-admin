@@ -50,7 +50,8 @@ export default function Sidebar({ user }: { user: AppUser }) {
     <aside className="sidebar">
       <div className="sidebar-brand">
         <div className="logo">
-          <Newspaper size={20} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/app_icon.png" alt="ScoresTV" />
         </div>
         <div>
           <div className="brand-name">
