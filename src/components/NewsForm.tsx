@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+  type ForwardedRef,
+} from "react";
 import { useRouter } from "next/navigation";
 import RichEditor from "./RichEditor";
 import EntityLinker from "./EntityLinker";
@@ -141,7 +148,24 @@ function Toggle({
   );
 }
 
-export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
+/** Çift-dil panelinden imperative çağrılabilen yüzey. */
+export interface NewsFormHandle {
+  /** Kaydeder (publishAfter=true ise yayınlar). Başarılıysa true döner. */
+  save: (publishAfter: boolean) => Promise<boolean>;
+}
+
+interface NewsFormProps {
+  initial: NewsFormInitial;
+  /** Çift-dil panelinde gömülü kullanım: navigasyon yok, tek kolon, sade başlık. */
+  embedded?: boolean;
+  paneTitle?: string;
+  onSaved?: (saved: NewsDetail) => void;
+}
+
+function NewsFormInner(
+  { initial, embedded = false, paneTitle, onSaved }: NewsFormProps,
+  ref: ForwardedRef<NewsFormHandle>,
+) {
   const router = useRouter();
   const isEdit = initial.id !== undefined;
 
@@ -266,12 +290,12 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
     return Object.keys(errs).length === 0;
   }
 
-  async function save(publishAfter: boolean) {
+  async function save(publishAfter: boolean): Promise<boolean> {
     setError(null);
     setOk(null);
     if (!validate()) {
       setError("Lütfen işaretli alanları düzeltin.");
-      return;
+      return false;
     }
     setSaving(true);
     try {
@@ -291,11 +315,15 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
         });
       }
       setOk(publishAfter ? "Haber kaydedildi ve yayınlandı." : "Haber kaydedildi.");
-      // Yeni oluşturmada düzenleme sayfasına geç.
-      if (!isEdit) {
-        router.replace(`/news/${saved.id}/edit`);
+      onSaved?.(saved);
+      // Gömülü (çift-dil) modda navigasyon YOK — panel yerinde kalır.
+      if (!embedded) {
+        if (!isEdit) {
+          router.replace(`/news/${saved.id}/edit`);
+        }
+        router.refresh();
       }
-      router.refresh();
+      return true;
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -303,10 +331,13 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
       } else {
         setError("Kaydedilemedi. Bağlantınızı kontrol edin.");
       }
+      return false;
     } finally {
       setSaving(false);
     }
   }
+
+  useImperativeHandle(ref, () => ({ save }));
 
   /**
    * Bu haberi DİĞER dile çevirip BAĞLI bir taslak oluşturur (seçim: "ayrı
@@ -360,7 +391,8 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
           translationGroupId: groupId,
         });
       }
-      router.push(`/news/${created.id}/edit`);
+      // Çeviri sonrası: iki dili yan yana düzenleme ekranına geç.
+      router.push(`/news/${initial.id}/bilingual`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Çeviri oluşturulamadı.");
     } finally {
@@ -370,42 +402,65 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
 
   return (
     <div className="stack">
-      <div className="spread">
-        <div>
-          <h2 style={{ margin: 0, fontSize: 20 }}>
-            {isEdit ? "Haberi Düzenle" : "Yeni Haber"}
-          </h2>
-          <div className="muted" style={{ fontSize: 13 }}>
-            {isEdit ? `#${initial.id}` : "Taslak olarak başlar"}
+      {!embedded && (
+        <div className="spread">
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20 }}>
+              {isEdit ? "Haberi Düzenle" : "Yeni Haber"}
+            </h2>
+            <div className="muted" style={{ fontSize: 13 }}>
+              {isEdit ? `#${initial.id}` : "Taslak olarak başlar"}
+            </div>
+          </div>
+          <div className="row">
+            {isEdit && initial.translationGroupId != null && (
+              <button
+                className="btn"
+                onClick={() => router.push(`/news/${initial.id}/bilingual`)}
+                disabled={saving}
+                title="Bu haberi diğer dildeki eşiyle yan yana düzenle"
+              >
+                Çift dil düzenle
+              </button>
+            )}
+            {isEdit && translateEnabled && (
+              <button
+                className="btn"
+                onClick={translateAndCreate}
+                disabled={saving || translating}
+                title="Bu haberi diğer dile çevirip bağlı bir taslak oluşturur"
+              >
+                {translating
+                  ? "Çevriliyor…"
+                  : lang === "tr"
+                    ? "İngilizce çeviri oluştur"
+                    : "Türkçe çeviri oluştur"}
+              </button>
+            )}
+            <button
+              className={showPreview ? "btn btn-primary" : "btn"}
+              onClick={() => setShowPreview((v) => !v)}
+              disabled={saving}
+            >
+              {showPreview ? "Önizlemeyi Gizle" : "Önizle"}
+            </button>
+            <button className="btn" onClick={() => router.push("/")} disabled={saving}>
+              Listeye Dön
+            </button>
           </div>
         </div>
-        <div className="row">
-          {isEdit && translateEnabled && (
-            <button
-              className="btn"
-              onClick={translateAndCreate}
-              disabled={saving || translating}
-              title="Bu haberi diğer dile çevirip bağlı bir taslak oluşturur"
-            >
-              {translating
-                ? "Çevriliyor…"
-                : lang === "tr"
-                  ? "İngilizce çeviri oluştur"
-                  : "Türkçe çeviri oluştur"}
-            </button>
+      )}
+
+      {embedded && paneTitle && (
+        <div className="pane-head">
+          <span className="pane-lang">{paneTitle}</span>
+          {isEdit && (
+            <span className="muted" style={{ fontSize: 12 }}>
+              #{initial.id}
+            </span>
           )}
-          <button
-            className={showPreview ? "btn btn-primary" : "btn"}
-            onClick={() => setShowPreview((v) => !v)}
-            disabled={saving}
-          >
-            {showPreview ? "Önizlemeyi Gizle" : "Önizle"}
-          </button>
-          <button className="btn" onClick={() => router.push("/")} disabled={saving}>
-            Listeye Dön
-          </button>
         </div>
-      </div>
+      )}
 
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-success">{ok}</div>}
@@ -424,7 +479,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
         />
       )}
 
-      <div className="form-grid">
+      <div className={`form-grid${embedded ? " form-grid--pane" : ""}`}>
         {/* ---- Sol: içerik ---- */}
         <div className="stack">
           <div className="card card-pad">
@@ -677,7 +732,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
       </div>
 
       <div className="form-actions">
-        {isEdit && (
+        {isEdit && !embedded && (
           <button
             className="btn"
             onClick={() => router.push(`/news/${initial.id}/preview`)}
@@ -696,3 +751,7 @@ export default function NewsForm({ initial }: { initial: NewsFormInitial }) {
     </div>
   );
 }
+
+const NewsForm = forwardRef(NewsFormInner);
+NewsForm.displayName = "NewsForm";
+export default NewsForm;

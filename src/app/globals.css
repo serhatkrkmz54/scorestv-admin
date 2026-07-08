@@ -2031,6 +2031,43 @@ table.data-table {
   margin-top: 16px;
   align-self: flex-start;
 }
+
+/* ---------- Çift dil (yan yana) düzenleme ---------- */
+.bilingual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .bilingual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.bilingual-pane {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 14px;
+}
+/* Gömülü panelde iç 2-kolon (içerik|ayarlar) tek kolona iner — dar panele sığsın. */
+.form-grid--pane {
+  grid-template-columns: 1fr !important;
+}
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.pane-lang {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--brand);
+}
 .bc-count {
   font-size: 12.5px;
   font-weight: 700;
