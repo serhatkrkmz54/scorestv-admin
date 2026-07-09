@@ -994,6 +994,25 @@ table.data-table {
   flex-wrap: wrap;
 }
 
+/* Satır aksiyonları ikon-only → tek satıra sığan tertemiz kare butonlar. */
+.row-actions .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Dil bayrağı (EN/TR) — DİL sütunu. */
+.lang-flag {
+  width: 26px;
+  height: 19px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--border-strong);
+  display: inline-block;
+  vertical-align: middle;
+}
+
 /* ---------- Tabs (underline, "Project Summary" stili) ---------- */
 .tabs {
   display: flex;

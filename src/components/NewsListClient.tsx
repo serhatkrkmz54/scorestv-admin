@@ -424,6 +424,9 @@ function Row({
   const webBase = process.env.NEXT_PUBLIC_WEB_URL || "https://scorestv.com";
   const liveUrl = `${webBase}/${item.lang === "en" ? "news" : "haber"}/${item.slug}`;
 
+  // Dil bayrağı — EN → GB (İngiltere), TR → Türkiye. flagcdn SVG.
+  const flagCode = item.lang === "en" ? "gb" : item.lang === "tr" ? "tr" : null;
+
   return (
     <tr>
       <td>
@@ -451,9 +454,19 @@ function Row({
         )}
       </td>
       <td>
-        <span className="badge badge-lang">
-          {LANG_LABELS[item.lang] ?? item.lang.toUpperCase()}
-        </span>
+        {flagCode ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="lang-flag"
+            src={`https://flagcdn.com/${flagCode}.svg`}
+            alt={item.lang.toUpperCase()}
+            title={item.lang.toUpperCase()}
+          />
+        ) : (
+          <span className="badge badge-lang">
+            {LANG_LABELS[item.lang] ?? item.lang.toUpperCase()}
+          </span>
+        )}
       </td>
       <td>{categoryLabel(item.category)}</td>
       <td>{sportLabel(item.sport)}</td>
@@ -463,38 +476,75 @@ function Row({
       </td>
       <td>
         <div className="row-actions">
-          <button className="btn btn-sm" onClick={onEdit} disabled={busy}>
-            <Pencil size={13} /> Düzenle
+          <button
+            className="btn btn-icon"
+            onClick={onEdit}
+            disabled={busy}
+            title="Düzenle"
+            aria-label="Düzenle"
+          >
+            <Pencil size={15} />
           </button>
-          <button className="btn btn-sm btn-ghost" onClick={onPreview} disabled={busy}>
-            <Eye size={13} /> Önizle
+          <button
+            className="btn btn-icon btn-ghost"
+            onClick={onPreview}
+            disabled={busy}
+            title="Önizle"
+            aria-label="Önizle"
+          >
+            <Eye size={15} />
           </button>
           {isLive && (
             <a
-              className="btn btn-sm btn-ghost"
+              className="btn btn-icon btn-ghost"
               href={liveUrl}
               target="_blank"
               rel="noopener noreferrer"
               title="Yayındaki habere git (yeni sekme)"
+              aria-label="Habere git"
             >
-              <ExternalLink size={13} /> Habere Git
+              <ExternalLink size={15} />
             </a>
           )}
           {isPublishedContext ? (
-            <button className="btn btn-sm" onClick={onUnpublish} disabled={busy}>
-              <Undo2 size={13} /> Geri Çek
+            <button
+              className="btn btn-icon"
+              onClick={onUnpublish}
+              disabled={busy}
+              title="Yayından geri çek"
+              aria-label="Geri çek"
+            >
+              <Undo2 size={15} />
             </button>
           ) : (
-            <button className="btn btn-sm btn-success" onClick={onPublish} disabled={busy}>
-              <Send size={13} /> Yayınla
+            <button
+              className="btn btn-icon btn-success"
+              onClick={onPublish}
+              disabled={busy}
+              title="Yayınla"
+              aria-label="Yayınla"
+            >
+              <Send size={15} />
             </button>
           )}
-          <button className="btn btn-sm btn-ghost" onClick={onDuplicate} disabled={busy}>
-            <Copy size={13} /> Kopyala
+          <button
+            className="btn btn-icon btn-ghost"
+            onClick={onDuplicate}
+            disabled={busy}
+            title="Kopyala"
+            aria-label="Kopyala"
+          >
+            <Copy size={15} />
           </button>
           {isAdmin && (
-            <button className="btn btn-sm btn-danger" onClick={onDelete} disabled={busy}>
-              <Trash2 size={13} /> Sil
+            <button
+              className="btn btn-icon btn-danger"
+              onClick={onDelete}
+              disabled={busy}
+              title="Sil"
+              aria-label="Sil"
+            >
+              <Trash2 size={15} />
             </button>
           )}
         </div>
