@@ -410,9 +410,11 @@ function Row({
   // NewsListItem status içermez. Durum pill'ini bağlamdan türetiriz:
   // - Aktif sekme belirli bir durumsa onu göster.
   // - "Tümü" sekmesinde: yayın tarihi varsa Yayında, yoksa Taslak varsay.
-  const isPublishedContext = tab === "PUBLISHED";
   const displayStatus: NewsStatus =
     tab !== "ALL" ? tab : item.publishedAt ? "PUBLISHED" : "DRAFT";
+  // Yayınla/Geri Çek butonu SEKMEYE değil, haberin GERÇEK durumuna göre.
+  // "Tümü" sekmesinde yayındaki haber de doğru şekilde "Geri Çek" gösterir.
+  const isCurrentlyPublished = displayStatus === "PUBLISHED";
 
   // "Habere Git" — yalnız GERÇEKTEN yayında (yayın tarihi geçmiş) haberler için.
   // Zamanlanmış (gelecek tarih) veya taslakta gösterilmez (public sayfa yok).
@@ -506,7 +508,7 @@ function Row({
               <ExternalLink size={15} />
             </a>
           )}
-          {isPublishedContext ? (
+          {isCurrentlyPublished ? (
             <button
               className="btn btn-icon"
               onClick={onUnpublish}
