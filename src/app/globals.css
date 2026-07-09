@@ -1172,18 +1172,10 @@ table.data-table {
 }
 
 .login-aside-logo img {
-  width: 76px;
-  height: 76px;
-  border-radius: 20px;
-  object-fit: cover;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
-}
-
-.login-aside-logo h2 {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+  width: 260px;
+  max-width: 72%;
+  height: auto;
+  object-fit: contain;
 }
 
 .login-aside-tag {

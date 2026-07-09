@@ -26,8 +26,7 @@ export default async function LoginPage({
       <aside className="login-aside">
         <div className="login-aside-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/app_icon.png" alt="ScoresTV" />
-          <h2>Scores TV</h2>
+          <img src="/images/logo-light.png" alt="ScoresTV" />
           <p className="login-aside-tag">Editör Paneli</p>
         </div>
       </aside>
