@@ -5,8 +5,8 @@ import LoginForm from "@/components/LoginForm";
 export const dynamic = "force-dynamic";
 
 /**
- * Giriş sayfası. Zaten geçerli EDITOR/ADMIN oturumu varsa panele yönlendir.
- * Aksi hâlde giriş formunu göster. (middleware login rotasını atlar.)
+ * Giriş sayfası — iki kolon: sol görsel (login-bg.jpg + logo), sağ form.
+ * Zaten geçerli EDITOR/ADMIN oturumu varsa panele yönlendir. Kayıt (signup) yok.
  */
 export default async function LoginPage({
   searchParams,
@@ -23,7 +23,17 @@ export default async function LoginPage({
 
   return (
     <div className="login-shell">
-      <LoginForm next={next} />
+      <aside className="login-aside">
+        <div className="login-aside-logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/app_icon.png" alt="ScoresTV" />
+          <h2>Scores TV</h2>
+          <p className="login-aside-tag">Editör Paneli</p>
+        </div>
+      </aside>
+      <main className="login-main">
+        <LoginForm next={next} />
+      </main>
     </div>
   );
 }
