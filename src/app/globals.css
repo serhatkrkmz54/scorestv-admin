@@ -1172,8 +1172,8 @@ table.data-table {
 }
 
 .login-aside-logo img {
-  width: 260px;
-  max-width: 72%;
+  width: 320px;
+  max-width: 80%;
   height: auto;
   object-fit: contain;
 }
