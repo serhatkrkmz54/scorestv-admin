@@ -68,6 +68,73 @@ export interface NewsPageResponse {
   hasNext: boolean;
 }
 
+// ---- Dashboard (panel ana sayfa özeti) — NewsStats.java ile birebir ----
+export interface NewsStatsTrendPoint {
+  date: string; // yyyy-MM-dd (yerel gün)
+  count: number;
+}
+export interface NewsStatsTopArticle {
+  id: number;
+  title: string;
+  slug: string;
+  lang: string;
+  status: NewsStatus;
+  viewCount: number;
+  publishedAt: string | null; // ISO Instant
+}
+export interface NewsStatsEditor {
+  authorId: number;
+  name: string;
+  total: number;
+  published: number;
+}
+export interface NewsStatsActivity {
+  action: string; // CREATE | UPDATE | PUBLISH | UNPUBLISH | DELETE
+  articleId: number | null;
+  articleTitle: string | null;
+  actorId: number | null;
+  actorName: string | null;
+  at: string | null; // ISO Instant
+}
+export interface NewsStats {
+  total: number;
+  published: number;
+  draft: number;
+  scheduled: number;
+  archived: number;
+  totalViews: number;
+  publishedToday: number;
+  publishedThisWeek: number;
+  publishedThisMonth: number;
+  breaking: number;
+  featured: number;
+  trend: NewsStatsTrendPoint[];
+  topViewed: NewsStatsTopArticle[];
+  editors: NewsStatsEditor[];
+  recentActivity: NewsStatsActivity[];
+}
+
+// ---- Toplu (bulk) işlem — BulkNewsRequest.java / BulkResult.java ----
+export type BulkAction =
+  | "PUBLISH"
+  | "UNPUBLISH"
+  | "ARCHIVE"
+  | "SET_CATEGORY"
+  | "SET_SPORT"
+  | "DELETE";
+
+export interface BulkNewsRequest {
+  ids: number[];
+  action: BulkAction;
+  category?: NewsCategory | null; // yalnız SET_CATEGORY
+  sport?: string | null; // yalnız SET_SPORT
+}
+
+export interface BulkResult {
+  processed: number; // işlenen haber sayısı
+  skipped: number; // bulunamayıp atlanan
+}
+
 // NewsDetail.EntityRef
 export interface EntityRef {
   id: number;
@@ -307,7 +374,7 @@ export interface AdminUserView {
   enabled: boolean;
 }
 
-// CreateEditorRequest.java — POST /api/v1/admin/users.
+// CreateEditorRequest.java - POST /api/v1/admin/users.
 export interface CreateEditorRequest {
   email: string;
   displayName: string;
@@ -315,7 +382,7 @@ export interface CreateEditorRequest {
   role: "EDITOR" | "ADMIN";
 }
 
-// ---- EntityLinker seçili varlık çipi (form state) ----
+// ---- EntityLinker secili varlik cipi (form state) ----
 export type EntityKind = "team" | "league" | "player" | "country" | "fixture";
 
 export interface EntityChip {
@@ -323,4 +390,55 @@ export interface EntityChip {
   id: number;
   name: string;
   logo: string | null;
+}
+
+// ---- Yorum moderasyonu (AdminCommentView/Page.java) ----
+export interface AdminCommentView {
+  id: number;
+  sport: string;
+  matchId: number;
+  content: string;
+  deleted: boolean;
+  createdAt: string | null;
+  userId: number | null;
+  userName: string | null;
+  country: string | null;
+  parentId: number | null;
+}
+export interface AdminCommentPage {
+  items: AdminCommentView[];
+  totalCount: number;
+  hasNext: boolean;
+}
+
+// ---- Denetim günlüğü (NewsAuditView/Page.java) ----
+export interface NewsAuditView {
+  id: number;
+  action: string;
+  articleId: number | null;
+  articleTitle: string | null;
+  actorId: number | null;
+  actorName: string | null;
+  at: string | null;
+  meta: string | null;
+}
+export interface NewsAuditPage {
+  items: NewsAuditView[];
+  totalCount: number;
+  hasNext: boolean;
+}
+
+// ---- Slider / bayrak / zamanlama ----
+export interface SaveSliderRequest {
+  lang: string;
+  ids: number[];
+}
+export interface UpdateFlagsRequest {
+  isFeatured?: boolean | null;
+  isBreaking?: boolean | null;
+  inSlider?: boolean | null;
+}
+export interface RescheduleRequest {
+  publishedAt: string | null;
+  status?: NewsStatus | null;
 }

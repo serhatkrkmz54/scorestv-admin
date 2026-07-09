@@ -12,11 +12,20 @@ import type {
   ChangePasswordRequest,
   CreateEditorRequest,
   ImageUploadResult,
+  BulkNewsRequest,
+  BulkResult,
   MediaItem,
   MediaUsage,
   NewsDetail,
   NewsPageResponse,
   NewsRequest,
+  NewsStats,
+  NewsListItem,
+  AdminCommentPage,
+  NewsAuditPage,
+  SaveSliderRequest,
+  UpdateFlagsRequest,
+  RescheduleRequest,
   SearchResponse,
   TranslateNewsRequest,
   TranslateNewsResult,
@@ -152,6 +161,12 @@ export async function apiGetNews(id: number): Promise<NewsDetail> {
   return parse<NewsDetail>(res);
 }
 
+/** Panel dashboard özeti — kartlar + trend + en çok okunan + editör + aktivite. */
+export async function apiNewsStats(): Promise<NewsStats> {
+  const res = await fetch("/api/news/stats", { method: "GET" });
+  return parse<NewsStats>(res);
+}
+
 export async function apiCreateNews(data: NewsRequest): Promise<NewsDetail> {
   const res = await fetch("/api/news", jsonInit("POST", data));
   return parse<NewsDetail>(res);
@@ -184,6 +199,12 @@ export async function apiUnpublishNews(id: number): Promise<NewsDetail> {
 export async function apiDeleteNews(id: number): Promise<void> {
   const res = await fetch(`/api/news/${id}`, { method: "DELETE" });
   await parse<{ ok: boolean }>(res);
+}
+
+/** Toplu işlem — seçili haberlere topluca eylem uygular. */
+export async function apiBulkNews(data: BulkNewsRequest): Promise<BulkResult> {
+  const res = await fetch("/api/news/bulk", jsonInit("POST", data));
+  return parse<BulkResult>(res);
 }
 
 // ---- Çeviri (DeepL) ----
@@ -260,4 +281,59 @@ export async function apiSearch(q: string, types: string): Promise<SearchRespons
   if (types) qs.set("types", types);
   const res = await fetch(`/api/search?${qs.toString()}`, { method: "GET" });
   return parse<SearchResponse>(res);
+}
+
+// ---- Yorum moderasyonu ----
+export interface CommentListParams { sport?: string; deleted?: boolean; q?: string; page?: number; size?: number; }
+export async function apiListComments(params: CommentListParams): Promise<AdminCommentPage> {
+  const qs = new URLSearchParams();
+  if (params.sport) qs.set("sport", params.sport);
+  if (params.deleted !== undefined) qs.set("deleted", String(params.deleted));
+  if (params.q) qs.set("q", params.q);
+  if (params.page !== undefined) qs.set("page", String(params.page));
+  if (params.size !== undefined) qs.set("size", String(params.size));
+  const res = await fetch(`/api/comments?${qs.toString()}`, { method: "GET" });
+  return parse<AdminCommentPage>(res);
+}
+export async function apiDeleteComment(id: number): Promise<void> {
+  const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+export async function apiRestoreComment(id: number): Promise<void> {
+  const res = await fetch(`/api/comments/${id}/restore`, { method: "POST" });
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+
+// ---- Denetim günlüğü ----
+export async function apiNewsAudit(action: string, page: number, size = 30): Promise<NewsAuditPage> {
+  const qs = new URLSearchParams();
+  if (action) qs.set("action", action);
+  qs.set("page", String(page));
+  qs.set("size", String(size));
+  const res = await fetch(`/api/news/audit?${qs.toString()}`, { method: "GET" });
+  return parse<NewsAuditPage>(res);
+}
+
+// ---- Slider küratörlüğü ----
+export async function apiGetSlider(lang: string): Promise<NewsListItem[]> {
+  const res = await fetch(`/api/news/slider?lang=${encodeURIComponent(lang)}`, { method: "GET" });
+  return parse<NewsListItem[]>(res);
+}
+export async function apiSaveSlider(data: SaveSliderRequest): Promise<NewsListItem[]> {
+  const res = await fetch("/api/news/slider", jsonInit("PUT", data));
+  return parse<NewsListItem[]>(res);
+}
+
+// ---- Hızlı bayrak / yeniden zamanlama / IndexNow ----
+export async function apiUpdateFlags(id: number, data: UpdateFlagsRequest): Promise<NewsDetail> {
+  const res = await fetch(`/api/news/${id}/flags`, jsonInit("PATCH", data));
+  return parse<NewsDetail>(res);
+}
+export async function apiReschedule(id: number, data: RescheduleRequest): Promise<NewsDetail> {
+  const res = await fetch(`/api/news/${id}/schedule`, jsonInit("PATCH", data));
+  return parse<NewsDetail>(res);
+}
+export async function apiIndexNow(id: number): Promise<{ ok: boolean; url: string }> {
+  const res = await fetch(`/api/news/${id}/indexnow`, { method: "POST" });
+  return parse<{ ok: boolean; url: string }>(res);
 }

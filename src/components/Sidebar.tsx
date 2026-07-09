@@ -4,11 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  LayoutDashboard,
   Newspaper,
   PlusCircle,
   Bell,
   Image as ImageIcon,
   Settings,
+  MessageSquare,
+  ScrollText,
+  LayoutTemplate,
+  CalendarClock,
   LogOut,
 } from "lucide-react";
 import { apiLogout } from "@/lib/api-client";
@@ -25,13 +30,17 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
+  const isDashboard = pathname === "/";
   const isNews =
-    pathname === "/" ||
-    (pathname.startsWith("/news") && !pathname.endsWith("/new"));
+    pathname.startsWith("/news") && !pathname.endsWith("/new");
   const isNew = pathname === "/news/new";
   const isNotifications = pathname.startsWith("/notifications");
   const isMedia = pathname.startsWith("/media");
   const isSettings = pathname.startsWith("/settings");
+  const isComments = pathname.startsWith("/comments");
+  const isSlider = pathname.startsWith("/slider");
+  const isCalendar = pathname.startsWith("/calendar");
+  const isAudit = pathname.startsWith("/audit");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -64,7 +73,11 @@ export default function Sidebar({ user }: { user: AppUser }) {
 
       <nav className="sidebar-nav">
         <div className="sidebar-section">Yönetim</div>
-        <Link href="/" className={`nav-item ${isNews ? "active" : ""}`}>
+        <Link href="/" className={`nav-item ${isDashboard ? "active" : ""}`}>
+          <LayoutDashboard className="icon" size={22} />
+          Panel
+        </Link>
+        <Link href="/news" className={`nav-item ${isNews ? "active" : ""}`}>
           <Newspaper className="icon" size={22} />
           Haberler
         </Link>
@@ -82,6 +95,22 @@ export default function Sidebar({ user }: { user: AppUser }) {
         <Link href="/media" className={`nav-item ${isMedia ? "active" : ""}`}>
           <ImageIcon className="icon" size={22} />
           Medya
+        </Link>
+        <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
+          <MessageSquare className="icon" size={22} />
+          Yorumlar
+        </Link>
+        <Link href="/slider" className={`nav-item ${isSlider ? "active" : ""}`}>
+          <LayoutTemplate className="icon" size={22} />
+          Slider
+        </Link>
+        <Link href="/calendar" className={`nav-item ${isCalendar ? "active" : ""}`}>
+          <CalendarClock className="icon" size={22} />
+          Takvim
+        </Link>
+        <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
+          <ScrollText className="icon" size={22} />
+          Denetim
         </Link>
         <Link
           href="/settings"

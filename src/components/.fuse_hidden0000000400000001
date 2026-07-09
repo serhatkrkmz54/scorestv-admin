@@ -604,7 +604,7 @@ function Row({
           className="row-check"
           checked={checked}
           onChange={onToggleSelect}
-          aria-label="Seç"
+          aria-label="Sec"
         />
       </td>
       <td>
@@ -626,7 +626,7 @@ function Row({
           <div className="row" style={{ gap: 6, marginTop: 6 }}>
             {item.isBreaking && <span className="badge badge-flag">SON DK</span>}
             {item.isFeatured && (
-              <span className="badge badge-scheduled">Öne Çıkan</span>
+              <span className="badge badge-scheduled">One Cikan</span>
             )}
           </div>
         )}
@@ -658,8 +658,8 @@ function Row({
             className="btn btn-icon"
             onClick={onEdit}
             disabled={busy}
-            title="Düzenle"
-            aria-label="Düzenle"
+            title="Duzenle"
+            aria-label="Duzenle"
           >
             <Pencil size={15} />
           </button>
@@ -667,8 +667,8 @@ function Row({
             className="btn btn-icon btn-ghost"
             onClick={onPreview}
             disabled={busy}
-            title="Önizle"
-            aria-label="Önizle"
+            title="Onizle"
+            aria-label="Onizle"
           >
             <Eye size={15} />
           </button>
@@ -678,7 +678,7 @@ function Row({
               href={liveUrl}
               target="_blank"
               rel="noopener noreferrer"
-              title="Yayındaki habere git (yeni sekme)"
+              title="Yayindaki habere git (yeni sekme)"
               aria-label="Habere git"
             >
               <ExternalLink size={15} />
@@ -689,8 +689,8 @@ function Row({
               className="btn btn-icon"
               onClick={onUnpublish}
               disabled={busy}
-              title="Yayından geri çek"
-              aria-label="Geri çek"
+              title="Yayindan geri cek"
+              aria-label="Geri cek"
             >
               <Undo2 size={15} />
             </button>
@@ -699,8 +699,38 @@ function Row({
               className="btn btn-icon btn-success"
               onClick={onPublish}
               disabled={busy}
-              title="Yayınla"
-              aria-label="Yayınla"
+              title="Yayinla"
+              aria-label="Yayinla"
+            >
+              <Send size={15} />
+            </button>
+          )}
+          <button
+            className="btn btn-icon btn-ghost"
+            onClick={onDuplicate}
+            disabled={busy}
+            title="Kopyala"
+            aria-label="Kopyala"
+          >
+            <Copy size={15} />
+          </button>
+          {isAdmin && (
+            <button
+              className="btn btn-icon btn-danger"
+              onClick={onDelete}
+              disabled={busy}
+              title="Sil"
+              aria-label="Sil"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+label="Yayınla"
             >
               <Send size={15} />
             </button>
