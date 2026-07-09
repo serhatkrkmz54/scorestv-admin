@@ -15,6 +15,7 @@ import {
   Trash2,
   Plus,
   Newspaper,
+  ExternalLink,
 } from "lucide-react";
 import {
   apiListNews,
@@ -413,6 +414,16 @@ function Row({
   const displayStatus: NewsStatus =
     tab !== "ALL" ? tab : item.publishedAt ? "PUBLISHED" : "DRAFT";
 
+  // "Habere Git" — yalnız GERÇEKTEN yayında (yayın tarihi geçmiş) haberler için.
+  // Zamanlanmış (gelecek tarih) veya taslakta gösterilmez (public sayfa yok).
+  // Public makale yolu: TR /haber/<slug>, EN /news/<slug> (routes.ts ile aynı).
+  const isLive =
+    displayStatus === "PUBLISHED" &&
+    !!item.publishedAt &&
+    new Date(item.publishedAt).getTime() <= Date.now();
+  const webBase = process.env.NEXT_PUBLIC_WEB_URL || "https://scorestv.com";
+  const liveUrl = `${webBase}/${item.lang === "en" ? "news" : "haber"}/${item.slug}`;
+
   return (
     <tr>
       <td>
@@ -458,6 +469,17 @@ function Row({
           <button className="btn btn-sm btn-ghost" onClick={onPreview} disabled={busy}>
             <Eye size={13} /> Önizle
           </button>
+          {isLive && (
+            <a
+              className="btn btn-sm btn-ghost"
+              href={liveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Yayındaki habere git (yeni sekme)"
+            >
+              <ExternalLink size={13} /> Habere Git
+            </a>
+          )}
           {isPublishedContext ? (
             <button className="btn btn-sm" onClick={onUnpublish} disabled={busy}>
               <Undo2 size={13} /> Geri Çek
