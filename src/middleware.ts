@@ -115,6 +115,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  // Panel rotalarını koru; login, API (kendi auth'unu yönetir), statikler hariç.
-  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico).*)"],
+  // Panel rotalarını koru; login, API (kendi auth'unu yönetir), _next statikler
+  // VE public dosyaları hariç. ÖNEMLİ: `.*\..*` uzantılı yolları (/images/*.jpg,
+  // *.png, robots.txt vb.) dışlar — aksi halde login arka planı (login-bg.jpg)
+  // gibi statik istekler auth kapısına takılıp /login'e redirect oluyordu.
+  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
