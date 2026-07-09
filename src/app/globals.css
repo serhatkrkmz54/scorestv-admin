@@ -2712,3 +2712,51 @@ table.data-table {
   font-size: 12px; color: var(--text-muted); background: var(--tint);
   border-radius: 8px; padding: 8px 10px; word-break: break-all;
 }
+
+/* =========================================================
+   Animasyonlu grafikler (trend alan + donut) + stat giriş
+   ========================================================= */
+@keyframes stat-pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.stat-in { animation: stat-pop 0.45s cubic-bezier(.2,.7,.3,1) both; }
+
+/* Trend alan/çizgi grafiği */
+.tchart { width: 100%; height: 176px; display: block; overflow: visible; }
+.tgrid { stroke: var(--border); stroke-width: 1; }
+.tarea { opacity: 0; transition: opacity 0.9s ease 0.25s; }
+.tarea.in { opacity: 1; }
+.tline {
+  fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.15s cubic-bezier(.4,0,.2,1);
+}
+.tline.in { stroke-dashoffset: 0; }
+.tdot {
+  fill: var(--surface); stroke: var(--brand); stroke-width: 2;
+  opacity: 0; transform: scale(0); transform-box: fill-box; transform-origin: center;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.3,1.4,.5,1), r 0.15s ease;
+}
+.tdot.in { opacity: 1; transform: scale(1); }
+.tdot.hot { fill: var(--brand); }
+.tlabel { fill: var(--text-faint); font-size: 10px; }
+.tguide { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.ttip-box { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1;
+  filter: drop-shadow(0 6px 14px rgba(7,39,90,0.18)); }
+.ttip-val { fill: var(--text); font-size: 11px; font-weight: 800; }
+.ttip-date { fill: var(--text-faint); font-size: 9px; }
+
+/* Donut */
+.donut-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.donut-box { position: relative; width: 140px; height: 140px; flex: none; }
+.donut { width: 140px; height: 140px; }
+.donut-track { stroke: var(--surface-2); }
+.donut-seg { transition: stroke-dasharray 0.95s cubic-bezier(.4,0,.2,1); }
+.donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.donut-total { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; }
+.donut-cap { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.donut-legend { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 10px; }
+.legend-row { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+.legend-dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.legend-label { color: var(--text-muted); flex: 1; }
+.legend-val { color: var(--text); font-weight: 700; }

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FileEdit,
-  CheckCircle2,
   Eye,
   CalendarDays,
   TrendingUp,
@@ -22,13 +21,16 @@ import {
   Archive,
 } from "lucide-react";
 import { apiNewsStats, ApiError } from "@/lib/api-client";
-import type { NewsStats, NewsStatsActivity } from "@/lib/types";
+import type {
+  NewsStats,
+  NewsStatsActivity,
+  NewsStatsTrendPoint,
+} from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/labels";
 import { formatCount, formatDate } from "@/lib/format";
 
 const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || "https://scorestv.com";
 
-// audit action → Türkçe etiket + ikon
 const ACTION_META: Record<
   string,
   { label: string; icon: React.ReactNode; tone: string }
@@ -60,11 +62,42 @@ function liveUrl(a: { lang: string; slug: string }): string {
   return `${WEB_BASE}/${a.lang === "en" ? "news" : "haber"}/${a.slug}`;
 }
 
+function useMounted(): boolean {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setM(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return m;
+}
+
+function useCountUp(target: number, ms = 750): number {
+  const [v, setV] = useState(0);
+  const ref = useRef(0);
+  useEffect(() => {
+    const from = ref.current;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / ms);
+      const e = 1 - Math.pow(1 - t, 3);
+      const val = Math.round(from + (target - from) * e);
+      setV(val);
+      ref.current = val;
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms]);
+  return v;
+}
+
 export default function Dashboard() {
   const [data, setData] = useState<NewsStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tick, setTick] = useState(0);
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
@@ -72,6 +105,7 @@ export default function Dashboard() {
     setError(null);
     try {
       setData(await apiNewsStats());
+      setTick((t) => t + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "İstatistikler alınamadı.");
     } finally {
@@ -83,11 +117,6 @@ export default function Dashboard() {
   useEffect(() => {
     void load();
   }, []);
-
-  const trendMax = useMemo(
-    () => Math.max(1, ...(data?.trend ?? []).map((p) => p.count)),
-    [data],
-  );
 
   if (loading) {
     return (
@@ -109,23 +138,15 @@ export default function Dashboard() {
     );
   }
 
-  const statusRows: { key: keyof NewsStats; label: string; cls: string }[] = [
-    { key: "published", label: STATUS_LABELS.PUBLISHED, cls: "success" },
-    { key: "draft", label: STATUS_LABELS.DRAFT, cls: "neutral" },
-    { key: "scheduled", label: STATUS_LABELS.SCHEDULED, cls: "warning" },
-    { key: "archived", label: STATUS_LABELS.ARCHIVED, cls: "brand" },
+  const segments = [
+    { label: STATUS_LABELS.PUBLISHED, value: data.published, color: "var(--success)" },
+    { label: STATUS_LABELS.DRAFT, value: data.draft, color: "var(--neutral)" },
+    { label: STATUS_LABELS.SCHEDULED, value: data.scheduled, color: "var(--warning)" },
+    { label: STATUS_LABELS.ARCHIVED, value: data.archived, color: "var(--archive)" },
   ];
-  const statusMax = Math.max(
-    1,
-    data.published,
-    data.draft,
-    data.scheduled,
-    data.archived,
-  );
 
   return (
     <div className="stack">
-      {/* Başlık */}
       <div className="spread">
         <div>
           <h2 style={{ margin: 0, fontSize: 20 }}>Panel Özeti</h2>
@@ -134,12 +155,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <button
-            className="btn"
-            onClick={() => load(true)}
-            disabled={refreshing}
-            title="Yenile"
-          >
+          <button className="btn" onClick={() => load(true)} disabled={refreshing} title="Yenile">
             <RefreshCw size={16} className={refreshing ? "spin" : ""} />
             Yenile
           </button>
@@ -149,65 +165,25 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stat kartları */}
       <div className="stat-grid">
-        <StatCard
-          icon={<FileEdit size={22} />}
-          tone="neutral"
-          label="Toplam Haber"
-          value={formatCount(data.total)}
-          hint={`${formatCount(data.published)} yayında`}
-        />
-        <StatCard
-          icon={<Eye size={22} />}
-          tone="brand"
-          label="Toplam Görüntülenme"
-          value={formatCount(data.totalViews)}
-          hint="Tüm zamanlar"
-        />
-        <StatCard
-          icon={<CalendarDays size={22} />}
-          tone="warning"
-          label="Bu Ay Yayınlanan"
-          value={formatCount(data.publishedThisMonth)}
-          hint={`Bu hafta ${formatCount(data.publishedThisWeek)} • bugün ${formatCount(
-            data.publishedToday,
-          )}`}
-        />
-        <StatCard
-          icon={<Flame size={22} />}
-          tone="success"
-          label="Son Dakika"
-          value={formatCount(data.breaking)}
-          hint={`${formatCount(data.featured)} öne çıkan`}
-        />
+        <StatCard idx={0} icon={<FileEdit size={22} />} tone="neutral" label="Toplam Haber"
+          value={data.total} hint={`${formatCount(data.published)} yayında`} />
+        <StatCard idx={1} icon={<Eye size={22} />} tone="brand" label="Toplam Görüntülenme"
+          value={data.totalViews} hint="Tüm zamanlar" />
+        <StatCard idx={2} icon={<CalendarDays size={22} />} tone="warning" label="Bu Ay Yayınlanan"
+          value={data.publishedThisMonth}
+          hint={`Bu hafta ${formatCount(data.publishedThisWeek)} • bugün ${formatCount(data.publishedToday)}`} />
+        <StatCard idx={3} icon={<Flame size={22} />} tone="success" label="Son Dakika"
+          value={data.breaking} hint={`${formatCount(data.featured)} öne çıkan`} />
       </div>
 
-      {/* Trend + Durum dağılımı */}
       <div className="dash-2col">
         <div className="card card-pad">
           <div className="dash-head">
             <TrendingUp size={16} />
             <span>Son 14 Gün — Yayın Trendi</span>
           </div>
-          <div className="trend-chart">
-            {data.trend.map((p) => {
-              const h = Math.round((p.count / trendMax) * 100);
-              const d = new Date(p.date);
-              return (
-                <div className="trend-col" key={p.date} title={`${p.date}: ${p.count} haber`}>
-                  <div className="trend-bar-wrap">
-                    <span className="trend-val">{p.count > 0 ? p.count : ""}</span>
-                    <div
-                      className="trend-bar"
-                      style={{ height: `${Math.max(h, p.count > 0 ? 6 : 2)}%` }}
-                    />
-                  </div>
-                  <div className="trend-label">{d.getDate()}</div>
-                </div>
-              );
-            })}
-          </div>
+          <TrendChart key={`t${tick}`} data={data.trend} />
         </div>
 
         <div className="card card-pad">
@@ -215,25 +191,10 @@ export default function Dashboard() {
             <FileEdit size={16} />
             <span>Durum Dağılımı</span>
           </div>
-          <div className="status-bars">
-            {statusRows.map((s) => {
-              const val = data[s.key] as number;
-              const w = Math.round((val / statusMax) * 100);
-              return (
-                <div className="status-row" key={s.key}>
-                  <div className="status-name">{s.label}</div>
-                  <div className="status-track">
-                    <div className={`status-fill ${s.cls}`} style={{ width: `${w}%` }} />
-                  </div>
-                  <div className="status-count">{formatCount(val)}</div>
-                </div>
-              );
-            })}
-          </div>
+          <StatusDonut key={`d${tick}`} segments={segments} total={data.total} />
         </div>
       </div>
 
-      {/* En çok okunanlar + Editörler */}
       <div className="dash-2col">
         <div className="card card-pad">
           <div className="dash-head">
@@ -259,14 +220,8 @@ export default function Dashboard() {
                       <Pencil size={15} />
                     </Link>
                     {a.status === "PUBLISHED" && (
-                      <a
-                        href={liveUrl(a)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-icon btn-ghost"
-                        title="Habere git"
-                        aria-label="Habere git"
-                      >
+                      <a href={liveUrl(a)} target="_blank" rel="noopener noreferrer"
+                        className="btn btn-icon btn-ghost" title="Habere git" aria-label="Habere git">
                         <ExternalLink size={15} />
                       </a>
                     )}
@@ -307,7 +262,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Son aktivite */}
       <div className="card card-pad">
         <div className="dash-head">
           <Activity size={16} />
@@ -322,6 +276,150 @@ export default function Dashboard() {
             ))}
           </ul>
         )}
+      </div>
+    </div>
+  );
+}
+
+function TrendChart({ data }: { data: NewsStatsTrendPoint[] }) {
+  const mounted = useMounted();
+  const [hover, setHover] = useState<number | null>(null);
+
+  const W = 680;
+  const H = 176;
+  const pad = { t: 16, r: 14, b: 26, l: 14 };
+  const iw = W - pad.l - pad.r;
+  const ih = H - pad.t - pad.b;
+  const n = data.length;
+  const max = Math.max(1, ...data.map((d) => d.count));
+  const baseY = pad.t + ih;
+  const x = (i: number) => pad.l + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+  const y = (v: number) => pad.t + ih - (v / max) * ih;
+  const pts = data.map((d, i) => ({ px: x(i), py: y(d.count), ...d }));
+
+  let line = pts.length ? `M ${pts[0].px} ${pts[0].py}` : "";
+  for (let i = 1; i < pts.length; i++) {
+    const p0 = pts[i - 1];
+    const p1 = pts[i];
+    const cx = (p0.px + p1.px) / 2;
+    line += ` C ${cx} ${p0.py} ${cx} ${p1.py} ${p1.px} ${p1.py}`;
+  }
+  const area = pts.length
+    ? `${line} L ${pts[n - 1].px} ${baseY} L ${pts[0].px} ${baseY} Z`
+    : "";
+
+  const hp = hover != null ? pts[hover] : null;
+  const tipW = 82;
+  const tipX = hp ? Math.min(Math.max(hp.px - tipW / 2, 4), W - tipW - 4) : 0;
+  const tipY = hp ? (hp.py - 46 < 4 ? hp.py + 12 : hp.py - 46) : 0;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="tchart" preserveAspectRatio="none"
+      onMouseLeave={() => setHover(null)}>
+      <defs>
+        <linearGradient id="tgrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.30" />
+          <stop offset="100%" stopColor="var(--brand)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+
+      {[0, 0.5, 1].map((f) => (
+        <line key={f} className="tgrid" x1={pad.l} x2={W - pad.r}
+          y1={pad.t + ih * f} y2={pad.t + ih * f} />
+      ))}
+
+      <path d={area} fill="url(#tgrad)" className={`tarea ${mounted ? "in" : ""}`} />
+      <path d={line} className={`tline ${mounted ? "in" : ""}`} pathLength={1} />
+
+      {pts.map((p, i) => (
+        <circle key={i} cx={p.px} cy={p.py} r={hover === i ? 5 : 3}
+          className={`tdot ${mounted ? "in" : ""} ${hover === i ? "hot" : ""}`}
+          style={{ transitionDelay: `${0.5 + i * 0.03}s` }} />
+      ))}
+
+      {pts.map((p, i) =>
+        i % 2 === 0 || i === n - 1 ? (
+          <text key={`l${i}`} x={p.px} y={H - 8} className="tlabel" textAnchor="middle">
+            {new Date(p.date).getDate()}
+          </text>
+        ) : null,
+      )}
+
+      {pts.map((p, i) => (
+        <rect key={`h${i}`} x={p.px - iw / (2 * Math.max(1, n - 1))} y={0}
+          width={iw / Math.max(1, n - 1)} height={H} fill="transparent"
+          onMouseEnter={() => setHover(i)} />
+      ))}
+
+      {hp && (
+        <g className="ttip">
+          <line className="tguide" x1={hp.px} x2={hp.px} y1={pad.t} y2={baseY} />
+          <rect x={tipX} y={tipY} width={tipW} height={34} rx={7} className="ttip-box" />
+          <text x={tipX + tipW / 2} y={tipY + 15} textAnchor="middle" className="ttip-val">
+            {hp.count} haber
+          </text>
+          <text x={tipX + tipW / 2} y={tipY + 27} textAnchor="middle" className="ttip-date">
+            {new Date(hp.date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+          </text>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function StatusDonut({
+  segments,
+  total,
+}: {
+  segments: { label: string; value: number; color: string }[];
+  total: number;
+}) {
+  const mounted = useMounted();
+  const count = useCountUp(total);
+  const R = 52;
+  const C = 2 * Math.PI * R;
+  const cx = 70;
+  const cy = 70;
+  const sw = 20;
+  const safeTotal = Math.max(1, total);
+
+  let acc = 0;
+  const arcs = segments.map((s) => {
+    const len = (s.value / safeTotal) * C;
+    const offset = -(acc / safeTotal) * C;
+    acc += s.value;
+    return { ...s, len, offset };
+  });
+
+  return (
+    <div className="donut-wrap">
+      <div className="donut-box">
+        <svg viewBox="0 0 140 140" className="donut">
+          <circle cx={cx} cy={cy} r={R} className="donut-track" strokeWidth={sw} fill="none" />
+          <g transform={`rotate(-90 ${cx} ${cy})`}>
+            {arcs.map((a, i) => (
+              <circle key={i} cx={cx} cy={cy} r={R} fill="none" strokeWidth={sw}
+                strokeLinecap="round" className="donut-seg"
+                stroke={a.color}
+                strokeDasharray={mounted ? `${Math.max(a.len - 2, 0)} ${C}` : `0 ${C}`}
+                strokeDashoffset={a.offset}
+                style={{ transitionDelay: `${i * 0.08}s` }} />
+            ))}
+          </g>
+        </svg>
+        <div className="donut-center">
+          <div className="donut-total">{formatCount(count)}</div>
+          <div className="donut-cap">haber</div>
+        </div>
+      </div>
+      <div className="donut-legend">
+        {segments.map((s) => (
+          <div key={s.label} className="legend-row">
+            <span className="legend-dot" style={{ background: s.color }} />
+            <span className="legend-label">{s.label}</span>
+            <span className="legend-val">{formatCount(s.value)}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -359,24 +457,27 @@ function ActivityRow({ a }: { a: NewsStatsActivity }) {
 }
 
 function StatCard({
+  idx,
   icon,
   tone,
   label,
   value,
   hint,
 }: {
+  idx: number;
   icon: React.ReactNode;
   tone: "brand" | "success" | "warning" | "neutral";
   label: string;
-  value: string;
+  value: number;
   hint?: string;
 }) {
   const iconClass = tone === "brand" ? "stat-icon" : `stat-icon ${tone}`;
+  const shown = useCountUp(value);
   return (
-    <div className="stat-card">
+    <div className="stat-card stat-in" style={{ animationDelay: `${idx * 0.07}s` }}>
       <div>
         <div className="stat-label">{label}</div>
-        <div className="stat-value">{value}</div>
+        <div className="stat-value">{formatCount(shown)}</div>
         {hint && <div className="stat-hint">{hint}</div>}
       </div>
       <div className={iconClass}>{icon}</div>
