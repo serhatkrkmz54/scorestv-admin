@@ -3,3 +3,5 @@
 // isim uzayı kullanır.
 export const ACCESS_COOKIE = "stv_admin_at";
 export const REFRESH_COOKIE = "stv_admin_rt";
+// Erişim kapısı (PIN/anahtar) çerezi — opak token; middleware doğrular.
+export const GATE_COOKIE = "stv_admin_gate";

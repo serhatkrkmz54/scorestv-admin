@@ -1,9 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/cookie-names";
+import { ACCESS_COOKIE, REFRESH_COOKIE, GATE_COOKIE } from "@/lib/cookie-names";
 
 // Sunucu tarafı backend adresi (backend.ts ile aynı değişken).
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:8080";
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 14; // 14 gün (backend refresh-token-ttl)
+
+// ---- Erişim kapısı (paylaşımlı PIN/anahtar) ----
+// PANEL_GATE_KEY: editörlerin gireceği anahtar (yalnız sunucuda doğrulanır).
+// PANEL_GATE_TOKEN: kapıyı geçince çereze yazılan opak değer (uzun rastgele).
+// İkisi de doluysa kapı aktif; boşsa TAMAMEN devre dışı (geriye uyumlu).
+const GATE_TOKEN = process.env.PANEL_GATE_TOKEN ?? "";
+const GATE_ENABLED = (process.env.PANEL_GATE_KEY ?? "").length > 0 && GATE_TOKEN.length > 0;
 
 /**
  * Erişim kapısı + OTURUM TAZELEME (Edge middleware).
@@ -48,6 +55,41 @@ function loginRedirect(req: NextRequest, clear: boolean): NextResponse {
 }
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
+  const path = req.nextUrl.pathname;
+
+  // 0. ERİŞİM KAPISI — /gate hariç TÜM sayfaları (login dahil) sarar. Kapıyı
+  //    geçmeyen kullanıcı paneli/login'i göremez, anahtar ekranına atılır.
+  if (GATE_ENABLED) {
+    const gatePassed = req.cookies.get(GATE_COOKIE)?.value === GATE_TOKEN;
+    if (path === "/gate") {
+      // Zaten geçtiyse kapı ekranında oyalanma → panele gönder.
+      if (gatePassed) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+      return NextResponse.next(); // anahtar formunu göster
+    }
+    if (!gatePassed) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/gate";
+      url.searchParams.set("next", req.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+  } else if (path === "/gate") {
+    // Kapı kapalıysa boş /gate sayfası kalmasın → login'e yönlendir.
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Login sayfası: kapı geçildi (ya da kapı kapalı) → ayrıca oturum arama.
+  if (path === "/login") {
+    return NextResponse.next();
+  }
+
   const access = req.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
 
@@ -115,9 +157,10 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  // Panel rotalarını koru; login, API (kendi auth'unu yönetir), _next statikler
-  // VE public dosyaları hariç. ÖNEMLİ: `.*\..*` uzantılı yolları (/images/*.jpg,
-  // *.png, robots.txt vb.) dışlar — aksi halde login arka planı (login-bg.jpg)
-  // gibi statik istekler auth kapısına takılıp /login'e redirect oluyordu.
-  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // Middleware /login VE /gate dahil tüm sayfalarda çalışır (erişim kapısı
+  // login'i de sarmalı). Hariç tutulanlar: API (kendi auth'unu yönetir), _next
+  // statikler ve public dosyaları. ÖNEMLİ: `.*\..*` uzantılı yolları
+  // (/images/*.jpg, *.png, robots.txt vb.) dışlar — aksi halde login arka planı
+  // (login-bg.jpg) gibi statik istekler kapıya takılıp redirect oluyordu.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
