@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Ubuntu } from "next/font/google";
 import "./globals.css";
 
-// Public site ile aynı yükleme yöntemi: next/font/google Poppins, --font-poppins
-// değişkeni. Figma temasındaki "JUST Sans" bu font ile eşlenir. Ağırlıklar 400/
-// 500/600/700; display swap.
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
+// Panel fontu: Ubuntu (next/font/google), --font-ubuntu değişkeni. Türkçe
+// glifler için latin + latin-ext yüklenir. Ubuntu ağırlıkları 300/400/500/700
+// (600 yoktur; tarayıcı en yakın ağırlığa düşer). display: swap.
+const ubuntu = Ubuntu({
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-ubuntu",
   display: "swap",
 });
 
@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr" className={poppins.variable} suppressHydrationWarning>
+    <html lang="tr" className={ubuntu.variable} suppressHydrationWarning>
       <body>
         {/* Paint'ten önce çalışan tema init'i — FOUC'u önler. body'nin ilk
             çocuğu olarak senkron yürür ve <html data-theme>'i ayarlar. */}
