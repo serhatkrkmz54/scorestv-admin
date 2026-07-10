@@ -17,6 +17,10 @@
 # misc
 .DS_Store
 *.pem
+# FUSE "open dosya silinince" artığı + merge/backup kalıntıları (repoya girmesin)
+.fuse_hidden*
+*.orig
+*.rej
 
 # debug
 npm-debug.log*
