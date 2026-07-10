@@ -138,6 +138,12 @@ export default function Dashboard() {
     );
   }
 
+  // Savunma: backend bir listeyi hiç döndürmezse (beklenmez) UI çökmesin.
+  const topViewed = data.topViewed ?? [];
+  const editors = data.editors ?? [];
+  const recentActivity = data.recentActivity ?? [];
+  const trend = data.trend ?? [];
+
   const segments = [
     { label: STATUS_LABELS.PUBLISHED, value: data.published, color: "var(--success)" },
     { label: STATUS_LABELS.DRAFT, value: data.draft, color: "var(--neutral)" },
@@ -183,7 +189,7 @@ export default function Dashboard() {
             <TrendingUp size={16} />
             <span>Son 14 Gün — Yayın Trendi</span>
           </div>
-          <TrendChart key={`t${tick}`} data={data.trend} />
+          <TrendChart key={`t${tick}`} data={trend} />
         </div>
 
         <div className="card card-pad">
@@ -201,11 +207,11 @@ export default function Dashboard() {
             <Eye size={16} />
             <span>En Çok Okunanlar</span>
           </div>
-          {data.topViewed.length === 0 ? (
+          {topViewed.length === 0 ? (
             <div className="muted" style={{ padding: "8px 0" }}>Henüz veri yok.</div>
           ) : (
             <ol className="top-list">
-              {data.topViewed.map((a, i) => (
+              {topViewed.map((a, i) => (
                 <li key={a.id} className="top-item">
                   <span className="top-rank">{i + 1}</span>
                   <div className="top-main">
@@ -237,7 +243,7 @@ export default function Dashboard() {
             <Users size={16} />
             <span>Editör Üretimi</span>
           </div>
-          {data.editors.length === 0 ? (
+          {editors.length === 0 ? (
             <div className="muted" style={{ padding: "8px 0" }}>Henüz veri yok.</div>
           ) : (
             <table className="mini-table">
@@ -249,7 +255,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.editors.map((e) => (
+                {editors.map((e) => (
                   <tr key={e.authorId}>
                     <td>{e.name}</td>
                     <td style={{ textAlign: "right" }}>{formatCount(e.published)}</td>
@@ -267,12 +273,12 @@ export default function Dashboard() {
           <Activity size={16} />
           <span>Son Aktivite</span>
         </div>
-        {data.recentActivity.length === 0 ? (
+        {recentActivity.length === 0 ? (
           <div className="muted" style={{ padding: "8px 0" }}>Henüz aktivite yok.</div>
         ) : (
           <ul className="activity-list">
-            {data.recentActivity.map((a, i) => (
-              <ActivityRow key={i} a={a} />
+            {recentActivity.map((a) => (
+              <ActivityRow key={`${a.at}-${a.action}-${a.articleId ?? ""}`} a={a} />
             ))}
           </ul>
         )}
