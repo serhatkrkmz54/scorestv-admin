@@ -442,3 +442,31 @@ export interface RescheduleRequest {
   publishedAt: string | null;
   status?: NewsStatus | null;
 }
+
+// ---- İletişim mesajları (ContactMessageView.java / Spring Page) ----
+export type ContactStatus = "NEW" | "READ" | "ARCHIVED";
+export interface ContactAttachment {
+  url: string;
+  contentType: string | null;
+  originalName: string | null;
+  fileSize: number | null;
+}
+export interface ContactMessageView {
+  id: number;
+  name: string;
+  email: string;
+  subject: string | null;
+  message: string;
+  status: ContactStatus;
+  source: string | null; // "web" | "mobile"
+  ipAddress: string | null;
+  createdAt: string; // ISO Instant
+  attachments: ContactAttachment[];
+}
+// Backend AdminContactController Spring Page<T> döner.
+export interface ContactPage {
+  content: ContactMessageView[];
+  totalElements: number;
+  number: number;
+  last: boolean;
+}

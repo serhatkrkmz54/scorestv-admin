@@ -26,6 +26,9 @@ import type {
   SaveSliderRequest,
   UpdateFlagsRequest,
   RescheduleRequest,
+  ContactPage,
+  ContactMessageView,
+  ContactStatus,
   SearchResponse,
   TranslateNewsRequest,
   TranslateNewsResult,
@@ -336,4 +339,28 @@ export async function apiReschedule(id: number, data: RescheduleRequest): Promis
 export async function apiIndexNow(id: number): Promise<{ ok: boolean; url: string }> {
   const res = await fetch(`/api/news/${id}/indexnow`, { method: "POST" });
   return parse<{ ok: boolean; url: string }>(res);
+}
+
+// ---- İletişim mesajları (ADMIN) ----
+export interface ContactListParams { status?: string; page?: number; size?: number; }
+export async function apiListContact(params: ContactListParams): Promise<ContactPage> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set("status", params.status);
+  if (params.page !== undefined) qs.set("page", String(params.page));
+  if (params.size !== undefined) qs.set("size", String(params.size));
+  const res = await fetch(`/api/contact?${qs.toString()}`, { method: "GET" });
+  return parse<ContactPage>(res);
+}
+export async function apiContactUnreadCount(): Promise<number> {
+  const res = await fetch("/api/contact/unread-count", { method: "GET" });
+  const body = await parse<{ count: number }>(res);
+  return body.count ?? 0;
+}
+export async function apiUpdateContactStatus(id: number, status: ContactStatus): Promise<ContactMessageView> {
+  const res = await fetch(`/api/contact/${id}/status`, jsonInit("PATCH", { status }));
+  return parse<ContactMessageView>(res);
+}
+export async function apiDeleteContact(id: number): Promise<void> {
+  const res = await fetch(`/api/contact/${id}`, { method: "DELETE" });
+  if (!res.ok) await parse<{ ok: boolean }>(res);
 }

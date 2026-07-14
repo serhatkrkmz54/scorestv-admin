@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Newspaper,
@@ -14,9 +14,10 @@ import {
   ScrollText,
   LayoutTemplate,
   CalendarClock,
+  Mail,
   LogOut,
 } from "lucide-react";
-import { apiLogout } from "@/lib/api-client";
+import { apiLogout, apiContactUnreadCount } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
 
 const ROLE_TR: Record<string, string> = {
@@ -29,6 +30,16 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const pathname = usePathname();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (user.role !== "ADMIN") return;
+    let alive = true;
+    apiContactUnreadCount()
+      .then((n) => { if (alive) setUnread(n); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [user.role]);
 
   const isDashboard = pathname === "/";
   const isNews =
@@ -41,6 +52,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isSlider = pathname.startsWith("/slider");
   const isCalendar = pathname.startsWith("/calendar");
   const isAudit = pathname.startsWith("/audit");
+  const isMessages = pathname.startsWith("/messages");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -112,6 +124,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <ScrollText className="icon" size={22} />
           Denetim
         </Link>
+        {user.role === "ADMIN" && (
+          <Link href="/messages" className={`nav-item ${isMessages ? "active" : ""}`}>
+            <Mail className="icon" size={22} />
+            İletişim
+            {unread > 0 && <span className="nav-badge">{unread}</span>}
+          </Link>
+        )}
         <Link
           href="/settings"
           className={`nav-item ${isSettings ? "active" : ""}`}

@@ -2760,3 +2760,69 @@ table.data-table {
 .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
 .legend-label { color: var(--text-muted); flex: 1; }
 .legend-val { color: var(--text); font-weight: 700; }
+
+/* =========================================================
+   İletişim mesajları + sidebar okunmamış rozeti
+   ========================================================= */
+.nav-item .nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--danger-base);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.msg-list { display: flex; flex-direction: column; gap: 12px; }
+.msg-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 14px 16px;
+}
+.msg-card.msg-new { border-left: 3px solid var(--danger-base); }
+.msg-head { display: flex; align-items: center; gap: 10px; }
+.msg-who { flex: 1; min-width: 0; }
+.msg-name {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+.msg-source {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; color: var(--text-faint); text-transform: uppercase;
+}
+.msg-email { font-size: 12px; color: var(--brand); text-decoration: none; }
+.msg-email:hover { text-decoration: underline; }
+.msg-date { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+.msg-subject { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 10px; }
+.msg-body {
+  font-size: 13px; color: var(--text-muted); line-height: 1.5;
+  margin-top: 6px; white-space: pre-wrap; word-break: break-word;
+}
+.msg-atts { margin-top: 12px; }
+.msg-atts-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 8px;
+}
+.msg-atts-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg-att-img {
+  width: 84px; height: 84px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--border-strong); cursor: pointer;
+}
+.msg-att-file {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--text); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 12px;
+}
+.msg-att-file:hover { border-color: var(--brand); }
+.msg-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+}
