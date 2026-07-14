@@ -36,14 +36,17 @@ export default function Sidebar({ user }: { user: AppUser }) {
     if (user.role !== "ADMIN") return;
     let alive = true;
     apiContactUnreadCount()
-      .then((n) => { if (alive) setUnread(n); })
+      .then((n) => {
+        if (alive) setUnread(n);
+      })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [user.role]);
 
   const isDashboard = pathname === "/";
-  const isNews =
-    pathname.startsWith("/news") && !pathname.endsWith("/new");
+  const isNews = pathname.startsWith("/news") && !pathname.endsWith("/new");
   const isNew = pathname === "/news/new";
   const isNotifications = pathname.startsWith("/notifications");
   const isMedia = pathname.startsWith("/media");
@@ -84,11 +87,15 @@ export default function Sidebar({ user }: { user: AppUser }) {
       </div>
 
       <nav className="sidebar-nav">
-        <div className="sidebar-section">Yönetim</div>
+        {/* ---- Genel ---- */}
+        <div className="sidebar-section">Genel</div>
         <Link href="/" className={`nav-item ${isDashboard ? "active" : ""}`}>
           <LayoutDashboard className="icon" size={22} />
           Panel
         </Link>
+
+        {/* ---- İçerik ---- */}
+        <div className="sidebar-section">İçerik</div>
         <Link href="/news" className={`nav-item ${isNews ? "active" : ""}`}>
           <Newspaper className="icon" size={22} />
           Haberler
@@ -97,32 +104,24 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <PlusCircle className="icon" size={22} />
           Yeni Haber
         </Link>
-        <Link
-          href="/notifications"
-          className={`nav-item ${isNotifications ? "active" : ""}`}
-        >
-          <Bell className="icon" size={22} />
-          Bildirim Gönder
-        </Link>
-        <Link href="/media" className={`nav-item ${isMedia ? "active" : ""}`}>
-          <ImageIcon className="icon" size={22} />
-          Medya
-        </Link>
-        <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
-          <MessageSquare className="icon" size={22} />
-          Yorumlar
+        <Link href="/calendar" className={`nav-item ${isCalendar ? "active" : ""}`}>
+          <CalendarClock className="icon" size={22} />
+          Takvim
         </Link>
         <Link href="/slider" className={`nav-item ${isSlider ? "active" : ""}`}>
           <LayoutTemplate className="icon" size={22} />
           Slider
         </Link>
-        <Link href="/calendar" className={`nav-item ${isCalendar ? "active" : ""}`}>
-          <CalendarClock className="icon" size={22} />
-          Takvim
+        <Link href="/media" className={`nav-item ${isMedia ? "active" : ""}`}>
+          <ImageIcon className="icon" size={22} />
+          Medya
         </Link>
-        <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
-          <ScrollText className="icon" size={22} />
-          Denetim
+
+        {/* ---- Topluluk ---- */}
+        <div className="sidebar-section">Topluluk</div>
+        <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
+          <MessageSquare className="icon" size={22} />
+          Yorumlar
         </Link>
         {user.role === "ADMIN" && (
           <Link href="/messages" className={`nav-item ${isMessages ? "active" : ""}`}>
@@ -131,6 +130,20 @@ export default function Sidebar({ user }: { user: AppUser }) {
             {unread > 0 && <span className="nav-badge">{unread}</span>}
           </Link>
         )}
+        <Link
+          href="/notifications"
+          className={`nav-item ${isNotifications ? "active" : ""}`}
+        >
+          <Bell className="icon" size={22} />
+          Bildirim Gönder
+        </Link>
+
+        {/* ---- Sistem ---- */}
+        <div className="sidebar-section">Sistem</div>
+        <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
+          <ScrollText className="icon" size={22} />
+          Denetim
+        </Link>
         <Link
           href="/settings"
           className={`nav-item ${isSettings ? "active" : ""}`}
