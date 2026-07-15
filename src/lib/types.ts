@@ -575,3 +575,18 @@ export interface CreateDuelRequest {
   playerA: GamePlayerRef;
   playerB: GamePlayerRef;
 }
+
+// ---- Oyun: Scores Coin admin yönetimi ----
+export interface AdminUserCoin {
+  userId: number;
+  email: string;
+  displayName: string;
+  coinBalance: number;
+  lifetimeCoins: number;
+}
+
+export interface GrantCoinsResult {
+  userId: number;
+  coinBalance: number;
+  lifetimeCoins: number;
+}

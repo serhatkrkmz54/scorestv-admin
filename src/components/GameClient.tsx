@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, RefreshCw, Settings2, Trophy } from "lucide-react";
+import { Plus, RefreshCw, Settings2, Trophy, Coins } from "lucide-react";
 import {
   apiListCompetitions,
   apiCreateCompetition,
@@ -130,6 +130,9 @@ export default function GameClient() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/game/coins" className="btn">
+            <Coins size={16} /> Coin Yönetimi
+          </Link>
           <button className="btn" onClick={() => load()} disabled={loading}>
             <RefreshCw size={16} /> Yenile
           </button>

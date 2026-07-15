@@ -38,6 +38,8 @@ import type {
   CreateCompetitionRequest,
   CreateDuelRequest,
   GameStatus,
+  AdminUserCoin,
+  GrantCoinsResult,
 } from "./types";
 
 export class ApiError extends Error {
@@ -407,4 +409,24 @@ export async function apiDeleteDuel(duelId: number): Promise<void> {
 export async function apiDeleteCompetition(id: number): Promise<void> {
   const res = await fetch(`/api/game/competitions/${id}`, { method: "DELETE" });
   if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+
+
+// ---- Oyun: Scores Coin admin yönetimi ----
+export async function apiSearchGameUsers(q: string): Promise<AdminUserCoin[]> {
+  const res = await fetch(`/api/game/users?q=${encodeURIComponent(q)}`, {
+    method: "GET",
+  });
+  return parse<AdminUserCoin[]>(res);
+}
+export async function apiGrantCoins(
+  userId: number,
+  delta: number,
+  reason?: string,
+): Promise<GrantCoinsResult> {
+  const res = await fetch(
+    `/api/game/users/${userId}/coins`,
+    jsonInit("POST", { delta, reason }),
+  );
+  return parse<GrantCoinsResult>(res);
 }
