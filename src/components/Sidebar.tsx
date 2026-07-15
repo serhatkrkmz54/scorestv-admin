@@ -15,6 +15,7 @@ import {
   LayoutTemplate,
   CalendarClock,
   Mail,
+  Gamepad2,
   LogOut,
 } from "lucide-react";
 import { apiLogout, apiContactUnreadCount } from "@/lib/api-client";
@@ -56,6 +57,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isCalendar = pathname.startsWith("/calendar");
   const isAudit = pathname.startsWith("/audit");
   const isMessages = pathname.startsWith("/messages");
+  const isGame = pathname.startsWith("/game");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -137,6 +139,12 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <Bell className="icon" size={22} />
           Bildirim Gönder
         </Link>
+        {user.role === "ADMIN" && (
+          <Link href="/game" className={`nav-item ${isGame ? "active" : ""}`}>
+            <Gamepad2 className="icon" size={22} />
+            Oyun
+          </Link>
+        )}
 
         {/* ---- Sistem ---- */}
         <div className="sidebar-section">Sistem</div>

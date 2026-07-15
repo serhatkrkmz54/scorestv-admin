@@ -470,3 +470,108 @@ export interface ContactPage {
   number: number;
   last: boolean;
 }
+
+// ============================================================
+// Oyun (Scores Coin — oyuncu düello tahmin oyunu) — ADMIN yönetimi.
+// Backend: com.scorestv.game GameDtos + GameAdminController.
+// ============================================================
+export type GameScope = "WEEKLY" | "MONTHLY" | "SEASON";
+export type GameStatus = "DRAFT" | "OPEN" | "LOCKED" | "RESOLVED";
+export type DuelStatus = "OPEN" | "RESOLVED" | "VOID";
+export type DuelPosition = "GK" | "DEF" | "MID" | "FWD";
+export type DuelDirection = "HIGHER" | "LOWER";
+export type DuelMetric =
+  | "RATING"
+  | "GOALS"
+  | "ASSISTS"
+  | "KEY_PASSES"
+  | "ASSISTS_KEYPASS"
+  | "SHOTS_ON"
+  | "SAVES"
+  | "CLEAN_SHEET"
+  | "DUELS_WON"
+  | "TACKLES_INT"
+  | "DRIBBLES"
+  | "CARDS"
+  | "FOULS";
+
+// GET /api/v1/admin/game/competitions → List<GameCompetition> (entity).
+export interface GameCompetitionItem {
+  id: number;
+  scope: GameScope;
+  title: string;
+  sport: string;
+  season: number | null;
+  leagueId: number | null;
+  startAt: string; // ISO Instant
+  endAt: string;
+  lockAt: string;
+  status: GameStatus;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GamePlayerView {
+  id: number;
+  name: string | null;
+  photo: string | null;
+  team: string | null;
+  teamLogo: string | null;
+}
+
+export interface GameDuelView {
+  id: number;
+  position: DuelPosition;
+  metric: DuelMetric;
+  direction: DuelDirection;
+  status: DuelStatus;
+  winner: string | null; // A | B | DRAW | VOID | null
+  valueA: number | null;
+  valueB: number | null;
+  playerA: GamePlayerView;
+  playerB: GamePlayerView;
+  myPick: string | null;
+  pickCountA: number;
+  pickCountB: number;
+}
+
+// GET /api/v1/admin/game/competitions/{id} → CompetitionView (düellolarla).
+export interface GameCompetitionView {
+  id: number;
+  scope: GameScope;
+  title: string;
+  status: GameStatus;
+  startAt: string;
+  endAt: string;
+  lockAt: string;
+  locked: boolean;
+  duels: GameDuelView[];
+}
+
+export interface CreateCompetitionRequest {
+  scope: GameScope;
+  title: string;
+  season?: number | null;
+  leagueId?: number | null;
+  startAt: string; // ISO Instant
+  endAt: string;
+  lockAt: string;
+}
+
+export interface GamePlayerRef {
+  id: number;
+  name?: string | null;
+  photo?: string | null;
+  team?: string | null;
+  teamLogo?: string | null;
+}
+
+export interface CreateDuelRequest {
+  position: DuelPosition;
+  metric: DuelMetric;
+  direction?: DuelDirection | null;
+  sortOrder?: number | null;
+  playerA: GamePlayerRef;
+  playerB: GamePlayerRef;
+}

@@ -33,6 +33,11 @@ import type {
   TranslateNewsRequest,
   TranslateNewsResult,
   UpdateProfileRequest,
+  GameCompetitionItem,
+  GameCompetitionView,
+  CreateCompetitionRequest,
+  CreateDuelRequest,
+  GameStatus,
 } from "./types";
 
 export class ApiError extends Error {
@@ -362,5 +367,44 @@ export async function apiUpdateContactStatus(id: number, status: ContactStatus):
 }
 export async function apiDeleteContact(id: number): Promise<void> {
   const res = await fetch(`/api/contact/${id}`, { method: "DELETE" });
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+
+
+// ---- Oyun (Scores Coin) — ADMIN düello yönetimi ----
+export async function apiListCompetitions(): Promise<GameCompetitionItem[]> {
+  const res = await fetch("/api/game/competitions", { method: "GET" });
+  return parse<GameCompetitionItem[]>(res);
+}
+export async function apiCreateCompetition(
+  data: CreateCompetitionRequest,
+): Promise<GameCompetitionItem> {
+  const res = await fetch("/api/game/competitions", jsonInit("POST", data));
+  return parse<GameCompetitionItem>(res);
+}
+export async function apiGetCompetition(id: number): Promise<GameCompetitionView> {
+  const res = await fetch(`/api/game/competitions/${id}`, { method: "GET" });
+  return parse<GameCompetitionView>(res);
+}
+export async function apiAddDuel(id: number, data: CreateDuelRequest): Promise<void> {
+  const res = await fetch(`/api/game/competitions/${id}/duels`, jsonInit("POST", data));
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+export async function apiUpdateCompetitionStatus(
+  id: number,
+  status: GameStatus,
+): Promise<void> {
+  const res = await fetch(
+    `/api/game/competitions/${id}/status`,
+    jsonInit("PATCH", { status }),
+  );
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+export async function apiDeleteDuel(duelId: number): Promise<void> {
+  const res = await fetch(`/api/game/duels/${duelId}`, { method: "DELETE" });
+  if (!res.ok) await parse<{ ok: boolean }>(res);
+}
+export async function apiDeleteCompetition(id: number): Promise<void> {
+  const res = await fetch(`/api/game/competitions/${id}`, { method: "DELETE" });
   if (!res.ok) await parse<{ ok: boolean }>(res);
 }

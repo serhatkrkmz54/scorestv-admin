@@ -2826,3 +2826,105 @@ table.data-table {
   display: flex; gap: 8px; flex-wrap: wrap;
   margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
 }
+
+/* ---- Oyun paneli: oyuncu seçici (PlayerPicker) ---- */
+.player-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.player-chip img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface);
+}
+.player-chip-ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.player-chip-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.player-chip-x:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.player-picker-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.player-picker-empty {
+  padding: 10px 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.player-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.player-picker-item:hover {
+  background: var(--surface-2);
+}
+.player-picker-item img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.player-picker-item-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.player-picker-item-name small {
+  color: var(--text-muted);
+  font-weight: 400;
+}
