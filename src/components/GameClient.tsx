@@ -66,6 +66,7 @@ export default function GameClient() {
   const [showForm, setShowForm] = useState(false);
   const [scope, setScope] = useState<GameScope>("WEEKLY");
   const [title, setTitle] = useState("");
+  const [titleEn, setTitleEn] = useState("");
   const [season, setSeason] = useState("");
   const [leagueId, setLeagueId] = useState("");
   const [startAt, setStartAt] = useState(localPlusDays(0));
@@ -101,6 +102,7 @@ export default function GameClient() {
     const payload: CreateCompetitionRequest = {
       scope,
       title: title.trim(),
+      titleEn: titleEn.trim() || null,
       season: season ? Number(season) : null,
       leagueId: leagueId ? Number(leagueId) : null,
       startAt: toIso(startAt),
@@ -158,6 +160,10 @@ export default function GameClient() {
             <div className="field">
               <label>Başlık</label>
               <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ör. Bu Haftanın Kaleci Düellosu" />
+            </div>
+            <div className="field">
+              <label>İngilizce Başlık</label>
+              <input className="input" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="e.g. This Week's Goalkeeper Duel" />
             </div>
             <div className="field">
               <label>Sezon (opsiyonel)</label>

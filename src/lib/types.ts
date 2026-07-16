@@ -500,6 +500,7 @@ export interface GameCompetitionItem {
   id: number;
   scope: GameScope;
   title: string;
+  titleEn: string | null;
   sport: string;
   season: number | null;
   leagueId: number | null;
@@ -541,6 +542,7 @@ export interface GameCompetitionView {
   id: number;
   scope: GameScope;
   title: string;
+  titleEn: string | null;
   status: GameStatus;
   startAt: string;
   endAt: string;
@@ -552,6 +554,7 @@ export interface GameCompetitionView {
 export interface CreateCompetitionRequest {
   scope: GameScope;
   title: string;
+  titleEn?: string | null;
   season?: number | null;
   leagueId?: number | null;
   startAt: string; // ISO Instant
