@@ -21,6 +21,8 @@ import type {
   NewsRequest,
   NewsStats,
   NewsListItem,
+  NotificationDelivery,
+  NotificationDeliverySummary,
   AdminCommentPage,
   NewsAuditPage,
   SaveSliderRequest,
@@ -283,6 +285,27 @@ export async function apiListBroadcasts(limit = 50): Promise<BroadcastListItem[]
     method: "GET",
   });
   return parse<BroadcastListItem[]>(res);
+}
+
+// ---- Maç-olay bildirim gönderimleri (takip) ----
+export async function apiListDeliveries(
+  status = "",
+  limit = 50,
+): Promise<NotificationDelivery[]> {
+  const qs = new URLSearchParams();
+  if (status) qs.set("status", status);
+  qs.set("limit", String(limit));
+  const res = await fetch(`/api/notifications/deliveries?${qs.toString()}`, {
+    method: "GET",
+  });
+  return parse<NotificationDelivery[]>(res);
+}
+
+export async function apiDeliverySummary(): Promise<NotificationDeliverySummary> {
+  const res = await fetch(`/api/notifications/deliveries/summary`, {
+    method: "GET",
+  });
+  return parse<NotificationDeliverySummary>(res);
 }
 
 // ---- Search ----
