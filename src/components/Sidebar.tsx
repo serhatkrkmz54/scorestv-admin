@@ -8,6 +8,7 @@ import {
   Newspaper,
   PlusCircle,
   Bell,
+  BellRing,
   Image as ImageIcon,
   Settings,
   MessageSquare,
@@ -49,7 +50,8 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isDashboard = pathname === "/";
   const isNews = pathname.startsWith("/news") && !pathname.endsWith("/new");
   const isNew = pathname === "/news/new";
-  const isNotifications = pathname.startsWith("/notifications");
+  const isNotifications = pathname === "/notifications";
+  const isDeliveries = pathname.startsWith("/notifications/deliveries");
   const isMedia = pathname.startsWith("/media");
   const isSettings = pathname.startsWith("/settings");
   const isComments = pathname.startsWith("/comments");
@@ -138,6 +140,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
         >
           <Bell className="icon" size={22} />
           Bildirim Gönder
+        </Link>
+        <Link
+          href="/notifications/deliveries"
+          className={`nav-item ${isDeliveries ? "active" : ""}`}
+        >
+          <BellRing className="icon" size={22} />
+          Bildirim Takip
         </Link>
         {user.role === "ADMIN" && (
           <Link href="/game" className={`nav-item ${isGame ? "active" : ""}`}>

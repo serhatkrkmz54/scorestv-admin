@@ -274,6 +274,35 @@ export interface BroadcastListItem {
   createdAt: string; // ISO Instant
 }
 
+// ---- Maç-olay bildirim gönderimleri (takip) ----
+// Backend NotificationDeliveryAdminController.DeliveryItem karşılığı.
+export type NotificationOutboxStatus = "PENDING" | "SENT" | "FAILED";
+
+export interface NotificationDelivery {
+  id: number;
+  kind: string; // GOAL | EVENT | KICKOFF | FINAL | HALFTIME | SECONDHALF | LINEUP
+  notifType: string; // gol | kirmizi | penalti | basladi | bitti | ht | 2yari | kadro
+  fixtureId: number;
+  teamId: number | null;
+  title: string;
+  body: string;
+  status: NotificationOutboxStatus;
+  sendMode: string | null; // TOKEN | TOPIC | DUAL | NONE
+  recipients: number | null; // token yolunda hedeflenen cihaz
+  deliveredCount: number | null; // FCM başarılı teslim
+  attempts: number;
+  silent: boolean;
+  lastError: string | null;
+  createdAt: string; // ISO Instant
+  sentAt: string | null; // ISO Instant
+}
+
+export interface NotificationDeliverySummary {
+  pending: number;
+  sent: number;
+  failed: number;
+}
+
 // TranslateNewsRequest / TranslateNewsResult (Java) — DeepL tabanlı çeviri.
 // body HTML tag-korumalı çevrilir. Kayıt oluşturmaz; sadece çevrilmiş metin.
 export interface TranslateNewsRequest {

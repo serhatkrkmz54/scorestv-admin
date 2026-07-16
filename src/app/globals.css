@@ -2191,6 +2191,86 @@ table.data-table {
   background: #fde8e8;
   color: #c0392b;
 }
+/* Bildirim takip: PENDING = QUEUED ile aynı ton. */
+.bc-status-pending {
+  background: #fff4e0;
+  color: #b26a00;
+}
+
+/* ---------- Bildirim gönderim takibi (deliveries) ---------- */
+.dlv-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dlv-stat {
+  flex: 1 1 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+}
+.dlv-stat:hover {
+  border-color: var(--accent);
+}
+.dlv-stat.active {
+  border-color: var(--accent);
+  background: var(--accent-soft, rgba(0, 0, 0, 0.03));
+}
+.dlv-stat-num {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.dlv-stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.dlv-stat.ok .dlv-stat-num {
+  color: var(--success);
+}
+.dlv-stat.warn .dlv-stat-num {
+  color: #b26a00;
+}
+.dlv-stat.err .dlv-stat-num {
+  color: #c0392b;
+}
+.dlv-sub {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.dlv-sub-item {
+  font-size: 12px;
+  color: var(--muted);
+}
+.dlv-err-text {
+  color: #c0392b;
+}
+.dlv-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip, rgba(0, 0, 0, 0.05));
+  font-size: 11px;
+  font-weight: 700;
+}
+.dlv-tag-muted {
+  margin-left: 8px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+}
 
 /* ---------- Medya kütüphanesi (yönetim / detay) ---------- */
 .medlib-detail {
