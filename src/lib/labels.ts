@@ -40,6 +40,7 @@ export const SPORT_OPTIONS: { value: string; label: string }[] = [
   { value: "football", label: "Futbol" },
   { value: "basketball", label: "Basketbol" },
   { value: "volleyball", label: "Voleybol" },
+  { value: "news", label: "Haber" },
 ];
 
 export const SPORT_LABELS: Record<string, string> = Object.fromEntries(
