@@ -74,7 +74,7 @@ export default function GameCoinsClient() {
       setMsg(
         `${row.displayName || row.email}: ${sign > 0 ? "+" : "−"}${Math.round(
           amount,
-        )} coin uygulandı (yeni bakiye ${res.coinBalance}).`,
+        )} puan uygulandı (yeni bakiye ${res.coinBalance}).`,
       );
     } catch (err) {
       setMsg(err instanceof ApiError ? err.message : "İşlem başarısız.");
@@ -90,10 +90,10 @@ export default function GameCoinsClient() {
           <ArrowLeft size={14} /> Oyun
         </Link>
         <h2 style={{ margin: "6px 0 0", fontSize: 20, display: "flex", gap: 8, alignItems: "center" }}>
-          <Coins size={20} /> Scores Coin Yönetimi
+          <Coins size={20} /> Scores Puanı Yönetimi
         </h2>
         <div className="muted" style={{ fontSize: 13 }}>
-          Üyeyi e-posta veya adla ara, coin ekle veya çıkar.
+          Üyeyi e-posta veya adla ara, puan ekle veya çıkar.
         </div>
       </div>
 
@@ -132,10 +132,10 @@ export default function GameCoinsClient() {
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontWeight: 800, fontSize: 18, color: "var(--accent, #F59E0B)" }}>
-                  ₴ {row.coinBalance}
+                  ★ {row.coinBalance}
                 </div>
                 <div className="muted" style={{ fontSize: 11 }}>
-                  toplam kazanılan {row.lifetimeCoins}
+                  toplam kazanılan {row.lifetimeCoins} puan
                 </div>
               </div>
             </div>

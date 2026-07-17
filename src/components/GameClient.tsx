@@ -128,12 +128,12 @@ export default function GameClient() {
             <Trophy size={20} /> Oyun · Düello Yarışmaları
           </h2>
           <div className="muted" style={{ fontSize: 13 }}>
-            Scores Coin — aynı mevkiden iki oyuncu bir istatistikte kapışır.
+            Scores Puanı — aynı mevkiden iki oyuncu bir istatistikte kapışır.
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Link href="/game/coins" className="btn">
-            <Coins size={16} /> Coin Yönetimi
+            <Coins size={16} /> Puan Yönetimi
           </Link>
           <button className="btn" onClick={() => load()} disabled={loading}>
             <RefreshCw size={16} /> Yenile
