@@ -74,7 +74,7 @@ export default function GameCoinsClient() {
       setMsg(
         `${row.displayName || row.email}: ${sign > 0 ? "+" : "−"}${Math.round(
           amount,
-        )} puan uygulandı (yeni bakiye ${res.coinBalance}).`,
+        )} puan uygulandı (güncel puan ${res.coinBalance}).`,
       );
     } catch (err) {
       setMsg(err instanceof ApiError ? err.message : "İşlem başarısız.");
