@@ -9,6 +9,8 @@ import type {
   BroadcastListItem,
   BroadcastRequest,
   BroadcastResult,
+  TestNotificationRequest,
+  TestNotificationResult,
   ChangePasswordRequest,
   CreateEditorRequest,
   ImageUploadResult,
@@ -285,6 +287,14 @@ export async function apiListBroadcasts(limit = 50): Promise<BroadcastListItem[]
     method: "GET",
   });
   return parse<BroadcastListItem[]>(res);
+}
+
+// Yalnızca verilen e-postanın cihazlarına test push (senkron, herkese gitmez).
+export async function apiSendTestNotification(
+  data: TestNotificationRequest,
+): Promise<TestNotificationResult> {
+  const res = await fetch("/api/notifications/test", jsonInit("POST", data));
+  return parse<TestNotificationResult>(res);
 }
 
 // ---- Maç-olay bildirim gönderimleri (takip) ----

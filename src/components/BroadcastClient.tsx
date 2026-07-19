@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { apiSendBroadcast, apiListBroadcasts, ApiError } from "@/lib/api-client";
+import {
+  apiSendBroadcast,
+  apiListBroadcasts,
+  apiSendTestNotification,
+  ApiError,
+} from "@/lib/api-client";
 import type {
   BroadcastLang,
   BroadcastListItem,
@@ -35,6 +40,10 @@ export default function BroadcastClient() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+
+  // Test gönderimi — yalnızca bu e-postanın cihazlarına.
+  const [testEmail, setTestEmail] = useState("");
+  const [testSending, setTestSending] = useState(false);
 
   const [history, setHistory] = useState<BroadcastListItem[]>([]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -92,6 +101,49 @@ export default function BroadcastClient() {
       setError(err instanceof ApiError ? err.message : "Bildirim gönderilemedi.");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function sendTest() {
+    setError(null);
+    setOk(null);
+    if (!title.trim() || !body.trim()) {
+      setError("Başlık ve metin dolu olmalı.");
+      return;
+    }
+    if (!testEmail.trim()) {
+      setError("Test için bir e-posta gir.");
+      return;
+    }
+    if (link.trim() && !/^(https?:\/\/|\/)/.test(link.trim())) {
+      setError("Bağlantı http(s):// ile ya da / ile başlamalı.");
+      return;
+    }
+    setTestSending(true);
+    try {
+      const res = await apiSendTestNotification({
+        email: testEmail.trim(),
+        title: title.trim(),
+        body: body.trim(),
+        link: link.trim() || null,
+      });
+      if (res.sent > 0) {
+        setOk(
+          `Test gönderildi — ${res.email} hesabının ${res.sent}/${res.deviceCount} cihazına iletildi.`,
+        );
+      } else if (!res.fcmEnabled) {
+        setError("Sunucuda FCM kapalı görünüyor — test iletilemedi.");
+      } else {
+        setError(
+          `${res.deviceCount} cihaz bulundu ama FCM iletemedi (token bayat olabilir). Telefonda uygulamayı bir kez açıp tekrar dene.`,
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Test bildirimi gönderilemedi.",
+      );
+    } finally {
+      setTestSending(false);
     }
   }
 
@@ -188,6 +240,40 @@ export default function BroadcastClient() {
         >
           {sending ? "Gönderiliyor…" : "Bildirimi Gönder"}
         </button>
+
+        <div
+          className="field"
+          style={{
+            marginTop: 18,
+            paddingTop: 16,
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <label className="label">Sadece bana test gönder</label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              className="input"
+              style={{ flex: 1, minWidth: 220 }}
+              type="email"
+              value={testEmail}
+              maxLength={320}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="e-posta (uygulamada giriş yaptığın hesap)"
+            />
+            <button
+              className="btn btn-ghost"
+              onClick={sendTest}
+              disabled={testSending}
+            >
+              {testSending ? "Gönderiliyor…" : "Test Gönder"}
+            </button>
+          </div>
+          <div className="hint">
+            Yukarıdaki başlık/metin/bağlantıyı kullanır. Yalnızca bu hesapla mobil
+            uygulamada giriş yapmış cihazlara gider — herkese GİTMEZ. (Telefonda o
+            hesapla giriş yapıp bildirim izni verilmiş olmalı.)
+          </div>
+        </div>
       </div>
 
       <div className="card card-pad">

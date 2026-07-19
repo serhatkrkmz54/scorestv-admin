@@ -274,6 +274,21 @@ export interface BroadcastListItem {
   createdAt: string; // ISO Instant
 }
 
+// Test gönderimi — yalnızca bir e-postanın cihazlarına push (senkron).
+export interface TestNotificationRequest {
+  email: string;
+  title: string;
+  body: string;
+  link?: string | null;
+}
+
+export interface TestNotificationResult {
+  email: string;
+  deviceCount: number; // hesaba bağlı, bildirimi açık cihaz
+  sent: number; // FCM'e iletilen
+  fcmEnabled: boolean; // sunucuda FCM aktif mi
+}
+
 // ---- Maç-olay bildirim gönderimleri (takip) ----
 // Backend NotificationDeliveryAdminController.DeliveryItem karşılığı.
 export type NotificationOutboxStatus = "PENDING" | "SENT" | "FAILED";
