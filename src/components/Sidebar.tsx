@@ -80,7 +80,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
       <div className="sidebar-brand">
         <div className="logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/app_icon.png" alt="ScoresTV" />
+          <img src="/images/app_icon.png" alt="Scores TV" />
         </div>
         <div>
           <div className="brand-name">

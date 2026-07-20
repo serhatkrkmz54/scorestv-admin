@@ -13,8 +13,8 @@ const ubuntu = Ubuntu({
 });
 
 export const metadata: Metadata = {
-  title: "ScoresTV Editör Paneli",
-  description: "Haber yönetim paneli — ScoresTV",
+  title: "Scores TV Editör Paneli",
+  description: "Haber yönetim paneli — Scores TV",
   robots: { index: false, follow: false },
 };
 

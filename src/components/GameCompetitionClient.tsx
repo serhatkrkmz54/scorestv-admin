@@ -41,7 +41,7 @@ const POSITION_TR: Record<DuelPosition, string> = {
 };
 
 const METRIC_TR: Record<DuelMetric, string> = {
-  RATING: "Rating (ScoresTV Puanı)",
+  RATING: "Rating (Scores TV Puanı)",
   GOALS: "Gol",
   ASSISTS: "Asist",
   KEY_PASSES: "Kilit Pas",

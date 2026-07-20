@@ -219,7 +219,7 @@ function MessageCard({
     .join("")
     .toUpperCase();
   const mailto = `mailto:${m.email}?subject=${encodeURIComponent(
-    "RE: " + (m.subject || "ScoresTV iletişim"),
+    "RE: " + (m.subject || "Scores TV iletişim"),
   )}`;
 
   return (
