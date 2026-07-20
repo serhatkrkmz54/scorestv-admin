@@ -289,6 +289,35 @@ export interface TestNotificationResult {
   fcmEnabled: boolean; // sunucuda FCM aktif mi
 }
 
+// ---- Uygulama İstatistikleri (kendi DB'mizden — üye/cihaz/oyun KPI) ----
+export interface AppStatsCountry {
+  country: string;
+  count: number;
+}
+
+export interface AppStats {
+  // Üyeler
+  usersTotal: number;
+  usersNew24h: number;
+  usersNew7d: number;
+  usersNew30d: number;
+  usersGoogle: number;
+  usersApple: number;
+  usersEmail: number;
+  // Cihazlar (mobil)
+  devicesTotal: number;
+  devicesAndroid: number;
+  devicesIos: number;
+  devicesNotifOn: number;
+  devicesLinked: number; // hesaba bağlı (giriş yapmış)
+  devicesActive7d: number;
+  devicesActive30d: number;
+  topCountries: AppStatsCountry[];
+  // Oyun
+  gamePicksTotal: number;
+  gamePlayers: number;
+}
+
 // ---- Maç-olay bildirim gönderimleri (takip) ----
 // Backend NotificationDeliveryAdminController.DeliveryItem karşılığı.
 export type NotificationOutboxStatus = "PENDING" | "SENT" | "FAILED";

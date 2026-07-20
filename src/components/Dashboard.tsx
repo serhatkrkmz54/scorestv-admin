@@ -28,6 +28,7 @@ import type {
 } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/labels";
 import { formatCount, formatDate } from "@/lib/format";
+import AppStatsSection from "./AppStatsSection";
 
 const WEB_BASE = process.env.NEXT_PUBLIC_WEB_URL || "https://scorestv.com";
 
@@ -153,6 +154,9 @@ export default function Dashboard() {
 
   return (
     <div className="stack">
+      {/* Uygulama (üye/cihaz/oyun) istatistikleri — kendi bölümü, en üstte. */}
+      <AppStatsSection />
+
       <div className="spread">
         <div>
           <h2 style={{ margin: 0, fontSize: 20 }}>Panel Özeti</h2>

@@ -11,6 +11,7 @@ import type {
   BroadcastResult,
   TestNotificationRequest,
   TestNotificationResult,
+  AppStats,
   ChangePasswordRequest,
   CreateEditorRequest,
   ImageUploadResult,
@@ -295,6 +296,13 @@ export async function apiSendTestNotification(
 ): Promise<TestNotificationResult> {
   const res = await fetch("/api/notifications/test", jsonInit("POST", data));
   return parse<TestNotificationResult>(res);
+}
+
+// ---- Uygulama İstatistikleri ----
+/** Üye/cihaz/oyun KPI'ları — kendi DB'mizden (kesin, gecikmesiz). */
+export async function apiAppStats(): Promise<AppStats> {
+  const res = await fetch("/api/stats/app", { method: "GET" });
+  return parse<AppStats>(res);
 }
 
 // ---- Maç-olay bildirim gönderimleri (takip) ----
