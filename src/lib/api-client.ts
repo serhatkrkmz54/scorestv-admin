@@ -222,6 +222,15 @@ export async function apiBulkNews(data: BulkNewsRequest): Promise<BulkResult> {
   return parse<BulkResult>(res);
 }
 
+/**
+ * Haber içe aktarmayı elle tetikle (yalnız ADMIN). Kaynaktan (NewsData) güncel
+ * haberleri çeker, yenileri DRAFT olarak açar. Açılan sayıyı döner.
+ */
+export async function apiIngestNews(): Promise<{ created: number }> {
+  const res = await fetch("/api/news/ingest", { method: "POST" });
+  return parse<{ created: number }>(res);
+}
+
 // ---- Çeviri (DeepL) ----
 export async function apiTranslateNews(
   payload: TranslateNewsRequest,

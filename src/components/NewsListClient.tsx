@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Archive,
   X,
+  DownloadCloud,
 } from "lucide-react";
 import {
   apiListNews,
@@ -25,6 +26,7 @@ import {
   apiUnpublishNews,
   apiDeleteNews,
   apiBulkNews,
+  apiIngestNews,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -82,6 +84,10 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
 
+  // Haber içe aktarma (agregatör — yalnız ADMIN).
+  const [ingestBusy, setIngestBusy] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
+
   // Topbar araması ile senkron (UI-only köprü; API akışını değiştirmez).
   const onTopbarSearch = useCallback((v: string) => setQ(v), []);
   useTopbarSearchSubscription(onTopbarSearch);
@@ -130,6 +136,31 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Kaynaktan (NewsData) güncel haberleri çek — DRAFT olarak eklenir. Yeni haber
+  // gelirse DRAFT sekmesine geçip listeyi tazeler.
+  const runIngest = useCallback(async () => {
+    setIngestBusy(true);
+    setIngestMsg(null);
+    try {
+      const r = await apiIngestNews();
+      setIngestMsg(
+        r.created > 0
+          ? `${r.created} yeni haber taslak (DRAFT) olarak eklendi. Onaylayıp yayınlayabilirsin.`
+          : "Yeni haber bulunamadı (güncel haberler zaten alınmış olabilir).",
+      );
+      if (r.created > 0) {
+        setTab("DRAFT");
+        await load();
+      }
+    } catch (err) {
+      setIngestMsg(
+        err instanceof ApiError ? err.message : "İçe aktarma başarısız.",
+      );
+    } finally {
+      setIngestBusy(false);
+    }
   }, [load]);
 
   // Spor filtresi artık backend'de (sport param) uygulanıyor; sayfalama da
@@ -291,10 +322,43 @@ export default function NewsListClient({ isAdmin }: { isAdmin: boolean }) {
             Toplam {formatCount(total)} haber
           </div>
         </div>
-        <Link href="/news/new" className="btn btn-primary">
-          <Plus size={16} /> Yeni Haber
-        </Link>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn"
+              onClick={runIngest}
+              disabled={ingestBusy}
+              title="Kaynaktan (NewsData) güncel ulusal + Türkçe spor haberlerini çek — DRAFT olarak eklenir, onaylayıp yayınlarsın."
+            >
+              <DownloadCloud size={16} />
+              {ingestBusy ? " Çekiliyor…" : " İçe Aktar"}
+            </button>
+          )}
+          <Link href="/news/new" className="btn btn-primary">
+            <Plus size={16} /> Yeni Haber
+          </Link>
+        </div>
       </div>
+
+      {ingestMsg && (
+        <div
+          className="alert"
+          role="status"
+          onClick={() => setIngestMsg(null)}
+          style={{
+            cursor: "pointer",
+            background: "var(--surface-2, #f1f5f9)",
+            border: "1px solid var(--border, #e2e8f0)",
+            borderRadius: 8,
+            padding: "10px 14px",
+            fontSize: 13,
+          }}
+        >
+          {ingestMsg}{" "}
+          <span className="muted">(kapatmak için tıkla)</span>
+        </div>
+      )}
 
       <div className="filters-bar">
         <input
