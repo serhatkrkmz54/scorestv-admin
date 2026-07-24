@@ -20,6 +20,7 @@ import {
   apiPublishNews,
   apiTranslateNews,
   apiTranslateStatus,
+  apiAiSummarizeNews,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -213,6 +214,26 @@ function NewsFormInner(
 
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // AI özet (isteğe bağlı, elle) — kaynaktan çekip özet/gövdeyi doldurur.
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState<string | null>(null);
+
+  const aiSummarize = async () => {
+    if (initial.id === undefined) return;
+    setAiBusy(true);
+    setAiMsg(null);
+    try {
+      const d = await apiAiSummarizeNews(initial.id);
+      setSummary(d.summary ?? "");
+      setBody(d.body ?? "");
+      setAiMsg("AI özeti eklendi. Kontrol edip Kaydet / Yayınla.");
+    } catch (err) {
+      setAiMsg(err instanceof ApiError ? err.message : "AI özet üretilemedi.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
   // Çeviri servisi (DeepL) yapılandırılmış mı — buton yalnızca açıksa görünür.
   const [translateEnabled, setTranslateEnabled] = useState(false);
   const [translating, setTranslating] = useState(false);
@@ -459,6 +480,16 @@ function NewsFormInner(
                     : "Türkçe çeviri oluştur"}
               </button>
             )}
+            {isEdit && sourceUrl.trim() !== "" && (
+              <button
+                className="btn"
+                onClick={aiSummarize}
+                disabled={saving || aiBusy}
+                title="Kaynak makaleyi çekip AI ile özgün bir özet üret, özet/gövdeyi doldur. Sonra kontrol edip yayınlarsın."
+              >
+                {aiBusy ? "AI özetliyor…" : "AI ile Özetle"}
+              </button>
+            )}
             <button
               className={showPreview ? "btn btn-primary" : "btn"}
               onClick={() => setShowPreview((v) => !v)}
@@ -471,6 +502,24 @@ function NewsFormInner(
             </button>
           </div>
         </div>
+        {aiMsg && (
+          <div
+            className="alert"
+            role="status"
+            onClick={() => setAiMsg(null)}
+            style={{
+              cursor: "pointer",
+              background: "var(--surface-2, #f1f5f9)",
+              border: "1px solid var(--border, #e2e8f0)",
+              borderRadius: 8,
+              padding: "10px 14px",
+              fontSize: 13,
+              marginTop: 8,
+            }}
+          >
+            {aiMsg} <span className="muted">(kapatmak için tıkla)</span>
+          </div>
+        )}
         <div
           style={{
             marginTop: 2,

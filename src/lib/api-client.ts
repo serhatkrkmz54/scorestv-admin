@@ -187,6 +187,15 @@ export async function apiCreateNews(data: NewsRequest): Promise<NewsDetail> {
   return parse<NewsDetail>(res);
 }
 
+/**
+ * Bu haberin kaynağından AI özeti üret ve habere işle (EDITOR/ADMIN). Güncel
+ * haberi döner. İsteğe bağlı — hepsi için değil, tek haber için elle.
+ */
+export async function apiAiSummarizeNews(id: number): Promise<NewsDetail> {
+  const res = await fetch(`/api/news/${id}/ai-summarize`, { method: "POST" });
+  return parse<NewsDetail>(res);
+}
+
 export async function apiUpdateNews(id: number, data: NewsRequest): Promise<NewsDetail> {
   const res = await fetch(`/api/news/${id}`, jsonInit("PUT", data));
   return parse<NewsDetail>(res);
