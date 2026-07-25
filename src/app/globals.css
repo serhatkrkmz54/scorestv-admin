@@ -3049,3 +3049,49 @@ table.data-table {
   color: var(--text-muted);
   font-weight: 400;
 }
+
+/* ---------- Sidebar akordiyon ---------- */
+/* Bolum basligi artik tiklanabilir buton — .sidebar-section gorunumunu korur. */
+.nav-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sidebar-muted);
+  font-weight: 600;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+.nav-section-toggle:hover {
+  color: var(--sidebar-text, var(--text));
+}
+.nav-section-chev {
+  transition: transform 0.2s ease;
+  transform: rotate(-90deg);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+.nav-section-chev.open {
+  transform: rotate(0deg);
+}
+
+/* Acilir-kapanir govde — grid-rows animasyonu (max-height hilesiz, akici). */
+.nav-group {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.nav-group.closed {
+  grid-template-rows: 0fr;
+}
+.nav-group-inner {
+  overflow: hidden;
+  min-height: 0;
+}
