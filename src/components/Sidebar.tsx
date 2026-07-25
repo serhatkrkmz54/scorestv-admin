@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Mail,
   Gamepad2,
+  Users,
   LogOut,
 } from "lucide-react";
 import { apiLogout, apiContactUnreadCount } from "@/lib/api-client";
@@ -60,6 +61,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isAudit = pathname.startsWith("/audit");
   const isMessages = pathname.startsWith("/messages");
   const isGame = pathname.startsWith("/game");
+  const isUsers = pathname.startsWith("/users");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -123,6 +125,12 @@ export default function Sidebar({ user }: { user: AppUser }) {
 
         {/* ---- Topluluk ---- */}
         <div className="sidebar-section">Topluluk</div>
+        {user.role === "ADMIN" && (
+          <Link href="/users" className={`nav-item ${isUsers ? "active" : ""}`}>
+            <Users className="icon" size={22} />
+            Üyeler
+          </Link>
+        )}
         <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
           <MessageSquare className="icon" size={22} />
           Yorumlar

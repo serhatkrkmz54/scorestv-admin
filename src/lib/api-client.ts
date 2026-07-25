@@ -45,6 +45,10 @@ import type {
   GameStatus,
   AdminUserCoin,
   GrantCoinsResult,
+  AdminAppUser,
+  AdminAppUserPage,
+  AdminAppUserStats,
+  AdminAppUserListParams,
 } from "./types";
 
 export class ApiError extends Error {
@@ -488,4 +492,47 @@ export async function apiGrantCoins(
     jsonInit("POST", { delta, reason }),
   );
   return parse<GrantCoinsResult>(res);
+}
+
+// ---- Üyeler (admin kullanıcı yönetimi) ----
+export async function apiListAppUsers(
+  params: AdminAppUserListParams,
+): Promise<AdminAppUserPage> {
+  const qs = new URLSearchParams();
+  if (params.query) qs.set("query", params.query);
+  if (params.role) qs.set("role", params.role);
+  if (params.enabled) qs.set("enabled", params.enabled);
+  if (params.provider) qs.set("provider", params.provider);
+  qs.set("page", String(params.page ?? 0));
+  qs.set("size", String(params.size ?? 20));
+  const res = await fetch(`/api/admin/app-users?${qs.toString()}`);
+  return parse<AdminAppUserPage>(res);
+}
+
+export async function apiAppUserStats(): Promise<AdminAppUserStats> {
+  const res = await fetch("/api/admin/app-users/stats");
+  return parse<AdminAppUserStats>(res);
+}
+
+export async function apiSetAppUserEnabled(
+  id: number,
+  enabled: boolean,
+): Promise<AdminAppUser> {
+  const res = await fetch(`/api/admin/app-users/${id}/enabled`, jsonInit("PATCH", { enabled }));
+  return parse<AdminAppUser>(res);
+}
+
+export async function apiSetAppUserRole(
+  id: number,
+  role: "ADMIN" | "EDITOR" | "USER",
+): Promise<AdminAppUser> {
+  const res = await fetch(`/api/admin/app-users/${id}/role`, jsonInit("PATCH", { role }));
+  return parse<AdminAppUser>(res);
+}
+
+export async function apiLogoutAllAppUser(
+  id: number,
+): Promise<{ userId: number; revokedSessions: number }> {
+  const res = await fetch(`/api/admin/app-users/${id}/logout-all`, jsonInit("POST"));
+  return parse<{ userId: number; revokedSessions: number }>(res);
 }

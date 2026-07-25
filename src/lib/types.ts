@@ -666,3 +666,47 @@ export interface GrantCoinsResult {
   coinBalance: number;
   lifetimeCoins: number;
 }
+
+// ---- Üyeler (admin kullanıcı yönetimi) ----
+export type AppUserProvider = "google" | "apple" | "local";
+
+export interface AdminAppUser {
+  id: number;
+  email: string;
+  displayName: string;
+  role: "ADMIN" | "EDITOR" | "USER";
+  enabled: boolean;
+  country: string | null;
+  provider: AppUserProvider;
+  createdAt: string | null;
+}
+
+export interface AdminAppUserPage {
+  content: AdminAppUser[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface AdminAppUserStats {
+  total: number;
+  enabled: number;
+  disabled: number;
+  newLast7Days: number;
+  byRole: Record<string, number>;
+  google: number;
+  apple: number;
+  local: number;
+}
+
+export interface AdminAppUserListParams {
+  query?: string;
+  role?: "ADMIN" | "EDITOR" | "USER" | "";
+  enabled?: "" | "true" | "false";
+  provider?: AppUserProvider | "";
+  page?: number;
+  size?: number;
+}
