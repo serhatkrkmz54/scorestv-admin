@@ -32,14 +32,15 @@ const ROLE_TR: Record<string, string> = {
 
 type SectionId = "genel" | "icerik" | "topluluk" | "sistem";
 
-/** Akordiyon açık/kapalı durumunun localStorage anahtarı. */
-const NAV_OPEN_KEY = "stv-admin-nav-open";
+/** Akordiyon açık/kapalı durumunun localStorage anahtarı.
+ * v2: varsayılan "yalnız Genel + İçerik açık" oldu — eski kayıtlar geçersiz. */
+const NAV_OPEN_KEY = "stv-admin-nav-open-v2";
 
 const DEFAULT_OPEN: Record<SectionId, boolean> = {
   genel: true,
   icerik: true,
-  topluluk: true,
-  sistem: true,
+  topluluk: false,
+  sistem: false,
 };
 
 /** Aktif rotanın hangi bölümde olduğu — o bölüm otomatik açılır. */
