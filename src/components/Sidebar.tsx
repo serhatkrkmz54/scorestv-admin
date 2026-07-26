@@ -18,6 +18,7 @@ import {
   Mail,
   Gamepad2,
   Users,
+  Inbox,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -57,6 +58,7 @@ function sectionOfPath(pathname: string): SectionId {
   if (
     pathname.startsWith("/users") ||
     pathname.startsWith("/comments") ||
+    pathname.startsWith("/contributions") ||
     pathname.startsWith("/messages") ||
     pathname.startsWith("/notifications") ||
     pathname.startsWith("/game")
@@ -165,6 +167,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isMessages = pathname.startsWith("/messages");
   const isGame = pathname.startsWith("/game");
   const isUsers = pathname.startsWith("/users");
+  const isContributions = pathname.startsWith("/contributions");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -236,6 +239,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
             <MessageSquare className="icon" size={22} />
             Yorumlar
+          </Link>
+          <Link
+            href="/contributions"
+            className={`nav-item ${isContributions ? "active" : ""}`}
+          >
+            <Inbox className="icon" size={22} />
+            Katkılar
           </Link>
           {user.role === "ADMIN" && (
             <Link href="/messages" className={`nav-item ${isMessages ? "active" : ""}`}>

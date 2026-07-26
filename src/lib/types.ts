@@ -710,3 +710,51 @@ export interface AdminAppUserListParams {
   page?: number;
   size?: number;
 }
+
+// ---- Katkı Kuyruğu (kullanıcı veri katkıları) ----
+export type ContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type ContributionType =
+  | "SCORE"
+  | "STATUS"
+  | "LINEUP"
+  | "TV_CHANNEL"
+  | "NAME"
+  | "MISSING_DATA"
+  | "OTHER";
+
+export interface AdminContribution {
+  id: number;
+  sport: "football" | "basketball" | "volleyball";
+  type: ContributionType;
+  targetType: "FIXTURE" | "TEAM" | "LEAGUE" | "PLAYER" | "OTHER";
+  targetId: number | null;
+  targetLabel: string | null;
+  message: string;
+  suggestedValue: string | null;
+  status: ContributionStatus;
+  pointsAwarded: number;
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  userId: number;
+  userEmail: string | null;
+  userDisplayName: string | null;
+  userApproved: number;
+  userRejected: number;
+}
+
+export interface AdminContributionPage {
+  content: AdminContribution[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export interface ContributionStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
