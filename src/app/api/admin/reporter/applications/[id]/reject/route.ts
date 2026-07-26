@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { authorizedBackendJson } from "@/lib/auth-server";
 import { checkSameOrigin } from "@/lib/origin-check";
-import type { AdminContribution } from "@/lib/types";
+import type { AdminReporterApplication } from "@/lib/types";
 
 interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-/** Katkıyı reddet. Backend: POST /api/v1/admin/contributions/{id}/reject */
+/** Başvuruyu reddet. Backend: POST /api/v1/admin/reporter/applications/{id}/reject */
 export async function POST(req: NextRequest, ctx: Ctx) {
   const bad = checkSameOrigin(req);
   if (bad) return bad;
@@ -17,11 +17,11 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   try {
     payload = (await req.json()) as typeof payload;
   } catch {
-    /* gövdesiz red de geçerli */
+    /* gövdesiz red geçerli */
   }
 
-  const r = await authorizedBackendJson<AdminContribution>(
-    `/api/v1/admin/contributions/${encodeURIComponent(id)}/reject`,
+  const r = await authorizedBackendJson<AdminReporterApplication>(
+    `/api/v1/admin/reporter/applications/${encodeURIComponent(id)}/reject`,
     { method: "POST", body: JSON.stringify(payload) },
   );
   if (r.unauthorized) {
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
   }
   if (!r.ok || !r.body) {
     return NextResponse.json(
-      r.body ?? { message: "Katkı reddedilemedi." },
+      r.body ?? { message: "Reddedilemedi." },
       { status: r.status },
     );
   }

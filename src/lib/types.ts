@@ -711,50 +711,28 @@ export interface AdminAppUserListParams {
   size?: number;
 }
 
-// ---- Katkı Kuyruğu (kullanıcı veri katkıları) ----
-export type ContributionStatus = "PENDING" | "APPROVED" | "REJECTED";
-export type ContributionType =
-  | "SCORE"
-  | "STATUS"
-  | "LINEUP"
-  | "TV_CHANNEL"
-  | "NAME"
-  | "MISSING_DATA"
-  | "OTHER";
-
-export interface AdminContribution {
+// ---- Muhabir Başvuruları (Saha Muhabiri programı) ----
+export interface AdminReporterApplication {
   id: number;
-  sport: "football" | "basketball" | "volleyball";
-  type: ContributionType;
-  targetType: "FIXTURE" | "TEAM" | "LEAGUE" | "PLAYER" | "OTHER";
-  targetId: number | null;
-  targetLabel: string | null;
+  leagueName: string;
+  region: string | null;
   message: string;
-  suggestedValue: string | null;
-  status: ContributionStatus;
-  pointsAwarded: number;
+  status: "PENDING" | "APPROVED" | "REJECTED";
   reviewNote: string | null;
+  leagueId: number | null;
   createdAt: string;
   reviewedAt: string | null;
   userId: number;
   userEmail: string | null;
   userDisplayName: string | null;
-  userApproved: number;
-  userRejected: number;
 }
 
-export interface AdminContributionPage {
-  content: AdminContribution[];
+export interface AdminReporterApplicationPage {
+  content: AdminReporterApplication[];
   page: number;
   size: number;
   totalElements: number;
   totalPages: number;
   first: boolean;
   last: boolean;
-}
-
-export interface ContributionStats {
-  pending: number;
-  approved: number;
-  rejected: number;
 }

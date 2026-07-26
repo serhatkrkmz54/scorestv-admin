@@ -49,9 +49,8 @@ import type {
   AdminAppUserPage,
   AdminAppUserStats,
   AdminAppUserListParams,
-  AdminContribution,
-  AdminContributionPage,
-  ContributionStats,
+  AdminReporterApplication,
+  AdminReporterApplicationPage,
 } from "./types";
 
 export class ApiError extends Error {
@@ -540,44 +539,38 @@ export async function apiLogoutAllAppUser(
   return parse<{ userId: number; revokedSessions: number }>(res);
 }
 
-// ---- Katkı Kuyruğu ----
-export async function apiListContributions(params: {
+// ---- Muhabir Başvuruları ----
+export async function apiListReporterApplications(params: {
   status?: string;
   page?: number;
   size?: number;
-}): Promise<AdminContributionPage> {
+}): Promise<AdminReporterApplicationPage> {
   const qs = new URLSearchParams();
   if (params.status) qs.set("status", params.status);
   qs.set("page", String(params.page ?? 0));
   qs.set("size", String(params.size ?? 20));
-  const res = await fetch(`/api/admin/contributions?${qs.toString()}`);
-  return parse<AdminContributionPage>(res);
+  const res = await fetch(`/api/admin/reporter/applications?${qs.toString()}`);
+  return parse<AdminReporterApplicationPage>(res);
 }
 
-export async function apiContributionStats(): Promise<ContributionStats> {
-  const res = await fetch("/api/admin/contributions/stats");
-  return parse<ContributionStats>(res);
-}
-
-export async function apiApproveContribution(
-  id: number,
-  points?: number,
-  note?: string,
-): Promise<AdminContribution> {
-  const res = await fetch(
-    `/api/admin/contributions/${id}/approve`,
-    jsonInit("POST", { points: points ?? null, note: note ?? null }),
-  );
-  return parse<AdminContribution>(res);
-}
-
-export async function apiRejectContribution(
+export async function apiApproveReporterApplication(
   id: number,
   note?: string,
-): Promise<AdminContribution> {
+): Promise<AdminReporterApplication> {
   const res = await fetch(
-    `/api/admin/contributions/${id}/reject`,
+    `/api/admin/reporter/applications/${id}/approve`,
     jsonInit("POST", { note: note ?? null }),
   );
-  return parse<AdminContribution>(res);
+  return parse<AdminReporterApplication>(res);
+}
+
+export async function apiRejectReporterApplication(
+  id: number,
+  note?: string,
+): Promise<AdminReporterApplication> {
+  const res = await fetch(
+    `/api/admin/reporter/applications/${id}/reject`,
+    jsonInit("POST", { note: note ?? null }),
+  );
+  return parse<AdminReporterApplication>(res);
 }
