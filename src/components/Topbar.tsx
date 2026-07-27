@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Newspaper, PlusCircle } from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 import { apiLogout } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
 
@@ -66,16 +66,17 @@ export default function Topbar({ user }: { user: AppUser }) {
     <header className="topbar">
       <div className="topbar-title">{title}</div>
 
-      {/* Hızlı erişim — en sık kullanılan sayfalar (sidebar akordiyonu kapalıyken de tek tık). */}
+      {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol). */}
       <nav className="topbar-quick" aria-label="Hızlı erişim">
-        <Link href="/news" className="topbar-quick-link">
-          <Newspaper size={15} />
-          Haberler
-        </Link>
-        <Link href="/news/new" className="topbar-quick-link accent">
-          <PlusCircle size={15} />
-          Yeni Haber
-        </Link>
+        <a
+          href="https://scorestv.com/haberler"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="topbar-quick-link"
+        >
+          <ExternalLink size={15} />
+          Haberler Sayfası
+        </a>
       </nav>
 
       <div className="topbar-clock" suppressHydrationWarning>
