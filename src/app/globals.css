@@ -3095,3 +3095,47 @@ table.data-table {
   overflow: hidden;
   min-height: 0;
 }
+
+/* ---------- Topbar hızlı erişim (Haberler / Yeni Haber) ---------- */
+.topbar-quick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-quick-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.14s, border 0.14s, background 0.14s;
+}
+
+.topbar-quick-link:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+.topbar-quick-link.accent {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.topbar-quick-link.accent:hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+}
+
+@media (max-width: 900px) {
+  .topbar-quick {
+    display: none; /* dar ekranda saat + kullanıcıya yer bırak */
+  }
+}

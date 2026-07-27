@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Newspaper, PlusCircle } from "lucide-react";
 import { apiLogout } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
 
@@ -64,6 +65,18 @@ export default function Topbar({ user }: { user: AppUser }) {
   return (
     <header className="topbar">
       <div className="topbar-title">{title}</div>
+
+      {/* Hızlı erişim — en sık kullanılan sayfalar (sidebar akordiyonu kapalıyken de tek tık). */}
+      <nav className="topbar-quick" aria-label="Hızlı erişim">
+        <Link href="/news" className="topbar-quick-link">
+          <Newspaper size={15} />
+          Haberler
+        </Link>
+        <Link href="/news/new" className="topbar-quick-link accent">
+          <PlusCircle size={15} />
+          Yeni Haber
+        </Link>
+      </nav>
 
       <div className="topbar-clock" suppressHydrationWarning>
         <span className="clock-time">{timeStr}</span>
