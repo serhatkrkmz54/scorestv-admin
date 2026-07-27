@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ExternalLink, LogOut } from "lucide-react";
 import { apiLogout } from "@/lib/api-client";
