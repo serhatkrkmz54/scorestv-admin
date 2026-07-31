@@ -15,8 +15,12 @@ import type {
   GameStatus,
   CreateCompetitionRequest,
 } from "@/lib/types";
+import Countdown from "@/components/Countdown";
+import LeaguePicker from "@/components/LeaguePicker";
+import type { LeagueGuideRow } from "@/lib/types";
 
 const SCOPE_TR: Record<GameScope, string> = {
+  MATCHDAY: "Tek Tur / Maç Günü",
   WEEKLY: "Haftalık",
   MONTHLY: "Aylık",
   SEASON: "Sezonluk",
@@ -69,6 +73,7 @@ export default function GameClient() {
   const [titleEn, setTitleEn] = useState("");
   const [season, setSeason] = useState("");
   const [leagueId, setLeagueId] = useState("");
+  const [league, setLeague] = useState<LeagueGuideRow | null>(null);
   const [startAt, setStartAt] = useState(localPlusDays(0));
   const [endAt, setEndAt] = useState(localPlusDays(7));
   const [lockAt, setLockAt] = useState(localPlusDays(1));
@@ -151,10 +156,25 @@ export default function GameClient() {
           <div className="form-grid">
             <div className="field">
               <label>Kapsam</label>
-              <select className="select" value={scope} onChange={(e) => setScope(e.target.value as GameScope)}>
+              <select
+                className="select"
+                value={scope}
+                onChange={(e) => {
+                  const s = e.target.value as GameScope;
+                  setScope(s);
+                  // Tek tur: pencere bugün → yarın, kilit birkaç saat sonra
+                  // (ilk maç saatine göre elle ayarlanır).
+                  if (s === "MATCHDAY") {
+                    setStartAt(localPlusDays(0));
+                    setEndAt(localPlusDays(1));
+                    setLockAt(localPlusDays(0));
+                  }
+                }}
+              >
+                <option value="MATCHDAY">Tek Tur / Maç Günü (ör. ŞL 3. Eleme Turu)</option>
                 <option value="WEEKLY">Haftalık</option>
                 <option value="MONTHLY">Aylık</option>
-                <option value="SEASON">Sezonluk</option>
+                <option value="SEASON">Sezonluk (lig-bazlı için Lig ID gir)</option>
               </select>
             </div>
             <div className="field">
@@ -165,13 +185,23 @@ export default function GameClient() {
               <label>İngilizce Başlık</label>
               <input className="input" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="e.g. This Week's Goalkeeper Duel" />
             </div>
+            <LeaguePicker
+              label="Lig (opsiyonel) — rehber: ID + güncel sezon"
+              value={league}
+              onChange={(l) => {
+                setLeague(l);
+                // Seçilen ligin ID + güncel sezonu forma otomatik dolar.
+                setLeagueId(l ? String(l.id) : "");
+                if (l?.currentSeason) setSeason(String(l.currentSeason));
+              }}
+            />
             <div className="field">
               <label>Sezon (opsiyonel)</label>
               <input className="input" type="number" value={season} onChange={(e) => setSeason(e.target.value)} placeholder="2025" />
             </div>
             <div className="field">
               <label>Lig ID (opsiyonel)</label>
-              <input className="input" type="number" value={leagueId} onChange={(e) => setLeagueId(e.target.value)} placeholder="lig-bazlı yarışma için" />
+              <input className="input" type="number" value={leagueId} onChange={(e) => setLeagueId(e.target.value)} placeholder="rehberden seçince otomatik dolar" />
             </div>
             <div className="field">
               <label>Pencere başı (start)</label>
@@ -230,7 +260,19 @@ export default function GameClient() {
                     <td>{SCOPE_TR[c.scope]}</td>
                     <td><span className={`badge ${b.cls}`}>{b.label}</span></td>
                     <td className="muted" style={{ fontSize: 12 }}>{fmt(c.startAt)} → {fmt(c.endAt)}</td>
-                    <td className="muted" style={{ fontSize: 12 }}>{fmt(c.lockAt)}</td>
+                    <td className="muted" style={{ fontSize: 12 }}>
+                      {fmt(c.lockAt)}
+                      {c.status === "OPEN" && (
+                        <div style={{ color: "var(--warning)", fontWeight: 600 }}>
+                          <Countdown target={c.lockAt} prefix="kilide " passedLabel="kilitlendi" />
+                        </div>
+                      )}
+                      {c.status === "LOCKED" && (
+                        <div style={{ color: "var(--brand)", fontWeight: 600 }}>
+                          <Countdown target={c.endAt} prefix="pencere bitişine " passedLabel="çözümleme sırada" />
+                        </div>
+                      )}
+                    </td>
                     <td style={{ textAlign: "right" }}>
                       <Link href={`/game/${c.id}`} className="btn btn-sm">
                         <Settings2 size={14} /> Yönet

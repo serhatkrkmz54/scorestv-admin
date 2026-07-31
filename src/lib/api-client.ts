@@ -39,6 +39,7 @@ import type {
   TranslateNewsResult,
   UpdateProfileRequest,
   GameCompetitionItem,
+  LeagueGuideRow,
   GameCompetitionView,
   CreateCompetitionRequest,
   CreateDuelRequest,
@@ -439,6 +440,14 @@ export async function apiDeleteContact(id: number): Promise<void> {
 
 
 // ---- Oyun (Scores Coin) — ADMIN düello yönetimi ----
+/** Lig rehberi araması — ad/ülke/ID ile; ID + güncel sezon döner. */
+export async function apiSearchLeagues(q: string): Promise<LeagueGuideRow[]> {
+  const res = await fetch(`/api/game/leagues?q=${encodeURIComponent(q)}`, {
+    method: "GET",
+  });
+  return parse<LeagueGuideRow[]>(res);
+}
+
 export async function apiListCompetitions(): Promise<GameCompetitionItem[]> {
   const res = await fetch("/api/game/competitions", { method: "GET" });
   return parse<GameCompetitionItem[]>(res);

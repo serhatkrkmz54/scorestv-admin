@@ -548,7 +548,8 @@ export interface ContactPage {
 // Oyun (Scores Coin — oyuncu düello tahmin oyunu) — ADMIN yönetimi.
 // Backend: com.scorestv.game GameDtos + GameAdminController.
 // ============================================================
-export type GameScope = "WEEKLY" | "MONTHLY" | "SEASON";
+// MATCHDAY: tek tur / maç günü yarışması (ör. "ŞL 3. Eleme Turu" — o günün maçları).
+export type GameScope = "MATCHDAY" | "WEEKLY" | "MONTHLY" | "SEASON";
 export type GameStatus = "DRAFT" | "OPEN" | "LOCKED" | "RESOLVED";
 export type DuelStatus = "OPEN" | "RESOLVED" | "VOID";
 export type DuelPosition = "GK" | "DEF" | "MID" | "FWD";
@@ -620,8 +621,21 @@ export interface GameCompetitionView {
   startAt: string;
   endAt: string;
   lockAt: string;
+  /** Sonuçların açıklanacağı tahmini an (endAt + istatistik oturma payı). */
+  resultsAt: string | null;
   locked: boolean;
   duels: GameDuelView[];
+}
+
+// GET /api/v1/admin/api-football/leagues/search — lig rehberi satırı.
+export interface LeagueGuideRow {
+  id: number;
+  name: string;
+  type: string | null; // League | Cup
+  country: string | null;
+  currentSeason: number | null;
+  logo: string | null;
+  covered: boolean;
 }
 
 export interface CreateCompetitionRequest {

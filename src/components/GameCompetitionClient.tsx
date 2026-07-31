@@ -32,6 +32,7 @@ import type {
   CreateDuelRequest,
 } from "@/lib/types";
 import PlayerPicker from "@/components/PlayerPicker";
+import Countdown from "@/components/Countdown";
 
 const POSITION_TR: Record<DuelPosition, string> = {
   GK: "Kaleci",
@@ -236,6 +237,23 @@ export default function GameCompetitionClient({
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
             Pencere {fmt(data.startAt)} → {fmt(data.endAt)} · Kilit {fmt(data.lockAt)}
           </div>
+          {/* Canlı geri sayımlar: tahmin kilidi + sonuç açıklama */}
+          {(data.status === "OPEN" || data.status === "LOCKED") && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              {data.status === "OPEN" && (
+                <span className="badge badge-scheduled">
+                  <Countdown target={data.lockAt} prefix="Tahminler kilitlenecek: " passedLabel="kilitlendi" />
+                </span>
+              )}
+              <span className="badge badge-lang">
+                <Countdown
+                  target={data.resultsAt ?? data.endAt}
+                  prefix="Sonuçlar açıklanacak: ~"
+                  passedLabel="çözümleme sırada"
+                />
+              </span>
+            </div>
+          )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button className="btn" onClick={() => load()} disabled={busy}>
