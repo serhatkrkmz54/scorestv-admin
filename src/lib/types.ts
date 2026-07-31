@@ -630,7 +630,8 @@ export interface GameCompetitionView {
 // GET /api/v1/admin/api-football/leagues/search — lig rehberi satırı.
 export interface LeagueGuideRow {
   id: number;
-  name: string;
+  name: string; // İngilizce/API adı
+  nameTr: string | null; // Türkçe ad (girilmemişse null) — panel TR'yi varsayar
   type: string | null; // League | Cup
   country: string | null;
   currentSeason: number | null;

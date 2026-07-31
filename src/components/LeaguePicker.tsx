@@ -5,6 +5,11 @@ import { Search, X } from "lucide-react";
 import { apiSearchLeagues } from "@/lib/api-client";
 import type { LeagueGuideRow } from "@/lib/types";
 
+/** Görünen ad — Türkçe varsayılan (girilmişse name_tr, yoksa API adı). */
+function displayName(l: LeagueGuideRow): string {
+  return l.nameTr && l.nameTr.trim() ? l.nameTr : l.name;
+}
+
 /**
  * Lig REHBERİ/seçici — ada, ülkeye ya da doğrudan ID'ye göre arar; her satırda
  * ID + güncel sezon + ülke görünür. Seçince ID ve güncel sezon forma dolar
@@ -82,7 +87,7 @@ export default function LeaguePicker({
             <span className="player-chip-ph">{value.name.charAt(0)}</span>
           )}
           <span className="player-chip-name">
-            {value.name}
+            {displayName(value)}
             <small className="muted">
               {" "}· ID {value.id}
               {value.currentSeason ? ` · sezon ${value.currentSeason}` : ""}
@@ -115,7 +120,7 @@ export default function LeaguePicker({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={() => hits.length > 0 && setOpen(true)}
-            placeholder="Lig ara — ad, ülke ya da ID (ör. Champions, 2)"
+            placeholder="Lig ara — Türkçe/İngilizce ad, ülke ya da ID (ör. Şampiyonlar, 2)"
           />
           {open && (
             <div className="player-picker-menu">
@@ -137,8 +142,13 @@ export default function LeaguePicker({
                     <span className="player-chip-ph">{l.name.charAt(0)}</span>
                   )}
                   <span className="player-picker-item-name">
-                    {l.name}
+                    {displayName(l)}
                     <small>
+                      {/* TR ad gösteriliyorsa İngilizce adı da küçük yaz —
+                          arama EN terimle yapıldıysa eşleşme anlaşılır olsun. */}
+                      {l.nameTr && l.nameTr.trim() && l.nameTr !== l.name
+                        ? ` (${l.name})`
+                        : ""}
                       {" "}· ID {l.id}
                       {l.country ? ` · ${l.country}` : ""}
                       {l.currentSeason ? ` · sezon ${l.currentSeason}` : ""}
