@@ -108,9 +108,22 @@ async function currentToken(): Promise<string | null> {
 }
 
 /**
- * Teleskor backend'ine kimlikli JSON isteği. 401'de BİR KEZ yeniden giriş
- * yapıp tekrar dener (token süresi beklenenden erken dolmuş olabilir:
- * Teleskor tarafında şifre değişimi ya da "tüm oturumları kapat").
+ * Teleskor backend'ine kimlikli JSON isteği.
+ *
+ * <h3>401 VE 403'te bir kez yeniden giriş</h3>
+ * 401 beklenen durum: token süresi erken dolmuş olabilir (şifre değişimi,
+ * "tüm oturumları kapat").
+ *
+ * <p>403 ilk bakışta yeniden giriş gerektirmez gibi görünüyor ama
+ * gerektiriyor: <b>rol JWT'nin İÇİNDE taşınıyor.</b> Hizmet hesabı
+ * ADMIN'e yükseltildiğinde bellekteki token hâlâ eski rolü söylüyor ve
+ * bütün istekler 15 dakika boyunca 403 dönüyor. Sahada birebir yaşandı:
+ * hesap veritabanında ADMIN'di, panel "yetkiniz yok" diyordu ve tek çözüm
+ * konteyneri yeniden başlatmaktı.
+ *
+ * <p>Tek deneme sınırı korunuyor: hesap gerçekten ADMIN değilse ikinci
+ * 403 olduğu gibi dönüyor — sonsuz giriş döngüsü yok, istek başına en
+ * fazla bir fazladan giriş.
  */
 export async function teleskorJson<T = unknown>(
   path: string,
@@ -140,7 +153,7 @@ export async function teleskorJson<T = unknown>(
   if (!t) return { ok: false, status: 502, body: null };
 
   let res = await gonder(t);
-  if (res && res.status === 401) {
+  if (res && (res.status === 401 || res.status === 403)) {
     token = null;
     t = await login();
     if (!t) return { ok: false, status: 502, body: null };

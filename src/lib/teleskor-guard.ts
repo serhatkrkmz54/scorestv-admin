@@ -67,6 +67,21 @@ export function teleskorResponse<T>(
       { status: 503 },
     );
   }
+  if (r.status === 403) {
+    // Teleskor'un "Bu işlem için yetkiniz yok" mesajı burada YETMİYOR:
+    // panele giren kişi zaten ADMIN (guard onu geçirdi), yetkisi olmayan
+    // HİZMET HESABI. Mesaj olduğu gibi geçseydi kullanıcı kendi rolünü
+    // sorgulardı ve yanlış yerde ararrdı.
+    return NextResponse.json(
+      {
+        message:
+          "Teleskor, panelin hizmet hesabını yetkisiz buldu. O hesap " +
+          "Teleskor tarafında ADMIN rolüne yükseltilmiş olmalı: " +
+          "UPDATE users SET role='ADMIN' WHERE username='…';",
+      },
+      { status: 403 },
+    );
+  }
   // Teleskor'un kendi Türkçe mesajı varsa OLDUĞU GİBİ geçiyor: panelde
   // ikinci bir metin yazmak, iki yerde ayrışan iki açıklama üretirdi.
   return NextResponse.json(r.body ?? { message: hataMesaji }, {
