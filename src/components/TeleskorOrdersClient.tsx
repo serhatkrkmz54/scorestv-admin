@@ -7,6 +7,7 @@ import {
   ApiError,
 } from "@/lib/api-client";
 import type { TeleskorMarketOrder, TeleskorOrderStatus } from "@/lib/types";
+import { formatDate } from "@/lib/format";
 
 const DURUM_TR: Record<TeleskorOrderStatus, string> = {
   HAZIRLANIYOR: "Hazırlanıyor",
@@ -187,7 +188,7 @@ export default function TeleskorOrdersClient() {
                     )}
                   </td>
                   <td style={{ fontSize: 12.5 }}>
-                    {new Date(s.created_at).toLocaleString("tr-TR")}
+                    {formatDate(s.created_at)}
                   </td>
                   <td>
                     <span

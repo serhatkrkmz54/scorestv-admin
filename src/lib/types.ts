@@ -880,12 +880,22 @@ export interface TeleskorCreateUserRequest {
   reason: string;
 }
 
-/** Kullanıcının Telepuan hareketi (yönetici görünümü). */
+/**
+ * Kullanıcının Telepuan hareketi (yönetici görünümü).
+ *
+ * DİKKAT: bu uç ham SQL satırı DÖNDÜRMÜYOR — alanlar sunucuda elle
+ * adlandırılıyor. Marketteki `created_at` alışkanlığıyla yazılınca ekranda
+ * "Invalid Date" çıktı; buradaki ad `tarih`.
+ */
 export interface TeleskorPointEntry {
   miktar: number;
   tur: string;
-  aciklama: string | null;
-  created_at: string;
+  /** Yoksa BOŞ METİN gelir, null değil. */
+  aciklama: string;
+  /** İlişkili maç; yoksa -1 (null değil). */
+  macId: number;
+  /** ISO instant — `created_at` DEĞİL. */
+  tarih: string;
 }
 
 export interface TeleskorPointAccount {

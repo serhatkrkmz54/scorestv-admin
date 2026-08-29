@@ -17,6 +17,7 @@ import type {
   TeleskorPointAccount,
   TeleskorRole,
 } from "@/lib/types";
+import { formatDate } from "@/lib/format";
 
 const ROL_TR: Record<TeleskorRole, string> = {
   USER: "Üye",
@@ -439,9 +440,7 @@ export default function TeleskorUsersClient() {
                       </span>
                     </td>
                     <td style={{ fontSize: 12.5 }}>
-                      {u.lastLoginAt
-                        ? new Date(u.lastLoginAt).toLocaleString("tr-TR")
-                        : "—"}
+                      {formatDate(u.lastLoginAt)}
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <button className="btn btn-sm" onClick={() => detayAc(u)}>
@@ -612,9 +611,7 @@ export default function TeleskorUsersClient() {
                 <tbody>
                   {puanlar.islemler.slice(0, 25).map((i, idx) => (
                     <tr key={idx}>
-                      <td style={{ fontSize: 12.5 }}>
-                        {new Date(i.created_at).toLocaleString("tr-TR")}
-                      </td>
+                      <td style={{ fontSize: 12.5 }}>{formatDate(i.tarih)}</td>
                       <td style={{ fontSize: 12.5 }}>{i.tur}</td>
                       <td style={{ fontSize: 12.5 }}>{i.aciklama ?? "—"}</td>
                       <td
