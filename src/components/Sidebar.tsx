@@ -288,6 +288,27 @@ export default function Sidebar({ user }: { user: AppUser }) {
           )}
         </NavSection>
 
+        <NavSection id="sistem" title="Sistem" open={open.sistem} onToggle={toggle}>
+          <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
+            <ScrollText className="icon" size={22} />
+            Denetim
+          </Link>
+          <Link
+            href="/settings"
+            className={`nav-item ${isSettings ? "active" : ""}`}
+          >
+            <Settings className="icon" size={22} />
+            Ayarlar
+          </Link>
+        </NavSection>
+
+        {/* AYRAÇ — buradan sonrası BAŞKA BİR ÜRÜN (Serhat, 29 Ağustos:
+            "araya çizgi çekip altına Teleskor kısmını koy, karışmasın").
+            Menüdeki diğer bölümler aynı ürünün parçaları; Teleskor ayrı
+            sunucu, ayrı veritabanı, ayrı üye tablosu. Çizgi bunu
+            başlıktan önce söylüyor. */}
+        {user.role === "ADMIN" && <div className="nav-urun-ayraci" />}
+
         {/* TELESKOR — AYRI BİR ÜRÜN, ayrı sunucu ve ayrı veritabanı.
             Kendi bölümünde duruyor ki ScoresTV'nin ekranlarıyla
             karışmasın: "Oyun" ScoresTV'nin Scores Coin sistemi,
@@ -326,19 +347,6 @@ export default function Sidebar({ user }: { user: AppUser }) {
           </NavSection>
         )}
 
-        <NavSection id="sistem" title="Sistem" open={open.sistem} onToggle={toggle}>
-          <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
-            <ScrollText className="icon" size={22} />
-            Denetim
-          </Link>
-          <Link
-            href="/settings"
-            className={`nav-item ${isSettings ? "active" : ""}`}
-          >
-            <Settings className="icon" size={22} />
-            Ayarlar
-          </Link>
-        </NavSection>
       </nav>
 
       <div className="sidebar-footer">
