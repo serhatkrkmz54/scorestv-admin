@@ -18,6 +18,7 @@ import type {
   TeleskorRole,
 } from "@/lib/types";
 import { formatDate } from "@/lib/format";
+import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
   USER: "Üye",
@@ -31,6 +32,30 @@ const DURUM_TR: Record<string, string> = {
   SUSPENDED: "Kapatıldı",
   DELETION_PENDING: "Silme bekliyor",
   ANONYMIZED: "Anonimleştirildi",
+};
+
+/**
+ * Telepuan hareket türlerinin Türkçesi.
+ *
+ * <p>Sunucu ham kodu döndürüyor (`CARK_ODUL`) — bilerek: tür metin olarak
+ * saklanıyor ve yeni tür eklemek ALTER TABLE istemesin diye enum değil.
+ * Çeviri gösterim tarafının işi.
+ *
+ * <p>TANINMAYAN TÜR HAM GÖSTERİLİYOR, gizlenmiyor: sunucuya yeni bir tür
+ * eklendiğinde ekranda boşluk değil kodun kendisi çıksın ve buraya
+ * eklenmesi gerektiği görünsün.
+ */
+const TUR_TR: Record<string, string> = {
+  KAYIT_BONUS: "Hoş geldin bonusu",
+  CARK_ODUL: "Günlük çark",
+  ANKET_KATILIM: "Skor tahmini katılımı",
+  ANKET_IADE: "Skor tahmini iadesi",
+  ANKET_ODUL: "Skor tahmini ödülü",
+  MVP_ODUL: "Maçın oyuncusu ödülü",
+  MARKET_ALIM: "Market alışverişi",
+  MARKET_IADE: "Market iadesi",
+  ADMIN_EKLEME: "Yönetici ekledi",
+  ADMIN_DUSME: "Yönetici düştü",
 };
 
 const BOS_YENI = {
@@ -77,6 +102,20 @@ export default function TeleskorUsersClient() {
   const [yeni, setYeni] = useState({ ...BOS_YENI });
   const [islemde, setIslemde] = useState(false);
 
+  // TELEPUAN MODALI. Eskiden üç ayrı prompt() zinciriydi (miktar →
+  // açıklama → gerekçe): tarayıcının kendi kutusu, geri dönüş yok, yanlış
+  // yazınca baştan. Üçü tek formda.
+  const [puanModal, setPuanModal] = useState<1 | -1 | null>(null);
+
+  // GEREKÇE MODALI — rol değiştirme ve hesap işlemleri için.
+  // `onayla` durumda tutuluyor: her çağıran kendi işini veriyor, modal
+  // yalnız gerekçeyi topluyor.
+  const [onayModal, setOnayModal] = useState<{
+    baslik: string;
+    uyari: string;
+    onayla: (gerekce: string) => Promise<void>;
+  } | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,7 +143,19 @@ export default function TeleskorUsersClient() {
   useEffect(() => {
     if (!secili) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") kapat();
+      // ÜSTTEKİ modal varsa Esc onu kapatıyor; detay modalı açık kalıyor.
+      // Tek kural olsaydı "vazgeç"e basmak yerine Esc'e basan kullanıcı
+      // iki pencereyi birden kapatır ve baştan başlardı.
+      if (e.key !== "Escape") return;
+      if (puanModal !== null) {
+        setPuanModal(null);
+        return;
+      }
+      if (onayModal) {
+        setOnayModal(null);
+        return;
+      }
+      kapat();
     };
     window.addEventListener("keydown", onKey);
     const oncekiOverflow = document.body.style.overflow;
@@ -115,7 +166,7 @@ export default function TeleskorUsersClient() {
       // koymuşsa onu kaldırmış olurduk.
       document.body.style.overflow = oncekiOverflow;
     };
-  }, [secili]);
+  }, [secili, puanModal, onayModal]);
 
   function kapat() {
     setAcilan(null);
@@ -142,92 +193,70 @@ export default function TeleskorUsersClient() {
     }
   }
 
-  async function rolDegistir(u: TeleskorUserDetail, rol: TeleskorRole) {
-    const gerekce = prompt(
-      `${u.username} kullanıcısının rolü "${ROL_TR[rol]}" yapılacak.\n\n` +
-        "Gerekçe (denetim kaydına yazılır):",
-      "",
-    );
-    if (!gerekce) return;
-    setIslemde(true);
-    try {
-      await apiTeleskorChangeRole(u.id, rol, gerekce);
-      await detayAc(u);
-      await load();
-      setHata(null);
-    } catch (e) {
-      setHata(e instanceof ApiError ? e.message : "Rol değiştirilemedi.");
-    } finally {
-      setIslemde(false);
-    }
+  function rolDegistir(u: TeleskorUserDetail, rol: TeleskorRole) {
+    setOnayModal({
+      baslik: `Rolü "${ROL_TR[rol]}" yap`,
+      uyari:
+        rol === "ADMIN"
+          ? `${u.username} TÜM yönetim uçlarına erişecek. Rol değişikliği ` +
+            "kullanıcının oturumlarını yenilenmeye zorlar."
+          : `${u.username} kullanıcısının rolü değişecek ve oturumları ` +
+            "yenilenmeye zorlanacak.",
+      onayla: async (gerekce) => {
+        await apiTeleskorChangeRole(u.id, rol, gerekce);
+        await detayAc(u);
+        await load();
+      },
+    });
   }
 
-  async function durumIslemi(
+  function durumIslemi(
     u: TeleskorUserDetail,
     islem: "disable" | "enable" | "revoke-sessions",
   ) {
-    const baslik =
+    const [baslik, uyari] =
       islem === "disable"
-        ? `${u.username} hesabı KAPATILACAK ve açık oturumları anında düşecek.`
+        ? [
+            "Hesabı kapat",
+            `${u.username} hesabı kapatılacak ve açık oturumları ANINDA düşecek.`,
+          ]
         : islem === "enable"
-          ? `${u.username} hesabı yeniden açılacak.`
-          : `${u.username} kullanıcısının TÜM oturumları kapatılacak (hesap ele geçirilmiş şüphesi).`;
-    const gerekce = prompt(`${baslik}\n\nGerekçe (denetim kaydına yazılır):`, "");
-    if (!gerekce) return;
-    setIslemde(true);
-    try {
-      await apiTeleskorUserStatus(u.id, islem, gerekce);
-      await detayAc(u);
-      await load();
-      setHata(null);
-    } catch (e) {
-      setHata(e instanceof ApiError ? e.message : "İşlem tamamlanamadı.");
-    } finally {
-      setIslemde(false);
-    }
+          ? ["Hesabı aç", `${u.username} hesabı yeniden açılacak.`]
+          : [
+              "Oturumları kapat",
+              `${u.username} kullanıcısının TÜM oturumları kapatılacak. ` +
+                "Hesap ele geçirilmiş şüphesinde kullanılır; kullanıcı her " +
+                "cihazda yeniden giriş yapmak zorunda kalır.",
+            ];
+    setOnayModal({
+      baslik,
+      uyari,
+      onayla: async (gerekce) => {
+        await apiTeleskorUserStatus(u.id, islem, gerekce);
+        await detayAc(u);
+        await load();
+      },
+    });
   }
 
-  async function puanIslemi(u: TeleskorUserDetail, isaret: 1 | -1) {
-    const ham = prompt(
-      isaret > 0
-        ? `${u.username} kullanıcısına kaç Telepuan eklensin?`
-        : `${u.username} kullanıcısından kaç Telepuan düşülsün?`,
-      "",
+  async function puanUygula(
+    isaret: 1 | -1,
+    miktar: number,
+    aciklama: string,
+    gerekce: string,
+  ) {
+    if (!secili) return;
+    const r = await apiTeleskorAdjustPoints(
+      secili.id,
+      miktar * isaret,
+      aciklama,
+      gerekce,
     );
-    if (!ham) return;
-    const miktar = Number(ham.trim());
-    if (!Number.isFinite(miktar) || miktar <= 0) {
-      setHata("Miktar pozitif bir sayı olmalı.");
-      return;
-    }
-    const aciklama =
-      prompt(
-        "Kullanıcının hareket listesinde GÖRECEĞİ açıklama:\n" +
-          "(boş bırakılırsa 'Yönetici tarafından eklendi/düşüldü' yazar)",
-        "",
-      ) ?? "";
-    const gerekce = prompt(
-      "Gerekçe — yalnız denetim kaydına yazılır, kullanıcı GÖRMEZ:",
-      "",
-    );
-    if (!gerekce) return;
-
-    setIslemde(true);
-    try {
-      const r = await apiTeleskorAdjustPoints(
-        u.id,
-        miktar * isaret,
-        aciklama,
-        gerekce,
-      );
-      setPuanlar(await apiTeleskorPoints(u.id));
-      setHata(null);
-      alert(`Tamam. Yeni bakiye: ${r.bakiye} TP`);
-    } catch (e) {
-      setHata(e instanceof ApiError ? e.message : "Telepuan işlemi yapılamadı.");
-    } finally {
-      setIslemde(false);
-    }
+    // Bakiye SUNUCUDAN geliyor, ekranda çıkarılmıyor: aynı kullanıcıya
+    // başka bir yerden puan verilmiş olabilir ve para gösteren bir alan
+    // yanlış olamaz.
+    setPuanlar(await apiTeleskorPoints(secili.id));
+    return r.bakiye;
   }
 
   async function hesapAc() {
@@ -543,14 +572,14 @@ export default function TeleskorUsersClient() {
             <button
               className="btn btn-sm btn-success"
               disabled={islemde}
-              onClick={() => puanIslemi(secili, 1)}
+              onClick={() => setPuanModal(1)}
             >
               Telepuan Ekle
             </button>
             <button
               className="btn btn-sm"
               disabled={islemde}
-              onClick={() => puanIslemi(secili, -1)}
+              onClick={() => setPuanModal(-1)}
             >
               Telepuan Düş
             </button>
@@ -612,7 +641,9 @@ export default function TeleskorUsersClient() {
                   {puanlar.islemler.slice(0, 25).map((i, idx) => (
                     <tr key={idx}>
                       <td style={{ fontSize: 12.5 }}>{formatDate(i.tarih)}</td>
-                      <td style={{ fontSize: 12.5 }}>{i.tur}</td>
+                      <td style={{ fontSize: 12.5 }}>
+                        {TUR_TR[i.tur] ?? i.tur}
+                      </td>
                       <td style={{ fontSize: 12.5 }}>{i.aciklama ?? "—"}</td>
                       <td
                         style={{
@@ -636,6 +667,170 @@ export default function TeleskorUsersClient() {
           </div>
         </div>
       )}
+
+      {puanModal !== null && secili && (
+        <PuanModal
+          isaret={puanModal}
+          kullaniciAdi={secili.username}
+          bakiye={puanlar?.bakiye ?? 0}
+          onKapat={() => setPuanModal(null)}
+          onUygula={async (miktar, aciklama, gerekce) => {
+            const yeni = await puanUygula(puanModal, miktar, aciklama, gerekce);
+            setPuanModal(null);
+            setHata(null);
+            return yeni;
+          }}
+        />
+      )}
+
+      {onayModal && (
+        <TeleskorOnayModal
+          baslik={onayModal.baslik}
+          uyari={onayModal.uyari}
+          alanEtiketi="Gerekçe (zorunlu)"
+          alanIpucu="Denetim kaydına yazılır"
+          onKapat={() => setOnayModal(null)}
+          onOnayla={async (gerekce) => {
+            await onayModal.onayla(gerekce);
+            setOnayModal(null);
+            setHata(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * TELEPUAN EKLE / DÜŞ.
+ *
+ * <h3>Açıklama ve gerekçe AYRI kutular — ve bu ayrım kritik</h3>
+ * Açıklama kullanıcının hareket listesinde GÖRÜNÜYOR ("Yılbaşı
+ * kampanyası"); gerekçe yalnız denetim kaydına giriyor ("destek talebi
+ * #123 telafisi"). Tek kutu olsaydı ya iç not kullanıcıya sızardı ya da
+ * denetim kaydı "neden" sorusunu cevaplayamazdı.
+ */
+function PuanModal({
+  isaret,
+  kullaniciAdi,
+  bakiye,
+  onKapat,
+  onUygula,
+}: {
+  isaret: 1 | -1;
+  kullaniciAdi: string;
+  bakiye: number;
+  onKapat: () => void;
+  onUygula: (
+    miktar: number,
+    aciklama: string,
+    gerekce: string,
+  ) => Promise<number | undefined>;
+}) {
+  const [miktar, setMiktar] = useState("");
+  const [aciklama, setAciklama] = useState("");
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [hata, setHata] = useState<string | null>(null);
+
+  const sayi = Number(miktar.trim());
+  const gecerli =
+    Number.isFinite(sayi) && sayi > 0 && gerekce.trim().length > 0;
+  const ekleme = isaret > 0;
+
+  async function gonder() {
+    if (!gecerli) return;
+    setGonderiliyor(true);
+    setHata(null);
+    try {
+      await onUygula(sayi, aciklama.trim(), gerekce.trim());
+    } catch (e) {
+      setHata(e instanceof ApiError ? e.message : "İşlem yapılamadı.");
+      setGonderiliyor(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 110 }} onClick={onKapat}>
+      <div
+        className="modal"
+        style={{ maxWidth: 520 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div className="card-title" style={{ margin: 0 }}>
+            {ekleme ? "Telepuan Ekle" : "Telepuan Düş"}
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={onKapat}>
+            Kapat
+          </button>
+        </div>
+        <div className="card-pad">
+          <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>
+            <b>{kullaniciAdi}</b> · şu anki bakiye <b>{bakiye} TP</b>
+            {!ekleme && " · bakiye eksiye düşemez"}
+          </div>
+
+          {hata && <div className="alert alert-error">{hata}</div>}
+
+          <div className="field">
+            <label className="label">Miktar (TP)</label>
+            <input
+              className="input"
+              type="number"
+              min={1}
+              autoFocus
+              value={miktar}
+              onChange={(e) => setMiktar(e.target.value)}
+            />
+          </div>
+
+          <div className="field" style={{ marginTop: 10 }}>
+            <label className="label">
+              Açıklama — kullanıcı bunu GÖRÜR
+            </label>
+            <input
+              className="input"
+              maxLength={200}
+              value={aciklama}
+              onChange={(e) => setAciklama(e.target.value)}
+              placeholder={
+                ekleme ? "Yılbaşı kampanyası" : "Yanlış verilen puan geri alındı"
+              }
+            />
+          </div>
+
+          <div className="field" style={{ marginTop: 10 }}>
+            <label className="label">
+              Gerekçe — yalnız denetim kaydına yazılır, kullanıcı GÖRMEZ
+            </label>
+            <input
+              className="input"
+              maxLength={300}
+              value={gerekce}
+              onChange={(e) => setGerekce(e.target.value)}
+              placeholder="Destek talebi #123 telafisi"
+            />
+          </div>
+
+          <div className="form-actions">
+            <button
+              className={`btn ${ekleme ? "btn-success" : "btn-danger"}`}
+              disabled={!gecerli || gonderiliyor}
+              onClick={gonder}
+            >
+              {gonderiliyor
+                ? "Uygulanıyor…"
+                : ekleme
+                  ? `${sayi > 0 ? sayi : ""} TP Ekle`
+                  : `${sayi > 0 ? sayi : ""} TP Düş`}
+            </button>
+            <button className="btn btn-ghost" onClick={onKapat}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

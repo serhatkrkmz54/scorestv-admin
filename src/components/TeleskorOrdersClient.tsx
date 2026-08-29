@@ -8,6 +8,7 @@ import {
 } from "@/lib/api-client";
 import type { TeleskorMarketOrder, TeleskorOrderStatus } from "@/lib/types";
 import { formatDate } from "@/lib/format";
+import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const DURUM_TR: Record<TeleskorOrderStatus, string> = {
   HAZIRLANIYOR: "Hazırlanıyor",
@@ -32,6 +33,14 @@ export default function TeleskorOrdersClient() {
   const [hata, setHata] = useState<string | null>(null);
   const [islemdeki, setIslemdeki] = useState<number | null>(null);
 
+  // Durum değişikliği modalı — eskiden tarayıcının prompt() kutusuydu.
+  // İptal, ödenen puanı iade eden geri alınamaz bir işlem; onayı düzgün
+  // bir pencerede almak gerekiyor.
+  const [durumModal, setDurumModal] = useState<{
+    siparis: TeleskorMarketOrder;
+    yeni: TeleskorOrderStatus;
+  } | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,36 +57,16 @@ export default function TeleskorOrdersClient() {
     load();
   }, [load]);
 
-  async function durumDegistir(
+  async function durumUygula(
     s: TeleskorMarketOrder,
     yeni: TeleskorOrderStatus,
+    not_: string,
   ) {
-    let not: string | null = "";
-    if (yeni === "TESLIM_EDILDI") {
-      not = prompt(
-        "Kullanıcıya gösterilecek not (kargo takip numarası, kupon kodu…):",
-        s.yonetici_notu ?? "",
-      );
-    } else if (yeni === "IPTAL") {
-      // İPTAL puanı ve stoğu GERİ VERİYOR — geri alınamaz bir işlem,
-      // gerekçe istemek şart.
-      not = prompt(
-        `"${s.urun_adi}" siparişi iptal edilecek.\n\n` +
-          `${s.odenen_puan} TP kullanıcıya İADE EDİLECEK ve stok geri ` +
-          `eklenecek.\n\nİptal gerekçesi (kullanıcıya gösterilir):`,
-        "",
-      );
-      if (not === null) return;
-    }
-    if (not === null) return;
-
     setIslemdeki(s.id);
     try {
-      await apiTeleskorUpdateOrder(s.id, yeni, not || undefined);
+      await apiTeleskorUpdateOrder(s.id, yeni, not_ || undefined);
       await load();
       setHata(null);
-    } catch (e) {
-      setHata(e instanceof ApiError ? e.message : "Sipariş güncellenemedi.");
     } finally {
       setIslemdeki(null);
     }
@@ -208,7 +197,7 @@ export default function TeleskorOrdersClient() {
                       <button
                         className="btn btn-sm btn-success"
                         disabled={islemdeki === s.id}
-                        onClick={() => durumDegistir(s, "TESLIM_EDILDI")}
+                        onClick={() => setDurumModal({ siparis: s, yeni: "TESLIM_EDILDI" })}
                       >
                         Teslim
                       </button>
@@ -218,7 +207,7 @@ export default function TeleskorOrdersClient() {
                         className="btn btn-sm btn-danger"
                         style={{ marginLeft: 6 }}
                         disabled={islemdeki === s.id}
-                        onClick={() => durumDegistir(s, "IPTAL")}
+                        onClick={() => setDurumModal({ siparis: s, yeni: "IPTAL" })}
                       >
                         İptal + iade
                       </button>
@@ -230,6 +219,48 @@ export default function TeleskorOrdersClient() {
           </table>
         )}
       </div>
+
+      {durumModal && (
+        <TeleskorOnayModal
+          baslik={
+            durumModal.yeni === "TESLIM_EDILDI"
+              ? "Siparişi teslim edildi işaretle"
+              : "Siparişi iptal et"
+          }
+          uyari={
+            durumModal.yeni === "TESLIM_EDILDI"
+              ? `"${durumModal.siparis.urun_adi}" teslim edildi olarak ` +
+                "işaretlenecek. Yazdığın not kullanıcının Siparişlerim " +
+                "ekranında görünecek."
+              : `"${durumModal.siparis.urun_adi}" iptal edilecek. ` +
+                `${durumModal.siparis.odenen_puan} TP kullanıcıya İADE ` +
+                "EDİLECEK ve stok geri eklenecek. İade bir kez yapılır."
+          }
+          alanEtiketi={
+            durumModal.yeni === "TESLIM_EDILDI"
+              ? "Kullanıcıya gösterilecek not"
+              : "İptal gerekçesi — kullanıcı GÖRÜR"
+          }
+          alanIpucu={
+            durumModal.yeni === "TESLIM_EDILDI"
+              ? "Kargo takip no ya da kupon kodu"
+              : "Sponsor kampanyayı durdurdu"
+          }
+          // Teslimde not ZORUNLU DEĞİL: kargo numarası olmayan dijital
+          // ürünlerde yazacak bir şey olmayabilir. İptalde zorunlu —
+          // puanı geri gelen kullanıcı sebebini görmeli.
+          zorunlu={durumModal.yeni === "IPTAL"}
+          onayMetni={
+            durumModal.yeni === "TESLIM_EDILDI" ? "Teslim edildi" : "İptal et ve iade et"
+          }
+          tehlikeli={durumModal.yeni === "IPTAL"}
+          onKapat={() => setDurumModal(null)}
+          onOnayla={async (deger) => {
+            await durumUygula(durumModal.siparis, durumModal.yeni, deger);
+            setDurumModal(null);
+          }}
+        />
+      )}
     </div>
   );
 }
