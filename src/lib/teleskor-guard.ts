@@ -57,7 +57,17 @@ export function teleskorResponse<T>(
   if (r.ok) {
     return NextResponse.json(r.body ?? {}, { status: basariliDurum });
   }
-  if (r.status === 502 || r.status === 503) {
+  // 502/503 İKİ AYRI ŞEY OLABİLİR ve gövde bunu ayırıyor:
+  //
+  //   body === null -> İSTEĞİN KENDİSİ başarısız (teleskorJson bağlanamadı
+  //                    ya da hizmet hesabıyla giriş yapamadı) — kendi
+  //                    ürettiğimiz durum, gövdesi yok.
+  //   body dolu     -> Teleskor CEVAP VERDİ ve içinde açıklama var
+  //                    (ör. "Motor, yönetim anahtarını reddetti").
+  //
+  // Ayrım olmadan ikinci durum birincinin metniyle örtülüyordu ve
+  // kullanıcı yanlış yere bakıyordu. Aynı hata 403'te de yapılmıştı.
+  if ((r.status === 502 || r.status === 503) && r.body == null) {
     return NextResponse.json(
       {
         message:
@@ -67,6 +77,10 @@ export function teleskorResponse<T>(
       { status: 503 },
     );
   }
+  // 403 ARTIK TEK ANLAMLI. Eskiden motorun 403'ü de buraya düşüyordu ve
+  // "hizmet hesabı ADMIN değil" diye görünüyordu — hesap ADMIN'di, sorun
+  // motorun anahtarıydı. Backend o durumu artık 502 ile ayırıyor
+  // (MotorCeviriVekili), yani buraya gelen 403 gerçekten rol sorunudur.
   if (r.status === 403) {
     // Teleskor'un "Bu işlem için yetkiniz yok" mesajı burada YETMİYOR:
     // panele giren kişi zaten ADMIN (guard onu geçirdi), yetkisi olmayan
