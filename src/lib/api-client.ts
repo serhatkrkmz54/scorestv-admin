@@ -61,6 +61,8 @@ import type {
   TeleskorCreateUserRequest,
   TeleskorRole,
   TeleskorPointAccount,
+  CeviriSayfasi,
+  CeviriSozlukSatiri,
 } from "./types";
 
 export class ApiError extends Error {
@@ -735,4 +737,52 @@ export async function apiTeleskorAdjustPoints(
     jsonInit("POST", { miktar, aciklama, reason }),
   );
   return parse<{ bakiye: number }>(res);
+}
+
+// ---- TELESKOR — Çeviri düzeltme masası ----
+
+export async function apiCeviriListe(params: {
+  tur: string;
+  q?: string;
+  sadeceEksik?: boolean;
+  limit?: number;
+  offset?: number;
+}): Promise<CeviriSayfasi> {
+  const q = new URLSearchParams({ tur: params.tur });
+  if (params.q) q.set("q", params.q);
+  if (params.sadeceEksik) q.set("sadeceEksik", "true");
+  q.set("limit", String(params.limit ?? 200));
+  q.set("offset", String(params.offset ?? 0));
+  const res = await fetch(`/api/teleskor/ceviri?${q}`, { method: "GET" });
+  return parse<CeviriSayfasi>(res);
+}
+
+/** Boş `ad` düzeltmeyi kaldırır. Yanıt: güncel `gorunen`. */
+export async function apiCeviriYaz(
+  tur: string,
+  id: number,
+  ad: string,
+): Promise<{ gorunen: string | null; duzeltme: string | null }> {
+  const res = await fetch("/api/teleskor/ceviri", jsonInit("PUT", { tur, id, ad }));
+  return parse<{ gorunen: string | null; duzeltme: string | null }>(res);
+}
+
+export async function apiCeviriSozluk(
+  ad: string,
+): Promise<CeviriSozlukSatiri[]> {
+  const res = await fetch(`/api/teleskor/ceviri/sozluk/${ad}`, { method: "GET" });
+  return parse<CeviriSozlukSatiri[]>(res);
+}
+
+/** Boş `adTr` satırı sözlükten siler. */
+export async function apiCeviriSozlukYaz(
+  sozluk: string,
+  adEn: string,
+  adTr: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/ceviri/sozluk/${sozluk}`,
+    jsonInit("PUT", { adEn, adTr }),
+  );
+  await parse<unknown>(res);
 }

@@ -19,6 +19,7 @@ import {
   Gamepad2,
   ShoppingBag,
   UserCog,
+  Languages,
   PackageCheck,
   Users,
   Radio,
@@ -180,6 +181,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     !pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
+  const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -343,6 +345,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <UserCog className="icon" size={22} />
               Üyeler
+            </Link>
+            <Link
+              href="/teleskor/ceviri"
+              className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
+            >
+              <Languages className="icon" size={22} />
+              Çeviri Düzeltme
             </Link>
           </NavSection>
         )}

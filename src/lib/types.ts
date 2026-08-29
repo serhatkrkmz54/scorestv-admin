@@ -902,3 +902,28 @@ export interface TeleskorPointAccount {
   bakiye: number;
   islemler: TeleskorPointEntry[];
 }
+
+// ---- TELESKOR — Çeviri düzeltme masası (motordan geliyor) ----
+
+export interface CeviriSatiri {
+  id: number;
+  ingilizce: string;
+  /** Sağlayıcının çevirisi — kalitesi tutarsız, düzeltilen şey bu. */
+  saglayici: string | null;
+  /** Bizim elle girdiğimiz düzeltme; senkron buna ASLA dokunmuyor. */
+  duzeltme: string | null;
+  /** Sonuçta ekranda çıkan ad: düzeltme → sağlayıcı → İngilizce. */
+  gorunen: string | null;
+}
+
+export interface CeviriSayfasi {
+  toplam: number;
+  satirlar: CeviriSatiri[];
+}
+
+export interface CeviriSozlukSatiri {
+  adEn: string;
+  adTr: string | null;
+  /** Bu ad şu an veride geçiyor mu? Geçmiyorsa eski/artık bir kayıt. */
+  kullaniliyor: boolean;
+}
