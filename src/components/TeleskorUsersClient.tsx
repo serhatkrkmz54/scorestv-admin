@@ -9,6 +9,9 @@ import {
   apiTeleskorUserStatus,
   apiTeleskorPoints,
   apiTeleskorAdjustPoints,
+  apiTeleskorUserDuzenle,
+  apiTeleskorKilitAc,
+  apiTeleskorAvatarSil,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -102,6 +105,18 @@ export default function TeleskorUsersClient() {
   const [yeni, setYeni] = useState({ ...BOS_YENI });
   const [islemde, setIslemde] = useState(false);
 
+  // DÜZENLEME FORMU — modal içinde açılıyor, ayrı pencere DEĞİL.
+  // Üçüncü bir katman (detay modalı > düzenleme modalı > onay modalı)
+  // Esc sırasını da kapatma davranışını da anlaşılmaz kılardı.
+  const [duzenle, setDuzenle] = useState<{
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+    phone: string;
+    reason: string;
+  } | null>(null);
+
   // TELEPUAN MODALI. Eskiden üç ayrı prompt() zinciriydi (miktar →
   // açıklama → gerekçe): tarayıcının kendi kutusu, geri dönüş yok, yanlış
   // yazınca baştan. Üçü tek formda.
@@ -172,6 +187,7 @@ export default function TeleskorUsersClient() {
     setAcilan(null);
     setSecili(null);
     setPuanlar(null);
+    setDuzenle(null);
   }
 
   async function detayAc(u: TeleskorUserSummary) {
@@ -237,6 +253,71 @@ export default function TeleskorUsersClient() {
         await load();
       },
     });
+  }
+
+  function kilitAc(u: TeleskorUserDetail) {
+    setOnayModal({
+      baslik: "Kaba kuvvet kilidini aç",
+      uyari:
+        `${u.username} şifresini üst üste yanlış girdiği için 15 dakika ` +
+        "bekliyor olabilir. Kilit açılınca hemen deneyebilir.",
+      onayla: async (gerekce) => {
+        await apiTeleskorKilitAc(u.id, gerekce);
+      },
+    });
+  }
+
+  function avatarSil(u: TeleskorUserDetail) {
+    setOnayModal({
+      baslik: "Profil fotoğrafını kaldır",
+      uyari:
+        `${u.username} kullanıcısının profil fotoğrafı silinecek. ` +
+        "Yönetici kullanıcı adına fotoğraf YÜKLEYEMEZ — bu işlem yalnız " +
+        "moderasyon için, geri alınamaz.",
+      onayla: async (gerekce) => {
+        await apiTeleskorAvatarSil(u.id, gerekce);
+        await detayAc(u);
+      },
+    });
+  }
+
+  function duzenlemeAc(u: TeleskorUserDetail) {
+    setDuzenle({
+      firstName: u.firstName ?? "",
+      lastName: u.lastName ?? "",
+      username: u.username,
+      email: u.email,
+      phone: u.phone ?? "",
+      reason: "",
+    });
+  }
+
+  async function duzenlemeKaydet(u: TeleskorUserDetail) {
+    if (!duzenle) return;
+    if (!duzenle.reason.trim()) {
+      setHata("Gerekçe zorunlu.");
+      return;
+    }
+    setIslemde(true);
+    try {
+      // BOŞ ALAN GÖNDERİLMİYOR: güncelleme kısmi ve boş metin "sil" demek.
+      // Hepsini göndermek, dokunulmayan alanları da yeniden yazardı.
+      const veri: Record<string, string> = { reason: duzenle.reason.trim() };
+      if (duzenle.firstName.trim()) veri.firstName = duzenle.firstName.trim();
+      if (duzenle.lastName.trim()) veri.lastName = duzenle.lastName.trim();
+      if (duzenle.username.trim()) veri.username = duzenle.username.trim();
+      if (duzenle.email.trim()) veri.email = duzenle.email.trim();
+      if (duzenle.phone.trim()) veri.phone = duzenle.phone.trim();
+      await apiTeleskorUserDuzenle(u.id, veri as never);
+      setDuzenle(null);
+      await detayAc(u);
+      await load();
+      setHata(null);
+    } catch (e) {
+      setHata(e instanceof ApiError ? e.message : "Güncellenemedi.");
+    } finally {
+      setIslemde(false);
+    }
   }
 
   async function puanUygula(
@@ -583,6 +664,27 @@ export default function TeleskorUsersClient() {
             >
               Telepuan Düş
             </button>
+            <button
+              className="btn btn-sm"
+              disabled={islemde}
+              onClick={() => duzenlemeAc(secili)}
+            >
+              Bilgileri düzenle
+            </button>
+            <button
+              className="btn btn-sm"
+              disabled={islemde}
+              onClick={() => kilitAc(secili)}
+            >
+              Kilidi aç
+            </button>
+            <button
+              className="btn btn-sm"
+              disabled={islemde}
+              onClick={() => avatarSil(secili)}
+            >
+              Fotoğrafı kaldır
+            </button>
             <div style={{ width: 1, background: "var(--border)" }} />
             {(["USER", "EDITOR", "ADMIN"] as const)
               .filter((r) => r !== secili.role)
@@ -622,6 +724,104 @@ export default function TeleskorUsersClient() {
               </button>
             )}
           </div>
+
+          {duzenle && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: 14,
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+              }}
+            >
+              <div className="card-title" style={{ fontSize: 13 }}>
+                Bilgileri düzenle
+              </div>
+              <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                Boş bıraktığın alana <b>dokunulmaz</b>. E-posta değişirse
+                doğrulama işareti sıfırlanır, kullanıcının tüm oturumları
+                kapanır ve HEM ESKİ HEM YENİ adresine bildirim gider.
+              </div>
+              <div className="form-grid">
+                <div className="field">
+                  <label className="label">Ad</label>
+                  <input
+                    className="input"
+                    value={duzenle.firstName}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, firstName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label className="label">Soyad</label>
+                  <input
+                    className="input"
+                    value={duzenle.lastName}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, lastName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label className="label">Kullanıcı adı</label>
+                  <input
+                    className="input"
+                    value={duzenle.username}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, username: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label className="label">E-posta</label>
+                  <input
+                    className="input"
+                    value={duzenle.email}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, email: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label className="label">Telefon</label>
+                  <input
+                    className="input"
+                    value={duzenle.phone}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, phone: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label className="label">Gerekçe (zorunlu)</label>
+                  <input
+                    className="input"
+                    value={duzenle.reason}
+                    onChange={(e) =>
+                      setDuzenle({ ...duzenle, reason: e.target.value })
+                    }
+                    placeholder="Destek talebi — kullanıcı e-postasını değiştirdi"
+                  />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn btn-primary"
+                  disabled={islemde}
+                  onClick={() => duzenlemeKaydet(secili)}
+                >
+                  {islemde ? "Kaydediliyor…" : "Kaydet"}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setDuzenle(null)}
+                >
+                  Vazgeç
+                </button>
+              </div>
+            </div>
+          )}
 
           {puanlar && puanlar.islemler.length > 0 && (
             <>

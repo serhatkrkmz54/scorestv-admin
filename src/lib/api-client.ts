@@ -63,6 +63,10 @@ import type {
   TeleskorPointAccount,
   CeviriSayfasi,
   CeviriSozlukSatiri,
+  TeleskorSohbetSikayeti,
+  DenetimSayfasi,
+  DenetimZinciri,
+  SaglikOzeti,
 } from "./types";
 
 export class ApiError extends Error {
@@ -785,4 +789,113 @@ export async function apiCeviriSozlukYaz(
     jsonInit("PUT", { adEn, adTr }),
   );
   await parse<unknown>(res);
+}
+
+// ---- TELESKOR — Sohbet moderasyonu ----
+
+export async function apiTeleskorSikayetler(
+  limit = 100,
+): Promise<TeleskorSohbetSikayeti[]> {
+  const res = await fetch(`/api/teleskor/sohbet?limit=${limit}`, {
+    method: "GET",
+  });
+  return parse<TeleskorSohbetSikayeti[]>(res);
+}
+
+/** Mesajı gizler; üstündeki BÜTÜN bekleyen şikayetler kapanır. */
+export async function apiTeleskorMesajSil(mesajId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/sohbet/mesaj/${mesajId}`, {
+    method: "DELETE",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Şikayeti yersiz bulup kapatır — mesaja dokunmaz. */
+export async function apiTeleskorSikayetKapat(
+  sikayetId: number,
+): Promise<void> {
+  const res = await fetch(`/api/teleskor/sohbet/sikayet/${sikayetId}`, {
+    method: "POST",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Üye bilgilerini düzenle — KISMİ; gerekçe zorunlu (denetim kaydı). */
+export async function apiTeleskorUserDuzenle(
+  id: number,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    displayName?: string;
+    username?: string;
+    email?: string;
+    phone?: string;
+    birthDate?: string | null;
+    reason: string;
+  },
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/duzenle`,
+    jsonInit("PUT", data),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Kaba kuvvet kilidini açar (destek işi). */
+export async function apiTeleskorKilitAc(
+  id: number,
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/kilit`,
+    jsonInit("POST", { reason }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Profil fotoğrafını kaldırır (moderasyon; yalnız silme). */
+export async function apiTeleskorAvatarSil(
+  id: number,
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/avatar`,
+    jsonInit("DELETE", { reason }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+// ---- TELESKOR — Denetim kaydı ----
+
+export async function apiDenetimListe(params?: {
+  userId?: string;
+  event?: string;
+  ip?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}): Promise<DenetimSayfasi> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) {
+    if (v !== undefined && v !== "" && k !== "page" && k !== "size") {
+      q.set(k, String(v));
+    }
+  }
+  q.set("page", String(params?.page ?? 0));
+  q.set("size", String(params?.size ?? 50));
+  const res = await fetch(`/api/teleskor/denetim?${q}`, { method: "GET" });
+  return parse<DenetimSayfasi>(res);
+}
+
+export async function apiDenetimDogrula(): Promise<DenetimZinciri> {
+  const res = await fetch("/api/teleskor/denetim/dogrula", { method: "GET" });
+  return parse<DenetimZinciri>(res);
+}
+
+// ---- TELESKOR — Sistem sağlığı ----
+
+export async function apiTeleskorSaglik(): Promise<SaglikOzeti> {
+  const res = await fetch("/api/teleskor/saglik", { method: "GET" });
+  return parse<SaglikOzeti>(res);
 }

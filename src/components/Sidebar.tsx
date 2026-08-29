@@ -20,6 +20,8 @@ import {
   ShoppingBag,
   UserCog,
   Languages,
+  ShieldAlert,
+  Activity,
   PackageCheck,
   Users,
   Radio,
@@ -182,6 +184,9 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
+  const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
+  const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
+  const isTeleskorSaglik = pathname.startsWith("/teleskor/saglik");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -347,11 +352,31 @@ export default function Sidebar({ user }: { user: AppUser }) {
               Üyeler
             </Link>
             <Link
+              href="/teleskor/sohbet"
+              className={`nav-item ${isTeleskorSohbet ? "active" : ""}`}
+            >
+              <ShieldAlert className="icon" size={22} />
+              Sohbet Şikayetleri
+            </Link>            <Link
               href="/teleskor/ceviri"
               className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
             >
               <Languages className="icon" size={22} />
               Çeviri Düzeltme
+            </Link>
+            <Link
+              href="/teleskor/denetim"
+              className={`nav-item ${isTeleskorDenetim ? "active" : ""}`}
+            >
+              <ScrollText className="icon" size={22} />
+              Denetim Kaydı
+            </Link>
+            <Link
+              href="/teleskor/saglik"
+              className={`nav-item ${isTeleskorSaglik ? "active" : ""}`}
+            >
+              <Activity className="icon" size={22} />
+              Sistem Sağlığı
             </Link>
           </NavSection>
         )}

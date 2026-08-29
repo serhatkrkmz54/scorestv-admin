@@ -927,3 +927,120 @@ export interface CeviriSozlukSatiri {
   /** Bu ad şu an veride geçiyor mu? Geçmiyorsa eski/artık bir kayıt. */
   kullaniliyor: boolean;
 }
+
+// ---- TELESKOR — Sohbet moderasyonu ----
+
+/**
+ * Bekleyen bir sohbet şikayeti + şikayet edilen mesajın gövdesi.
+ *
+ * <p>Alan adları ham SQL sütunları: uç satırı olduğu gibi döndürüyor.
+ * AYNI MESAJ birden çok satırda görünebilir — her satır bir ŞİKAYET.
+ */
+export interface TeleskorSohbetSikayeti {
+  sikayet_id: number;
+  reason: string | null;
+  created_at: string;
+  reporter_id: number;
+  mesaj_id: number;
+  match_id: number;
+  body: string;
+  yazar_id: number;
+  yazar: string | null;
+}
+
+// ---- TELESKOR — Denetim kaydı ----
+
+export interface DenetimSatiri {
+  id: number;
+  occurredAt: string;
+  event: string;
+  outcome: string;
+  /** İşlemin KONUSU olan kullanıcı. */
+  userId: number | null;
+  /** İşlemi YAPAN yönetici (varsa). */
+  actorUserId: number | null;
+  subject: string | null;
+  ipAddress: string | null;
+  country: string | null;
+  userAgent: string | null;
+  requestId: string | null;
+  detail: string | null;
+}
+
+export interface DenetimSayfasi {
+  content: DenetimSatiri[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export interface DenetimZinciri {
+  /** false = kayıtlar sonradan değiştirilmiş. */
+  intact: boolean;
+  checkedEntries: number;
+  totalEverWritten: number;
+  firstCheckedId: number | null;
+  problems: string[];
+  verifiedAt: string;
+}
+
+// ---- TELESKOR — Sistem sağlığı ----
+
+export interface MotorDurumu {
+  /** SAĞLIKLI | DEVRE KESİK | ULAŞILAMIYOR | TANIMSIZ */
+  durum: string;
+  tanimli: boolean;
+  adres: string | null;
+  ulasilabilir: boolean;
+  yanitMs: number;
+  hata: string | null;
+  devreKesik: boolean;
+  ustUsteHata: number;
+  devreAcikKalmaSaniye: number;
+}
+
+export interface MotorUcSatiri {
+  path: string;
+  calls: number;
+  failures: number;
+  cacheHits: number;
+  staleServed: number;
+  shortCircuited: number;
+  avgMillis: number;
+  maxMillis: number;
+}
+
+export interface MotorKullanimi {
+  uclar: MotorUcSatiri[];
+  toplamIstek: number;
+  toplamOnbellekIsabeti: number;
+  onbellekIsabetOrani: number;
+  olcumSaniye: number;
+}
+
+export interface DbYukSatiri {
+  operation: string;
+  /** KULLANICI | SISTEM */
+  source: string;
+  executions: number;
+  totalQueries: number;
+  averageQueries: number;
+  minQueries: number;
+  maxQueries: number;
+  averageMillis: number;
+}
+
+export interface DbYukRaporu {
+  userQueries: number;
+  systemQueries: number;
+  totalQueries: number;
+  operations: DbYukSatiri[];
+}
+
+export interface SaglikOzeti {
+  motorDurumu: MotorDurumu | null;
+  motorKullanimi: MotorKullanimi | null;
+  dbYuk: DbYukRaporu | null;
+}
