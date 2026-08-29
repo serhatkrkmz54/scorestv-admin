@@ -56,6 +56,11 @@ import type {
   TeleskorMarketProductRequest,
   TeleskorMarketOrder,
   TeleskorOrderStatus,
+  TeleskorUserPage,
+  TeleskorUserDetail,
+  TeleskorCreateUserRequest,
+  TeleskorRole,
+  TeleskorPointAccount,
 } from "./types";
 
 export class ApiError extends Error {
@@ -652,4 +657,82 @@ export async function apiTeleskorUpdateOrder(
     jsonInit("PUT", { durum, yoneticiNotu: yoneticiNotu ?? null }),
   );
   return parse<TeleskorMarketOrder>(res);
+}
+
+// ---- TELESKOR — Üye yönetimi ----
+
+export async function apiTeleskorUsers(params?: {
+  q?: string;
+  status?: string;
+  role?: string;
+  page?: number;
+  size?: number;
+}): Promise<TeleskorUserPage> {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  if (params?.status) q.set("status", params.status);
+  if (params?.role) q.set("role", params.role);
+  q.set("page", String(params?.page ?? 0));
+  q.set("size", String(params?.size ?? 20));
+  const res = await fetch(`/api/teleskor/users?${q}`, { method: "GET" });
+  return parse<TeleskorUserPage>(res);
+}
+
+export async function apiTeleskorUser(id: number): Promise<TeleskorUserDetail> {
+  const res = await fetch(`/api/teleskor/users/${id}`, { method: "GET" });
+  return parse<TeleskorUserDetail>(res);
+}
+
+export async function apiTeleskorCreateUser(
+  data: TeleskorCreateUserRequest,
+): Promise<{ id: number }> {
+  const res = await fetch("/api/teleskor/users", jsonInit("POST", data));
+  return parse<{ id: number }>(res);
+}
+
+export async function apiTeleskorChangeRole(
+  id: number,
+  role: TeleskorRole,
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/role`,
+    jsonInit("PUT", { role, reason }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+export async function apiTeleskorUserStatus(
+  id: number,
+  islem: "disable" | "enable" | "revoke-sessions",
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/status`,
+    jsonInit("POST", { islem, reason }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+export async function apiTeleskorPoints(
+  id: number,
+): Promise<TeleskorPointAccount> {
+  const res = await fetch(`/api/teleskor/users/${id}/telepuan`, {
+    method: "GET",
+  });
+  return parse<TeleskorPointAccount>(res);
+}
+
+/** Pozitif ekler, negatif düşer. Gerekçe zorunlu (denetim kaydı). */
+export async function apiTeleskorAdjustPoints(
+  id: number,
+  miktar: number,
+  aciklama: string,
+  reason: string,
+): Promise<{ bakiye: number }> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/telepuan`,
+    jsonInit("POST", { miktar, aciklama, reason }),
+  );
+  return parse<{ bakiye: number }>(res);
 }

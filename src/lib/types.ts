@@ -814,3 +814,81 @@ export interface TeleskorMarketOrder {
   created_at: string;
   updated_at: string;
 }
+
+// ---- TELESKOR — Üye yönetimi ----
+//
+// Teleskor'un kendi kullanıcı tablosu. ScoresTV'nin `AdminAppUser` tipiyle
+// KARIŞTIRMA: ayrı servis, ayrı veritabanı, ayrı roller. Aynı e-posta iki
+// sistemde iki farklı kişi olabilir.
+
+export type TeleskorRole = "USER" | "EDITOR" | "ADMIN";
+
+export type TeleskorAccountStatus =
+  | "ACTIVE"
+  | "SELF_DEACTIVATED"
+  | "SUSPENDED"
+  | "DELETION_PENDING"
+  | "ANONYMIZED";
+
+export interface TeleskorUserSummary {
+  id: number;
+  username: string;
+  email: string;
+  displayName: string | null;
+  role: TeleskorRole;
+  status: TeleskorAccountStatus;
+  emailVerified: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface TeleskorUserPage {
+  content: TeleskorUserSummary[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+}
+
+export interface TeleskorUserDetail extends TeleskorUserSummary {
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  birthDate: string | null;
+  phoneVerified: boolean;
+  hasPassword: boolean;
+  linkedProviders: string[];
+  activeSessions: number;
+  passwordChangedAt: string | null;
+  deactivatedAt: string | null;
+  deletionRequestedAt: string | null;
+  anonymizedAt: string | null;
+  updatedAt: string;
+}
+
+export interface TeleskorCreateUserRequest {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  password: string;
+  phone?: string | null;
+  birthDate?: string | null;
+  role?: TeleskorRole;
+  /** ZORUNLU — zincirli denetim kaydına yazılıyor. */
+  reason: string;
+}
+
+/** Kullanıcının Telepuan hareketi (yönetici görünümü). */
+export interface TeleskorPointEntry {
+  miktar: number;
+  tur: string;
+  aciklama: string | null;
+  created_at: string;
+}
+
+export interface TeleskorPointAccount {
+  bakiye: number;
+  islemler: TeleskorPointEntry[];
+}

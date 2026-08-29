@@ -18,6 +18,7 @@ import {
   Mail,
   Gamepad2,
   ShoppingBag,
+  UserCog,
   PackageCheck,
   Users,
   Radio,
@@ -178,6 +179,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     pathname.startsWith("/teleskor/market") &&
     !pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
+  const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -313,6 +315,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <PackageCheck className="icon" size={22} />
               Market Siparişleri
+            </Link>
+            <Link
+              href="/teleskor/uyeler"
+              className={`nav-item ${isTeleskorUsers ? "active" : ""}`}
+            >
+              <UserCog className="icon" size={22} />
+              Üyeler
             </Link>
           </NavSection>
         )}
