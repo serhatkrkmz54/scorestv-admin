@@ -14,12 +14,21 @@ import "server-only";
  * tarayıcıya HİÇ gitmiyor. Erişimi panelin kendi ADMIN kontrolü koruyor
  * (bkz. aşağıdaki uyarı).
  *
- * <h3>KİM YAPTI SORUSU — ve nasıl cevaplanıyor</h3>
+ * <h3>KİM YAPTI SORUSU — kısmen cevaplanıyor</h3>
  * Teleskor'un denetim zinciri bütün bu işlemleri TEK hesap üzerinde
- * görecek: "market ürününü kim ekledi" sorusunun cevabı hep aynı çıkardı.
- * Bu yüzden panel, işlemi yapan editörün kimliğini isteğin İÇİNDE
- * taşıyor ({@link teleskorAktor}) ve Teleskor tarafında denetim ayrıntısına
- * yazılıyor. İzlenebilirlik kaybolmuyor, yalnız yeri değişiyor.
+ * görüyor: "market ürününü kim ekledi" sorusunun cevabı hep aynı çıkıyor.
+ *
+ * <p>SİPARİŞ işlemlerinde bu boşluk kapalı: panel, işlemi yapan kişinin
+ * görünen adını yönetici notuna ekliyor ({@link teleskorAktor}) ve o not
+ * Teleskor'un denetim ayrıntısına giriyor.
+ *
+ * <p><b>ÜRÜN işlemlerinde KAPALI DEĞİL.</b> Ürün ekleme/güncelleme/
+ * pasifleştirme uçlarında serbest metin alanı yok, yani editörün adını
+ * taşıyacak yer yok — o kayıtlar hizmet hesabı adına görünüyor. Bilinen
+ * ve kabul edilen sınır. Kapatmak isteyen: Teleskor tarafında yönetim
+ * uçlarına isteğe bağlı bir "adına işlem yapılan" başlığı okutup denetim
+ * ayrıntısına eklemek yeterli (bu bir YETKİ mekanizması değil, etiket —
+ * başlığı ancak hizmet hesabını elinde tutan gönderebilir).
  *
  * <h3>UYARI — panel tarafında rol kontrolü ŞART</h3>
  * Hizmet hesabı her zaman ADMIN olduğu için Teleskor artık "bu isteği kim
