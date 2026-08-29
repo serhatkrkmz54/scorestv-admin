@@ -52,6 +52,10 @@ import type {
   AdminAppUserListParams,
   AdminReporterApplication,
   AdminReporterApplicationPage,
+  TeleskorMarketProduct,
+  TeleskorMarketProductRequest,
+  TeleskorMarketOrder,
+  TeleskorOrderStatus,
 } from "./types";
 
 export class ApiError extends Error {
@@ -582,4 +586,70 @@ export async function apiRejectReporterApplication(
     jsonInit("POST", { note: note ?? null }),
   );
   return parse<AdminReporterApplication>(res);
+}
+
+// ---- TELESKOR — Telepuan Marketi (ayrı servis; BFF /api/teleskor/*) ----
+//
+// Bu uçlar ScoresTV backend'ine DEĞİL, panelin sunucusu üzerinden Teleskor
+// backend'ine gidiyor. Tarayıcı Teleskor'u hiç görmüyor: hizmet hesabının
+// kimlik bilgileri yalnız sunucuda (bkz. lib/teleskor.ts).
+
+export async function apiTeleskorProducts(): Promise<TeleskorMarketProduct[]> {
+  const res = await fetch("/api/teleskor/market/urunler", { method: "GET" });
+  return parse<TeleskorMarketProduct[]>(res);
+}
+
+export async function apiTeleskorCreateProduct(
+  data: TeleskorMarketProductRequest,
+): Promise<TeleskorMarketProduct> {
+  const res = await fetch("/api/teleskor/market/urunler", jsonInit("POST", data));
+  return parse<TeleskorMarketProduct>(res);
+}
+
+/** KISMİ güncelleme: gönderilmeyen alana dokunulmaz. */
+export async function apiTeleskorUpdateProduct(
+  id: number,
+  data: TeleskorMarketProductRequest,
+): Promise<TeleskorMarketProduct> {
+  const res = await fetch(
+    `/api/teleskor/market/urunler/${id}`,
+    jsonInit("PUT", data),
+  );
+  return parse<TeleskorMarketProduct>(res);
+}
+
+/** Ürünü vitrinden kaldırır — SİLMEZ (siparişler ona bağlı). */
+export async function apiTeleskorDeactivateProduct(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/market/urunler/${id}`, {
+    method: "DELETE",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+export async function apiTeleskorOrders(params?: {
+  durum?: string;
+  kullanici?: string;
+  limit?: number;
+}): Promise<TeleskorMarketOrder[]> {
+  const q = new URLSearchParams();
+  if (params?.durum) q.set("durum", params.durum);
+  if (params?.kullanici) q.set("kullanici", params.kullanici);
+  q.set("limit", String(params?.limit ?? 100));
+  const res = await fetch(`/api/teleskor/market/siparisler?${q}`, {
+    method: "GET",
+  });
+  return parse<TeleskorMarketOrder[]>(res);
+}
+
+/** İPTAL puanı ve stoğu geri verir — yalnız bir kez. */
+export async function apiTeleskorUpdateOrder(
+  id: number,
+  durum: TeleskorOrderStatus,
+  yoneticiNotu?: string,
+): Promise<TeleskorMarketOrder> {
+  const res = await fetch(
+    `/api/teleskor/market/siparisler/${id}`,
+    jsonInit("PUT", { durum, yoneticiNotu: yoneticiNotu ?? null }),
+  );
+  return parse<TeleskorMarketOrder>(res);
 }

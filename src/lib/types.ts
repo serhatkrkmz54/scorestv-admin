@@ -751,3 +751,66 @@ export interface AdminReporterApplicationPage {
   first: boolean;
   last: boolean;
 }
+
+// ---- TELESKOR — Telepuan Marketi ----
+//
+// Bu tipler AYRI bir servisin (teleskor-backend) sözleşmesi; alan adları
+// oradaki SQL sütunlarıyla birebir (snake_case) çünkü uçlar satırları
+// olduğu gibi döndürüyor. camelCase'e çevirmek panelde ikinci bir eşleme
+// katmanı doğururdu ve bir alan adı değiştiğinde hata TypeScript'te değil
+// ekranda görünürdü.
+
+export interface TeleskorMarketProduct {
+  id: number;
+  ad: string;
+  aciklama: string | null;
+  gorsel_url: string | null;
+  /** TELEPUAN. Para değil — Telepuan satılmıyor, paraya çevrilmiyor. */
+  fiyat: number;
+  stok: number;
+  /** Bir kullanıcı en fazla kaç tane alabilir; null = sınırsız. */
+  kisi_basi_limit: number | null;
+  aktif: boolean;
+  sira: number;
+  teslimat_notu_istiyor: boolean;
+  teslimat_aciklamasi: string | null;
+  created_at: string;
+  updated_at: string;
+  /** İptal edilmemiş sipariş sayısı — yalnız yönetici listesinde gelir. */
+  satis?: number;
+}
+
+/** Ekleme/güncelleme gövdesi. Güncellemede gönderilmeyen alana DOKUNULMAZ. */
+export interface TeleskorMarketProductRequest {
+  ad?: string;
+  aciklama?: string | null;
+  gorselUrl?: string | null;
+  fiyat?: number;
+  stok?: number;
+  kisiBasiLimit?: number | null;
+  aktif?: boolean;
+  sira?: number;
+  teslimatNotuIstiyor?: boolean;
+  teslimatAciklamasi?: string | null;
+}
+
+export type TeleskorOrderStatus = "HAZIRLANIYOR" | "TESLIM_EDILDI" | "IPTAL";
+
+export interface TeleskorMarketOrder {
+  id: number;
+  user_id: number;
+  username: string | null;
+  email: string | null;
+  urun_id: number;
+  /** Sipariş anındaki ad — ürün sonradan değişse de bu satır değişmez. */
+  urun_adi: string;
+  /** Ödenen puan; iade tam bu kadar yapılır. */
+  odenen_puan: number;
+  durum: TeleskorOrderStatus;
+  /** Kullanıcının yazdığı beden/adres — KİŞİSEL VERİ. */
+  teslimat_notu: string | null;
+  /** Kullanıcıya GÖSTERİLİYOR: kargo takip no, kupon kodu, iptal gerekçesi. */
+  yonetici_notu: string | null;
+  created_at: string;
+  updated_at: string;
+}

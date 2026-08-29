@@ -17,6 +17,8 @@ import {
   CalendarClock,
   Mail,
   Gamepad2,
+  ShoppingBag,
+  PackageCheck,
   Users,
   Radio,
   LogOut,
@@ -31,16 +33,19 @@ const ROLE_TR: Record<string, string> = {
   USER: "Kullanıcı",
 };
 
-type SectionId = "genel" | "icerik" | "topluluk" | "sistem";
+type SectionId = "genel" | "icerik" | "topluluk" | "teleskor" | "sistem";
 
 /** Akordiyon açık/kapalı durumunun localStorage anahtarı.
- * v2: varsayılan "yalnız Genel + İçerik açık" oldu — eski kayıtlar geçersiz. */
-const NAV_OPEN_KEY = "stv-admin-nav-open-v2";
+ * v2: varsayılan "yalnız Genel + İçerik açık" oldu — eski kayıtlar geçersiz.
+ * v3: Teleskor bölümü eklendi; eski kayıtlar onu hiç bilmediği için anahtar
+ *     yeniden yükseltildi (yoksa bölüm kapalı görünüp "menüde yok" sanılırdı). */
+const NAV_OPEN_KEY = "stv-admin-nav-open-v3";
 
 const DEFAULT_OPEN: Record<SectionId, boolean> = {
   genel: true,
   icerik: true,
   topluluk: false,
+  teleskor: false,
   sistem: false,
 };
 
@@ -65,6 +70,7 @@ function sectionOfPath(pathname: string): SectionId {
   ) {
     return "topluluk";
   }
+  if (pathname.startsWith("/teleskor")) return "teleskor";
   return "sistem";
 }
 
@@ -168,6 +174,10 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isGame = pathname.startsWith("/game");
   const isUsers = pathname.startsWith("/users");
   const isReporters = pathname.startsWith("/reporters");
+  const isTeleskorMarket =
+    pathname.startsWith("/teleskor/market") &&
+    !pathname.startsWith("/teleskor/market/siparisler");
+  const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -275,6 +285,37 @@ export default function Sidebar({ user }: { user: AppUser }) {
             </Link>
           )}
         </NavSection>
+
+        {/* TELESKOR — AYRI BİR ÜRÜN, ayrı sunucu ve ayrı veritabanı.
+            Kendi bölümünde duruyor ki ScoresTV'nin ekranlarıyla
+            karışmasın: "Oyun" ScoresTV'nin Scores Coin sistemi,
+            buradaki market Teleskor'un Telepuan sistemi. İkisi
+            birbirinin karşılığı DEĞİL.
+            Yalnız ADMIN görüyor: yetkinin tek kapısı bu panel
+            (Teleskor tarafında tek hizmet hesabıyla konuşuluyor). */}
+        {user.role === "ADMIN" && (
+          <NavSection
+            id="teleskor"
+            title="Teleskor"
+            open={open.teleskor}
+            onToggle={toggle}
+          >
+            <Link
+              href="/teleskor/market"
+              className={`nav-item ${isTeleskorMarket ? "active" : ""}`}
+            >
+              <ShoppingBag className="icon" size={22} />
+              Telepuan Marketi
+            </Link>
+            <Link
+              href="/teleskor/market/siparisler"
+              className={`nav-item ${isTeleskorOrders ? "active" : ""}`}
+            >
+              <PackageCheck className="icon" size={22} />
+              Market Siparişleri
+            </Link>
+          </NavSection>
+        )}
 
         <NavSection id="sistem" title="Sistem" open={open.sistem} onToggle={toggle}>
           <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
