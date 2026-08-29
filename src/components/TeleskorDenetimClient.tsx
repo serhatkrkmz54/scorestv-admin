@@ -26,54 +26,121 @@ import { formatDate } from "@/lib/format";
  * listede kendi izlerini görmek beklenen davranış, hata değil.
  */
 
+/**
+ * Denetim olaylarının Türkçesi — AuditEvent enum'unun TAMAMI (53 olay).
+ *
+ * <p>İlk yazımda yalnız gözüme çarpanları yazmıştım ve yarısı ham kod
+ * olarak görünüyordu; biri de yanlıştı ({@code LOGIN_FAILED} diye bir
+ * olay yok, doğrusu {@code LOGIN_FAILURE}). Liste artık enum'dan
+ * çıkarıldı, göz kararı değil.
+ *
+ * <p>TANINMAYAN OLAY HAM GÖSTERİLİYOR: sunucuya yeni bir olay
+ * eklendiğinde ekranda boşluk değil kodun kendisi çıksın ve buraya
+ * eklenmesi gerektiği görünsün.
+ */
 const OLAY_TR: Record<string, string> = {
-  REGISTER: "Kayıt",
+  // Üyelik
+  REGISTER: "Kayıt oldu",
   REGISTER_BLOCKED: "Kayıt engellendi",
-  LOGIN_SUCCESS: "Giriş",
-  LOGIN_FAILED: "Hatalı giriş",
-  LOGIN_BLOCKED: "Giriş kilitlendi",
+  LOGIN_SUCCESS: "Giriş yapıldı",
+  LOGIN_FAILURE: "Hatalı giriş",
+  LOGIN_BLOCKED: "Giriş engellendi (kilit)",
+  LOGIN_DISABLED_ACCOUNT: "Kapalı hesapla giriş denemesi",
   LOGOUT: "Çıkış",
-  TOKEN_REUSE_DETECTED: "Token tekrar kullanımı (hırsızlık şüphesi)",
+  LOGOUT_ALL: "Tüm oturumlardan çıkış",
+  SESSION_REVOKED: "Oturum kapatıldı",
+  OTHER_SESSIONS_REVOKED: "Diğer oturumlar kapatıldı",
+  TOKEN_REUSE_DETECTED: "Token tekrar kullanıldı (hırsızlık şüphesi)",
+
+  // Şifre
   PASSWORD_CHANGED: "Şifre değiştirildi",
   PASSWORD_CHANGE_FAILED: "Şifre değişikliği başarısız",
   PASSWORD_RESET_REQUESTED: "Şifre sıfırlama istendi",
-  PASSWORD_RESET_BLOCKED: "Şifre sıfırlama engellendi",
+  PASSWORD_RESET_BLOCKED: "Şifre sıfırlama engellendi (kota)",
   PASSWORD_RESET_COMPLETED: "Şifre sıfırlandı",
   PASSWORD_RESET_FAILED: "Şifre sıfırlama başarısız",
-  ACCOUNT_DISABLED: "Hesap kapatıldı",
-  ACCOUNT_ENABLED: "Hesap açıldı",
+
+  // E-posta
+  EMAIL_VERIFICATION_REQUESTED: "E-posta doğrulaması istendi",
+  EMAIL_VERIFIED: "E-posta doğrulandı",
+  EMAIL_VERIFICATION_FAILED: "E-posta doğrulaması başarısız",
+  EMAIL_CHANGE_REQUESTED: "E-posta değişikliği istendi",
+  EMAIL_CHANGED: "E-posta değişti",
+  EMAIL_CHANGE_FAILED: "E-posta değişikliği başarısız",
+
+  // Profil
+  PROFILE_UPDATED: "Profil güncellendi",
+  USERNAME_CHANGED: "Kullanıcı adı değişti",
+  AVATAR_UPDATED: "Profil fotoğrafı değiştirildi",
+  AVATAR_REMOVED: "Profil fotoğrafı kaldırıldı",
+
+  // Sosyal giriş
+  SOCIAL_ACCOUNT_LINKED: "Sosyal hesap bağlandı",
+  SOCIAL_ACCOUNT_UNLINKED: "Sosyal hesap koparıldı",
+  SOCIAL_LINK_FAILED: "Sosyal hesap bağlanamadı",
+
+  // Hesap yaşam döngüsü
+  ACCOUNT_SELF_DEACTIVATED: "Kullanıcı hesabını dondurdu",
+  ACCOUNT_REACTIVATED: "Hesap yeniden etkinleştirildi",
+  ACCOUNT_DELETION_REQUESTED: "Hesap silme istendi",
+  ACCOUNT_DELETION_CANCELLED: "Hesap silme iptal edildi",
   ACCOUNT_ANONYMIZED: "Hesap anonimleştirildi",
-  ROLE_CHANGED: "Rol değiştirildi",
-  SESSIONS_REVOKED_BY_ADMIN: "Oturumlar kapatıldı (yönetici)",
-  PROFILE_UPDATED_BY_ADMIN: "Profil düzenlendi (yönetici)",
-  AVATAR_REMOVED_BY_ADMIN: "Fotoğraf kaldırıldı (yönetici)",
-  LOGIN_LOCK_CLEARED_BY_ADMIN: "Kilit açıldı (yönetici)",
-  CHAT_MESSAGE_DELETED_BY_ADMIN: "Sohbet mesajı silindi",
-  CHAT_REPORT_DISMISSED_BY_ADMIN: "Şikayet yersiz bulundu",
-  AUDIT_LOG_VIEWED: "Denetim kaydı görüntülendi",
-  CONSENT_ACCEPTED: "Onay verildi",
+
+  // Sözleşme ve rıza
+  CONSENT_ACCEPTED: "Sözleşme onaylandı",
   CONSENT_WITHDRAWN: "Onay geri çekildi",
   LEGAL_DOCUMENT_PUBLISHED: "Sözleşme sürümü yayınlandı",
+
+  // Yönetici işlemleri
   USER_CREATED_BY_ADMIN: "Hesap açıldı (yönetici)",
+  ACCOUNT_DISABLED: "Hesap kapatıldı (yönetici)",
+  ACCOUNT_ENABLED: "Hesap açıldı (yönetici)",
+  ROLE_CHANGED: "Rol değiştirildi",
+  PROFILE_UPDATED_BY_ADMIN: "Profil güncellendi (yönetici)",
+  AVATAR_REMOVED_BY_ADMIN: "Profil fotoğrafı kaldırıldı (yönetici)",
+  SESSIONS_REVOKED_BY_ADMIN: "Oturumlar kapatıldı (yönetici)",
+  LOGIN_LOCK_CLEARED_BY_ADMIN: "Giriş kilidi açıldı (yönetici)",
   TELEPUAN_ADJUSTED_BY_ADMIN: "Telepuan değiştirildi (yönetici)",
   MARKET_PRODUCT_SAVED_BY_ADMIN: "Market ürünü kaydedildi",
   MARKET_ORDER_UPDATED_BY_ADMIN: "Market siparişi güncellendi",
+  CHAT_MESSAGE_DELETED_BY_ADMIN: "Sohbet mesajı silindi (yönetici)",
+  CHAT_REPORT_DISMISSED_BY_ADMIN: "Sohbet şikayeti yersiz bulundu",
+  AUDIT_LOG_VIEWED: "Denetim kaydı görüntülendi",
+
+  // Bakım
   AUDIT_LOG_PRUNED: "Eski kayıtlar silindi",
 };
 
-/** Süzgeç kutusundaki hazır seçenekler — sık bakılanlar önce. */
-const SIK_OLAYLAR = [
+/**
+ * Süzgeç kutusunun üst grubu — yönetici işlemleri.
+ *
+ * <p>Ayrı grup çünkü asıl soru genelde bu: "panelden kim ne yaptı".
+ * Kullanıcının kendi hareketleri (giriş, şifre değişimi) ikinci grupta ve
+ * hacmi çok daha yüksek — karıştırılsaydı yönetici işlemleri arasında
+ * kaybolurdu.
+ */
+const YONETICI_OLAYLARI = [
+  "USER_CREATED_BY_ADMIN",
   "ROLE_CHANGED",
   "TELEPUAN_ADJUSTED_BY_ADMIN",
-  "MARKET_ORDER_UPDATED_BY_ADMIN",
   "MARKET_PRODUCT_SAVED_BY_ADMIN",
-  "USER_CREATED_BY_ADMIN",
+  "MARKET_ORDER_UPDATED_BY_ADMIN",
   "PROFILE_UPDATED_BY_ADMIN",
   "ACCOUNT_DISABLED",
+  "ACCOUNT_ENABLED",
+  "SESSIONS_REVOKED_BY_ADMIN",
+  "LOGIN_LOCK_CLEARED_BY_ADMIN",
+  "AVATAR_REMOVED_BY_ADMIN",
   "CHAT_MESSAGE_DELETED_BY_ADMIN",
-  "TOKEN_REUSE_DETECTED",
-  "LOGIN_BLOCKED",
+  "CHAT_REPORT_DISMISSED_BY_ADMIN",
+  "LEGAL_DOCUMENT_PUBLISHED",
+  "AUDIT_LOG_VIEWED",
 ];
+
+/** Kalanlar — kullanıcının kendi hareketleri, Türkçe ada göre sıralı. */
+const DIGER_OLAYLAR = Object.keys(OLAY_TR)
+  .filter((k) => !YONETICI_OLAYLARI.includes(k))
+  .sort((a, b) => OLAY_TR[a].localeCompare(OLAY_TR[b], "tr"));
 
 export default function TeleskorDenetimClient() {
   const [satirlar, setSatirlar] = useState<DenetimSatiri[]>([]);
@@ -185,11 +252,20 @@ export default function TeleskorDenetimClient() {
             onChange={(e) => setOlay(e.target.value)}
           >
             <option value="">Tüm olaylar</option>
-            {SIK_OLAYLAR.map((k) => (
-              <option key={k} value={k}>
-                {OLAY_TR[k] ?? k}
-              </option>
-            ))}
+            <optgroup label="Yönetici işlemleri">
+              {YONETICI_OLAYLARI.map((k) => (
+                <option key={k} value={k}>
+                  {OLAY_TR[k]}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Kullanıcı hareketleri">
+              {DIGER_OLAYLAR.map((k) => (
+                <option key={k} value={k}>
+                  {OLAY_TR[k]}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <input
             className="input"
