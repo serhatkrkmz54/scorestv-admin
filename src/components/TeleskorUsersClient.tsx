@@ -63,6 +63,13 @@ export default function TeleskorUsersClient() {
   const [loading, setLoading] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
 
+  /// AÇILAN üye — modalı ANINDA açmak için.
+  ///
+  /// `secili` ancak iki istek dönünce doluyor; modal yalnız ona baksaydı
+  /// "Aç"a basıldıktan sonra bir süre hiçbir şey olmamış gibi görünürdü.
+  /// Bu alan dokunulur dokunulmaz doluyor, modal açılıyor ve içinde
+  /// "Yükleniyor…" yazıyor.
+  const [acilan, setAcilan] = useState<TeleskorUserSummary | null>(null);
   const [secili, setSecili] = useState<TeleskorUserDetail | null>(null);
   const [puanlar, setPuanlar] = useState<TeleskorPointAccount | null>(null);
   const [yeniAcik, setYeniAcik] = useState(false);
@@ -87,7 +94,37 @@ export default function TeleskorUsersClient() {
     load();
   }, [load]);
 
+  // MODAL AÇIKKEN: Esc kapatıyor, arka plan KAYDIRILMIYOR.
+  //
+  // İkincisi görsel bir ayrıntı değil: kilit olmasaydı modalın içindeki
+  // hareket listesinin sonuna gelince tekerlek arkadaki üye tablosunu
+  // kaydırmaya başlardı ve modal kapanınca liste bambaşka bir yerde
+  // olurdu.
+  useEffect(() => {
+    if (!secili) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") kapat();
+    };
+    window.addEventListener("keydown", onKey);
+    const oncekiOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      // Eski değere DÖNÜLÜYOR, boşaltılmıyor: başka bir yer kilidi
+      // koymuşsa onu kaldırmış olurduk.
+      document.body.style.overflow = oncekiOverflow;
+    };
+  }, [secili]);
+
+  function kapat() {
+    setAcilan(null);
+    setSecili(null);
+    setPuanlar(null);
+  }
+
   async function detayAc(u: TeleskorUserSummary) {
+    // Modal ANINDA açılıyor; içerik geldikçe doluyor.
+    setAcilan(u);
     setSecili(null);
     setPuanlar(null);
     try {
@@ -441,20 +478,37 @@ export default function TeleskorUsersClient() {
         )}
       </div>
 
-      {secili && (
-        <div className="card card-pad">
-          <div className="spread">
-            <div className="card-title">
-              {secili.username}{" "}
-              <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>
-                #{secili.id} · {secili.email}
-              </span>
+      {acilan && (
+        // MODAL — eskiden sayfanın ALTINA açılıyordu ve kullanıcı kaydırmak
+        // zorunda kalıyordu; uzun listelerde detayın açıldığı bile
+        // görünmüyordu. Zemine tıklamak ve Esc kapatıyor (MediaPicker'daki
+        // kalıbın aynısı).
+        //
+        // Koşul `acilan`, `secili` DEĞİL: başlık ve çerçeve listedeki
+        // özetten hemen çiziliyor, gövde veri gelince doluyor.
+        <div className="modal-overlay" onClick={() => kapat()}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="card-title" style={{ margin: 0 }}>
+                {acilan.username}{" "}
+                <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}>
+                  #{acilan.id} · {acilan.email}
+                </span>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => kapat()}
+              >
+                Kapat
+              </button>
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setSecili(null)}>
-              Kapat
-            </button>
-          </div>
 
+            {!secili ? (
+              <div className="card-pad muted" style={{ fontSize: 13 }}>
+                Yükleniyor…
+              </div>
+            ) : (
+            <div className="card-pad">
           <div className="form-grid" style={{ marginTop: 10 }}>
             <div className="field">
               <label className="label">Ad Soyad</label>
@@ -580,6 +634,9 @@ export default function TeleskorUsersClient() {
               </table>
             </>
           )}
+            </div>
+            )}
+          </div>
         </div>
       )}
     </div>
