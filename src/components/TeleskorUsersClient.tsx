@@ -51,6 +51,7 @@ const DURUM_TR: Record<string, string> = {
 const TUR_TR: Record<string, string> = {
   KAYIT_BONUS: "Hoş geldin bonusu",
   CARK_ODUL: "Günlük çark",
+  GUNLUK_GIRIS: "Günlük giriş ödülü",
   ANKET_KATILIM: "Skor tahmini katılımı",
   ANKET_IADE: "Skor tahmini iadesi",
   ANKET_ODUL: "Skor tahmini ödülü",
@@ -60,6 +61,65 @@ const TUR_TR: Record<string, string> = {
   ADMIN_EKLEME: "Yönetici ekledi",
   ADMIN_DUSME: "Yönetici düştü",
 };
+
+/**
+ * Üye detayındaki bir işlem satırı: solda ne olduğu, sağda düğmeler.
+ *
+ * <p>Ayrı bir bileşen çünkü dört yerde birebir aynı düzen gerekiyor ve
+ * inline yazılsaydı biri değiştirilirken diğerleri geride kalırdı — dört
+ * satır dört farklı hizada duran bir ekran, hiç gruplanmamış olandan
+ * daha kötüdür.
+ *
+ * @param ayrac üstüne çizgi çeker — geri alınamaz işlemleri ayırmak için
+ * @param not   düğmelerin altında küçük açıklama
+ */
+function IslemSatiri({
+  baslik,
+  children,
+  ayrac = false,
+  not,
+}: {
+  baslik: string;
+  children: React.ReactNode;
+  ayrac?: boolean;
+  not?: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-start",
+        padding: "10px 0",
+        borderTop: ayrac ? "1px solid var(--border)" : undefined,
+        marginTop: ayrac ? 6 : undefined,
+      }}
+    >
+      <div
+        className="muted"
+        style={{
+          width: 88,
+          flexShrink: 0,
+          fontSize: 12.5,
+          fontWeight: 600,
+          paddingTop: 6,
+        }}
+      >
+        {baslik}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {children}
+        </div>
+        {not && (
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>
+            {not}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const BOS_YENI = {
   firstName: "",
@@ -661,91 +721,113 @@ export default function TeleskorUsersClient() {
             </div>
           </div>
 
-          <div
-            style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}
-          >
-            <button
-              className="btn btn-sm btn-success"
-              disabled={islemde}
-              onClick={() => setPuanModal(1)}
-            >
-              Telepuan Ekle
-            </button>
-            <button
-              className="btn btn-sm"
-              disabled={islemde}
-              onClick={() => setPuanModal(-1)}
-            >
-              Telepuan Düş
-            </button>
-            <button
-              className="btn btn-sm"
-              disabled={islemde}
-              onClick={() => duzenlemeAc(secili)}
-            >
-              Bilgileri düzenle
-            </button>
-            {/* DÜĞME ARTIK DURUM SÖYLÜYOR.
-                Eskiden her kullanıcıda duruyordu ve "kilidi aç" yazısı bir
-                durum gibi okunuyordu — oysa hiçbir şey bilmiyordu. Kilit
-                yokken düğme KAPALI ve neden kapalı olduğu tooltip'te. */}
-            <button
-              className={`btn btn-sm ${secili.girisKilitli ? "btn-danger" : ""}`}
-              disabled={islemde || secili.girisKilitli === false}
-              title={
-                secili.girisKilitli === false
-                  ? "Bu hesap kilitli değil — açacak bir şey yok."
-                  : "Kaba kuvvet kilidini açar"
-              }
-              onClick={() => kilitAc(secili)}
-            >
-              Kilidi aç
-            </button>
-            <button
-              className="btn btn-sm"
-              disabled={islemde}
-              onClick={() => avatarSil(secili)}
-            >
-              Fotoğrafı kaldır
-            </button>
-            <div style={{ width: 1, background: "var(--border)" }} />
-            {(["USER", "EDITOR", "ADMIN"] as const)
-              .filter((r) => r !== secili.role)
-              .map((r) => (
-                <button
-                  key={r}
-                  className="btn btn-sm"
-                  disabled={islemde}
-                  onClick={() => rolDegistir(secili, r)}
-                >
-                  {ROL_TR[r]} yap
-                </button>
-              ))}
-            <div style={{ flex: 1 }} />
-            <button
-              className="btn btn-sm"
-              disabled={islemde}
-              onClick={() => durumIslemi(secili, "revoke-sessions")}
-            >
-              Oturumları kapat
-            </button>
-            {secili.status === "SUSPENDED" ? (
+          {/* İŞLEMLER GRUPLANDI — tek satırda on bir düğme vardı.
+              Hepsi aynı boyda ve aynı renkte yan yana durduğu için
+              "telepuan ekle" ile "hesabı kapat" arasında görsel bir fark
+              yoktu; yanlış düğmeye basmak yalnızca dikkat meselesiydi.
+              Şimdi her satırın ne yaptığı solunda yazıyor ve geri
+              alınamaz olanlar EN ALTTA, kendi ayracının altında. */}
+          <div style={{ marginTop: 14 }}>
+            <IslemSatiri baslik="Telepuan">
               <button
                 className="btn btn-sm btn-success"
                 disabled={islemde}
-                onClick={() => durumIslemi(secili, "enable")}
+                onClick={() => setPuanModal(1)}
               >
-                Hesabı aç
+                Ekle
               </button>
-            ) : (
               <button
-                className="btn btn-sm btn-danger"
+                className="btn btn-sm"
                 disabled={islemde}
-                onClick={() => durumIslemi(secili, "disable")}
+                onClick={() => setPuanModal(-1)}
               >
-                Hesabı kapat
+                Düş
               </button>
-            )}
+            </IslemSatiri>
+
+            <IslemSatiri baslik="Hesap">
+              <button
+                className="btn btn-sm"
+                disabled={islemde}
+                onClick={() => duzenlemeAc(secili)}
+              >
+                Bilgileri düzenle
+              </button>
+              <button
+                className="btn btn-sm"
+                disabled={islemde}
+                onClick={() => avatarSil(secili)}
+              >
+                Fotoğrafı kaldır
+              </button>
+              {/* DÜĞME DURUM SÖYLÜYOR. Eskiden her kullanıcıda duruyordu ve
+                  "kilidi aç" yazısı bir durum gibi okunuyordu — oysa hiçbir
+                  şey bilmiyordu. Kilit yokken KAPALI, sebebi tooltip'te. */}
+              <button
+                className={`btn btn-sm ${secili.girisKilitli ? "btn-danger" : ""}`}
+                disabled={islemde || secili.girisKilitli === false}
+                title={
+                  secili.girisKilitli === false
+                    ? "Bu hesap kilitli değil — açacak bir şey yok."
+                    : "Kaba kuvvet kilidini açar"
+                }
+                onClick={() => kilitAc(secili)}
+              >
+                Kilidi aç
+              </button>
+            </IslemSatiri>
+
+            <IslemSatiri baslik="Rol">
+              {/* Mevcut rol düğme olarak DEĞİL, etiket olarak: "Üye yap"
+                  düğmesinin yanında hangi rolde olduğu görünmezse liste
+                  "hangisi seçili?" sorusunu doğuruyordu. */}
+              <span className="badge" style={{ alignSelf: "center" }}>
+                şu an {ROL_TR[secili.role]}
+              </span>
+              {(["USER", "EDITOR", "ADMIN"] as const)
+                .filter((r) => r !== secili.role)
+                .map((r) => (
+                  <button
+                    key={r}
+                    className="btn btn-sm"
+                    disabled={islemde}
+                    onClick={() => rolDegistir(secili, r)}
+                  >
+                    {ROL_TR[r]} yap
+                  </button>
+                ))}
+            </IslemSatiri>
+
+            <IslemSatiri
+              baslik="Güvenlik"
+              ayrac
+              not="Kullanıcıyı doğrudan etkiler; hepsi gerekçe ister ve denetim kaydına yazılır."
+            >
+              <button
+                className="btn btn-sm"
+                disabled={islemde}
+                onClick={() => durumIslemi(secili, "revoke-sessions")}
+              >
+                Oturumları kapat
+              </button>
+              {secili.status === "SUSPENDED" ? (
+                <button
+                  className="btn btn-sm btn-success"
+                  disabled={islemde}
+                  onClick={() => durumIslemi(secili, "enable")}
+                >
+                  Hesabı aç
+                </button>
+              ) : (
+                <button
+                  className="btn btn-sm btn-danger"
+                  disabled={islemde}
+                  onClick={() => durumIslemi(secili, "disable")}
+                >
+                  Hesabı kapat
+                </button>
+              )}
+            </IslemSatiri>
           </div>
 
           {duzenle && (
