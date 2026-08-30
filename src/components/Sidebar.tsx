@@ -22,6 +22,8 @@ import {
   Languages,
   ShieldAlert,
   Activity,
+  FileSignature,
+  Cpu,
   PackageCheck,
   Users,
   Radio,
@@ -187,6 +189,8 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
   const isTeleskorSaglik = pathname.startsWith("/teleskor/saglik");
+  const isTeleskorSozlesme = pathname.startsWith("/teleskor/sozlesme");
+  const isTeleskorMotor = pathname.startsWith("/teleskor/motor");
 
   const initials = (user.displayName || user.email)
     .split(" ")
@@ -377,6 +381,20 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <Activity className="icon" size={22} />
               Sistem Sağlığı
+            </Link>
+            <Link
+              href="/teleskor/sozlesme"
+              className={`nav-item ${isTeleskorSozlesme ? "active" : ""}`}
+            >
+              <FileSignature className="icon" size={22} />
+              Sözleşmeler
+            </Link>
+            <Link
+              href="/teleskor/motor"
+              className={`nav-item ${isTeleskorMotor ? "active" : ""}`}
+            >
+              <Cpu className="icon" size={22} />
+              Motor
             </Link>
           </NavSection>
         )}

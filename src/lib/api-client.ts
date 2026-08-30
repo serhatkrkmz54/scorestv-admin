@@ -67,6 +67,12 @@ import type {
   DenetimSayfasi,
   DenetimZinciri,
   SaglikOzeti,
+  SozlesmeMetni,
+  MotorOzeti,
+  SenkronSonucu,
+  TabloOrnegi,
+  KimlikSonucu,
+  ArsivDurumu,
 } from "./types";
 
 export class ApiError extends Error {
@@ -898,4 +904,82 @@ export async function apiDenetimDogrula(): Promise<DenetimZinciri> {
 export async function apiTeleskorSaglik(): Promise<SaglikOzeti> {
   const res = await fetch("/api/teleskor/saglik", { method: "GET" });
   return parse<SaglikOzeti>(res);
+}
+
+// ---- TELESKOR — Sözleşme metinleri ----
+
+export async function apiSozlesmeler(): Promise<SozlesmeMetni[]> {
+  const res = await fetch("/api/teleskor/sozlesme", { method: "GET" });
+  return parse<SozlesmeMetni[]>(res);
+}
+
+export async function apiSozlesmeYayinla(data: {
+  type: string;
+  version: string;
+  url: string;
+  contentSha256?: string;
+  mandatory?: boolean;
+  effectiveFrom?: string;
+  reason: string;
+}): Promise<SozlesmeMetni> {
+  const res = await fetch("/api/teleskor/sozlesme", jsonInit("POST", data));
+  return parse<SozlesmeMetni>(res);
+}
+
+// ---- TELESKOR — Motor operasyonu ----
+
+export async function apiMotorOzeti(): Promise<MotorOzeti> {
+  const res = await fetch("/api/teleskor/motor", { method: "GET" });
+  return parse<MotorOzeti>(res);
+}
+
+export async function apiMotorSenkronCalistir(
+  kaynak: string,
+): Promise<SenkronSonucu> {
+  const res = await fetch(
+    `/api/teleskor/motor/senkron/${encodeURIComponent(kaynak)}`,
+    { method: "POST" },
+  );
+  return parse<SenkronSonucu>(res);
+}
+
+export async function apiMotorTablo(tablo: string): Promise<TabloOrnegi> {
+  const res = await fetch(
+    `/api/teleskor/motor/tablo/${encodeURIComponent(tablo)}`,
+    { method: "GET" },
+  );
+  return parse<TabloOrnegi>(res);
+}
+
+/**
+ * Kimlik arama. Sağlayıcı yönünde ARAMA TÜM TÜRLERDE yapılır — sağlayıcı
+ * kimlikleri yalnız kendi türü içinde benzersiz ve aynı metin birden çok
+ * varlığa denk gelebiliyor.
+ */
+export async function apiMotorKimlik(params: {
+  saglayici?: string;
+  tur?: string;
+  id?: string;
+}): Promise<KimlikSonucu> {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v) q.set(k, v);
+  }
+  const res = await fetch(`/api/teleskor/motor/kimlik?${q}`, { method: "GET" });
+  return parse<KimlikSonucu>(res);
+}
+
+export async function apiMotorArsiv(): Promise<ArsivDurumu> {
+  const res = await fetch("/api/teleskor/motor/arsiv", { method: "GET" });
+  return parse<ArsivDurumu>(res);
+}
+
+export async function apiMotorArsivIslem(
+  islem: "yukle" | "durdur",
+): Promise<{ durum?: string; mesaj?: string }> {
+  const res = await fetch(
+    "/api/teleskor/motor/arsiv",
+    jsonInit("POST", { islem }),
+  );
+  return parse<{ durum?: string; mesaj?: string }>(res);
 }

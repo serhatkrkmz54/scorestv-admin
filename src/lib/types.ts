@@ -860,6 +860,14 @@ export interface TeleskorUserDetail extends TeleskorUserSummary {
   hasPassword: boolean;
   linkedProviders: string[];
   activeSessions: number;
+  /**
+   * ŞU AN kaba kuvvet kilidinde mi (Redis'ten okunuyor).
+   *
+   * Eski sunucu sürümünde alan gelmiyor → `undefined`. Ekran o durumda
+   * düğmeyi çiziyor ama "kilitli" DEMİYOR: bilmemek ile kilitli olmamak
+   * aynı şey değil.
+   */
+  girisKilitli?: boolean;
   passwordChangedAt: string | null;
   deactivatedAt: string | null;
   deletionRequestedAt: string | null;
@@ -1043,4 +1051,198 @@ export interface SaglikOzeti {
   motorDurumu: MotorDurumu | null;
   motorKullanimi: MotorKullanimi | null;
   dbYuk: DbYukRaporu | null;
+}
+
+// ---- TELESKOR — Sözleşme metinleri ----
+
+export interface SozlesmeMetni {
+  /** TERMS | PRIVACY | KVKK_NOTICE | MARKETING */
+  type: string;
+  displayName: string;
+  version: string;
+  url: string;
+  /** Ticari ileti izni ZORUNLU olamaz (6563) — sunucu reddeder. */
+  mandatory: boolean;
+  effectiveFrom: string;
+}
+
+// ---- TELESKOR — Motor operasyonu ----
+
+/**
+ * Bir senkron kaynağının kontrol noktası.
+ *
+ * <p>{@code nextRunAt} VERİTABANINDA duruyor — motor yeniden başlasa da
+ * sıradaki çalışma zamanı değişmiyor. {@code errorStreak} 3'ü aşarsa
+ * müdahale gerekiyor.
+ */
+export interface SenkronSatiri {
+  resource: string;
+  /** PAGE | TIME | FULL */
+  mode: string;
+  page: number;
+  cursorTime: number | null;
+  lastRunAt: string | null;
+  lastSuccessAt: string | null;
+  nextRunAt: string | null;
+  running: boolean;
+  leaseOwner: string | null;
+  lastCount: number;
+  totalCount: number;
+  runCount: number;
+  lastDurationMs: number | null;
+  bootstrapped: boolean;
+  lastError: string | null;
+  errorStreak: number;
+  /** SAĞLIKLI | ÇALIŞIYOR | HATALI | KAPALI | … (motor üretiyor) */
+  durum: string;
+}
+
+export interface SenkronPlanSatiri {
+  kaynak: string;
+  sira: number;
+  /** ISO-8601 süre: P1D = günde bir, PT2M = iki dakikada bir */
+  aralik: string;
+  onKosul: string[];
+  /** Sağlayıcı belgesinin önerdiği sıklık — sapma varsa göze çarpsın diye */
+  not: string | null;
+  gecikemez: boolean;
+  gecikmeyeDuyarli: boolean;
+}
+
+export interface KotaUcu {
+  path: string;
+  source: string;
+  calls: number;
+  failures: number;
+  avgMillis: number;
+  maxMillis: number;
+  records: number;
+  errorCodes: Record<string, number>;
+}
+
+export interface KotaRaporu {
+  endpoints: KotaUcu[];
+  totalCalls: number;
+  elapsedSeconds: number;
+  usedThisMinute: number;
+  limitPerMinute: number;
+}
+
+export interface MotorVeritabani {
+  baglantiVar: boolean;
+  ad: string | null;
+  url: string | null;
+  kullanici: string | null;
+  surum: string | null;
+  hata: string | null;
+}
+
+export interface MotorServis {
+  calisiyor: boolean;
+  yanit: string | null;
+  hata: string | null;
+}
+
+/**
+ * Canlı verinin hangi kanaldan geldiği.
+ *
+ * <p>Ölçüt <b>"bağlı mı" değil "veri geliyor mu"</b>: broker bağlantıyı
+ * açık tutup hiçbir şey yayınlamayabilir (yanlış konu, iptal edilmiş
+ * abonelik) ve o durumda ekran "bağlı" derken canlı skor sessizce durur.
+ */
+export interface MotorCanliKanal {
+  mqttAcik: boolean;
+  adres: string | null;
+  konuTanimli: boolean;
+  bagli: boolean;
+  veriAkiyor: boolean;
+  /** MQTT | yoklama */
+  aktifKanal: string | null;
+  baglantiZamani: string | null;
+  sonMesaj: string | null;
+  mesajSayisi: number;
+  yazilanBolum: number;
+  sonHata: string | null;
+  basketbol: {
+    konuTanimli: boolean;
+    bagli: boolean;
+    veriAkiyor: boolean;
+    aktifKanal: string | null;
+    sonMesaj: string | null;
+    mesajSayisi: number;
+    yazilanBolum: number;
+    sonHata: string | null;
+  } | null;
+}
+
+export interface MotorSaglayici {
+  tabanAdres: string | null;
+  /** Şifre asla dönmüyor — yalnız tanımlı olup olmadığı */
+  kimlikTanimli: boolean;
+  senkronAcik: boolean;
+  dakikalikTavan: number;
+}
+
+export interface MotorKota {
+  buDakika: number;
+  tavan: number;
+  toplamIstek: number;
+  olcumSaniye: number;
+}
+
+export interface MotorDurumRaporu {
+  zaman: string;
+  veritabani: MotorVeritabani;
+  /** Tablo → satır sayısı. -1 = tablo yok. */
+  tabloSatirlari: Record<string, number>;
+  redis: MotorServis;
+  saglayici: MotorSaglayici;
+  canliKanal: MotorCanliKanal;
+  kota: MotorKota;
+}
+
+/** Motor özeti — dördü paralel çekiliyor, biri düşerse diğerleri gösteriliyor. */
+export interface MotorOzeti {
+  durum: MotorDurumRaporu | null;
+  senkron: SenkronSatiri[] | null;
+  plan: Record<string, SenkronPlanSatiri> | null;
+  kota: KotaRaporu | null;
+}
+
+export interface SenkronSonucu {
+  kaynak: string;
+  basarili: boolean;
+  kayit: number;
+  sureMs: number;
+  hata: string | null;
+}
+
+export interface TabloOrnegi {
+  tablo: string;
+  sutunlar: string[];
+  satirlar: Record<string, unknown>[];
+}
+
+/** Kimlik arama — iki yön de aynı biçimde dönüyor. */
+export interface KimlikSonucu {
+  [k: string]: unknown;
+}
+
+export interface ArsivDosyasi {
+  ad: string;
+  tur: string;
+  anlik_gorunt: string | null;
+  kayit_okunan: number | null;
+  bolum_yazilan: number | null;
+  atlanan_mac: number | null;
+  bilinmeyen_mac: number | null;
+  basladi_at: string | null;
+  bitti_at: string | null;
+  son_hata: string | null;
+}
+
+export interface ArsivDurumu {
+  calisiyor: boolean;
+  ozet: Record<string, number>;
+  dosyalar: ArsivDosyasi[];
 }

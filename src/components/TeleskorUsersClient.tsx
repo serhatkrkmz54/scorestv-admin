@@ -640,6 +640,20 @@ export default function TeleskorUsersClient() {
               <div>{secili.activeSessions}</div>
             </div>
             <div className="field">
+              <label className="label">Giriş kilidi</label>
+              <div>
+                {secili.girisKilitli === true ? (
+                  <span className="badge badge-archived">KİLİTLİ</span>
+                ) : secili.girisKilitli === false ? (
+                  <span className="muted">yok</span>
+                ) : (
+                  // Eski sunucu sürümü alanı göndermiyor. "Yok" yazmak
+                  // bilmediğimiz bir şeyi bildiğimizi iddia etmek olurdu.
+                  <span className="muted">bilinmiyor</span>
+                )}
+              </div>
+            </div>
+            <div className="field">
               <label className="label">Telepuan bakiyesi</label>
               <div style={{ fontWeight: 700 }}>
                 {puanlar ? `${puanlar.bakiye} TP` : "…"}
@@ -671,9 +685,18 @@ export default function TeleskorUsersClient() {
             >
               Bilgileri düzenle
             </button>
+            {/* DÜĞME ARTIK DURUM SÖYLÜYOR.
+                Eskiden her kullanıcıda duruyordu ve "kilidi aç" yazısı bir
+                durum gibi okunuyordu — oysa hiçbir şey bilmiyordu. Kilit
+                yokken düğme KAPALI ve neden kapalı olduğu tooltip'te. */}
             <button
-              className="btn btn-sm"
-              disabled={islemde}
+              className={`btn btn-sm ${secili.girisKilitli ? "btn-danger" : ""}`}
+              disabled={islemde || secili.girisKilitli === false}
+              title={
+                secili.girisKilitli === false
+                  ? "Bu hesap kilitli değil — açacak bir şey yok."
+                  : "Kaba kuvvet kilidini açar"
+              }
               onClick={() => kilitAc(secili)}
             >
               Kilidi aç
