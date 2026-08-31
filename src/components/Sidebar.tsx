@@ -189,6 +189,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
   const isTeleskorSaglik = pathname.startsWith("/teleskor/saglik");
+  const isTeleskorKitle = pathname.startsWith("/teleskor/kitle");
   const isTeleskorSozlesme = pathname.startsWith("/teleskor/sozlesme");
   const isTeleskorMotor = pathname.startsWith("/teleskor/motor");
 
@@ -374,6 +375,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <ScrollText className="icon" size={22} />
               Denetim Kaydı
+            </Link>
+            <Link
+              href="/teleskor/kitle"
+              className={`nav-item ${isTeleskorKitle ? "active" : ""}`}
+            >
+              <Users className="icon" size={22} />
+              Kitle
             </Link>
             <Link
               href="/teleskor/saglik"
