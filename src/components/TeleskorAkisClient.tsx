@@ -251,7 +251,8 @@ function SikayetKarti({
             ? `Alıntılanan gönderi · ${ilk.gonderi_yazari ?? "?"}`
             : `Gönderi · ${ilk.gonderi_yazari ?? "?"}`
         }
-        tahmin={`${ilk.pazar} → ${ilk.secim}`}
+        // Yorum gönderisinde tahmin yok; satır hiç çizilmiyor.
+        tahmin={ilk.tahmin || undefined}
         metin={ilk.gonderi_metni}
         silinmis={gonderiSilinmis}
         // Yorum şikayetinde gönderi SOLGUN: hedef o değil, bağlam.

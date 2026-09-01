@@ -975,8 +975,14 @@ export interface TeleskorAkisSikayeti {
   yorum_id: number | null;
 
   mac_id: number;
-  pazar: string;
-  secim: string;
+  /**
+   * Tahminin okunabilir hâli — "MS 1" ya da kombinede "MS 1 & KG VAR".
+   *
+   * Sunucu tek sütun gönderiyor: ayaklar ayrı ayrı taşınsaydı panel
+   * onları birleştirmek zorunda kalır ve ayıraç uygulamadakinden farklı
+   * olabilirdi. Yorum gönderisinde BOŞ.
+   */
+  tahmin: string | null;
   gonderi_metni: string | null;
   /** Dolu = gönderi zaten moderasyonla kaldırılmış. */
   gonderi_silindi: string | null;
