@@ -956,6 +956,37 @@ export interface TeleskorSohbetSikayeti {
   yazar: string | null;
 }
 
+/**
+ * SOSYAL AKIŞ ŞİKAYETİ — gönderi ya da yorum.
+ *
+ * `yorum_id` DOLUYSA hedef yorum, BOŞSA gönderinin kendisi. Gönderi
+ * alanları her iki durumda da dolu geliyor: yönetici bir yorumu tek
+ * başına değil, cevap verdiği tahminle birlikte görmek zorunda —
+ * "salak" yazan bir yorumun hedefi gönderinin içeriği olabilir.
+ */
+export interface TeleskorAkisSikayeti {
+  sikayet_id: number;
+  sebep: string | null;
+  created_at: string;
+  sikayet_eden: number;
+
+  gonderi_id: number;
+  /** null = hedef gönderinin kendisi */
+  yorum_id: number | null;
+
+  mac_id: number;
+  pazar: string;
+  secim: string;
+  gonderi_metni: string | null;
+  /** Dolu = gönderi zaten moderasyonla kaldırılmış. */
+  gonderi_silindi: string | null;
+  gonderi_yazari: string | null;
+
+  yorum_metni: string | null;
+  yorum_silindi: string | null;
+  yorum_yazari: string | null;
+}
+
 // ---- TELESKOR — Denetim kaydı ----
 
 export interface DenetimSatiri {

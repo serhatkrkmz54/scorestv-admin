@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "denetim": "node scripts/denetim-akis.mjs"
   },
   "dependencies": {
     "@tiptap/extension-color": "^2.27.2",

@@ -64,6 +64,7 @@ import type {
   CeviriSayfasi,
   CeviriSozlukSatiri,
   TeleskorSohbetSikayeti,
+  TeleskorAkisSikayeti,
   DenetimSayfasi,
   DenetimZinciri,
   SaglikOzeti,
@@ -821,6 +822,44 @@ export async function apiTeleskorSikayetKapat(
   sikayetId: number,
 ): Promise<void> {
   const res = await fetch(`/api/teleskor/sohbet/sikayet/${sikayetId}`, {
+    method: "POST",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+// ---- TELESKOR — Sosyal akış moderasyonu ----
+
+/** Bekleyen akış şikayetleri (gönderi ve yorum metniyle birlikte). */
+export async function apiTeleskorAkisSikayetler(
+  limit = 100,
+): Promise<TeleskorAkisSikayeti[]> {
+  const res = await fetch(`/api/teleskor/akis?limit=${limit}`, {
+    method: "GET",
+  });
+  return parse<TeleskorAkisSikayeti[]>(res);
+}
+
+/** Gönderiyi gizler; üstündeki BÜTÜN bekleyen şikayetler kapanır. */
+export async function apiTeleskorGonderiSil(gonderiId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/akis/gonderi/${gonderiId}`, {
+    method: "DELETE",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Yorumu gizler — gönderiye dokunmaz, yorum sayacı düşer. */
+export async function apiTeleskorYorumSil(yorumId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/akis/yorum/${yorumId}`, {
+    method: "DELETE",
+  });
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Akış şikayetini yersiz bulup kapatır — içeriğe dokunmaz. */
+export async function apiTeleskorAkisSikayetKapat(
+  sikayetId: number,
+): Promise<void> {
+  const res = await fetch(`/api/teleskor/akis/sikayet/${sikayetId}`, {
     method: "POST",
   });
   await parse<{ ok: boolean }>(res);

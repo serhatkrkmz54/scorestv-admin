@@ -21,6 +21,7 @@ import {
   UserCog,
   Languages,
   ShieldAlert,
+  MessagesSquare,
   Activity,
   FileSignature,
   Cpu,
@@ -187,6 +188,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
+  const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
   const isTeleskorSaglik = pathname.startsWith("/teleskor/saglik");
   const isTeleskorKitle = pathname.startsWith("/teleskor/kitle");
@@ -362,7 +364,15 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <ShieldAlert className="icon" size={22} />
               Sohbet Şikayetleri
-            </Link>            <Link
+            </Link>
+            <Link
+              href="/teleskor/akis"
+              className={`nav-item ${isTeleskorAkis ? "active" : ""}`}
+            >
+              <MessagesSquare className="icon" size={22} />
+              Akış Şikayetleri
+            </Link>
+            <Link
               href="/teleskor/ceviri"
               className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
             >
