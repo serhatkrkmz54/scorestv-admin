@@ -964,6 +964,21 @@ export interface TeleskorSohbetSikayeti {
  * başına değil, cevap verdiği tahminle birlikte görmek zorunda —
  * "salak" yazan bir yorumun hedefi gönderinin içeriği olabilir.
  */
+/** Gönderi eki — akış kartındakiyle aynı sözleşme. */
+export interface TeleskorGonderiMedyasi {
+  /** `FOTO` ya da `VIDEO`. */
+  tur: string;
+  /** Listede gösterilecek görsel; videoda KAPAK KARESİ. */
+  kucuk?: string;
+  buyuk?: string;
+  /** Oynatılacak mp4 — yalnız videoda. */
+  video?: string;
+  /** Video süresi (saniye). */
+  saniye?: number;
+  genislik?: number;
+  yukseklik?: number;
+}
+
 export interface TeleskorAkisSikayeti {
   sikayet_id: number;
   sebep: string | null;
@@ -984,6 +999,18 @@ export interface TeleskorAkisSikayeti {
    */
   tahmin: string | null;
   gonderi_metni: string | null;
+  /**
+   * Gönderiye iliştirilmiş fotoğraf/video — MODERASYON İÇİN ŞART.
+   *
+   * Şikayetlerin çoğu görsel hakkında olacak ("uygunsuz fotoğraf") ve
+   * metin sütunu o şikayeti hiç açıklamıyor. Yönetici neye baktığını
+   * görmeden karar veremez; metnin bu listede olma gerekçesinin
+   * aynısı.
+   *
+   * Adresler TAM: sunucu depo anahtarını değil CDN adresini gönderiyor,
+   * yani panelin ikinci bir kopya adres taşıması gerekmiyor.
+   */
+  medya: TeleskorGonderiMedyasi[] | null;
   /** Dolu = gönderi zaten moderasyonla kaldırılmış. */
   gonderi_silindi: string | null;
   gonderi_yazari: string | null;

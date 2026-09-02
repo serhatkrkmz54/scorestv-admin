@@ -8,7 +8,10 @@ import {
   apiTeleskorAkisSikayetKapat,
   ApiError,
 } from "@/lib/api-client";
-import type { TeleskorAkisSikayeti } from "@/lib/types";
+import type {
+  TeleskorAkisSikayeti,
+  TeleskorGonderiMedyasi,
+} from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import TeleskorOnayModal from "./TeleskorOnayModal";
 
@@ -254,6 +257,7 @@ function SikayetKarti({
         // Yorum gönderisinde tahmin yok; satır hiç çizilmiyor.
         tahmin={ilk.tahmin || undefined}
         metin={ilk.gonderi_metni}
+        medya={ilk.medya}
         silinmis={gonderiSilinmis}
         // Yorum şikayetinde gönderi SOLGUN: hedef o değil, bağlam.
         vurgulu={!yorumHedefi}
@@ -319,10 +323,103 @@ function SikayetKarti({
  * etmek olurdu. Kutu yine de çiziliyor — şikayetin neye açıldığı
  * görünmeli.
  */
+/**
+ * ŞİKAYET EDİLEN EKLER.
+ *
+ * <h3>Küçük sürüm gösteriliyor, büyük DEĞİL</h3>
+ * Moderasyon listesinde onlarca kart olabiliyor; her biri 1080 piksellik
+ * bir görsel indirseydi ekran açılmazdı. Tam hâli yeni sekmede.
+ *
+ * <h3>Video OYNATILMIYOR, kapak gösteriliyor</h3>
+ * Sayfada beş video birden otomatik oynasaydı hem bant genişliği hem
+ * dikkat dağılırdı. Yönetici kapağa bakıp karar veremiyorsa bağlantıyı
+ * yeni sekmede açıyor.
+ */
+function Ekler({ medya }: { medya: TeleskorGonderiMedyasi[] }) {
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 8,
+      }}
+    >
+      {medya.map((m, i) => {
+        const video = m.tur === "VIDEO";
+        // AÇILACAK ADRES: videoda mp4, fotoğrafta büyük sürüm.
+        const hedef = (video ? m.video : m.buyuk) || m.kucuk;
+        return (
+          <a
+            key={i}
+            href={hedef}
+            target="_blank"
+            rel="noreferrer"
+            title={video ? "Videoyu aç" : "Fotoğrafı aç"}
+            style={{
+              position: "relative",
+              display: "block",
+              width: 96,
+              height: 96,
+              borderRadius: 8,
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+              background: "var(--pill, rgba(0,0,0,0.06))",
+            }}
+          >
+            {m.kucuk && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={m.kucuk}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            )}
+            {video && (
+              <span
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 22,
+                  textShadow: "0 1px 4px rgba(0,0,0,.7)",
+                }}
+              >
+                ▶
+              </span>
+            )}
+            {video && m.saniye ? (
+              <span
+                style={{
+                  position: "absolute",
+                  right: 4,
+                  bottom: 4,
+                  padding: "1px 5px",
+                  borderRadius: 4,
+                  background: "rgba(0,0,0,.65)",
+                  color: "#fff",
+                  fontSize: 11,
+                }}
+              >
+                {Math.floor(m.saniye / 60)}:
+                {String(m.saniye % 60).padStart(2, "0")}
+              </span>
+            ) : null}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 function Icerik({
   etiket,
   tahmin,
   metin,
+  medya,
   silinmis,
   vurgulu,
   eylem,
@@ -330,6 +427,7 @@ function Icerik({
   etiket: string;
   tahmin?: string;
   metin: string | null;
+  medya?: TeleskorGonderiMedyasi[] | null;
   silinmis: boolean;
   vurgulu: boolean;
   eylem: React.ReactNode;
@@ -377,6 +475,7 @@ function Icerik({
           ) : (
             <span className="muted">(metin yok — yalnız tahmin)</span>
           )}
+          {medya && medya.length > 0 && <Ekler medya={medya} />}
         </div>
       </div>
       {eylem}

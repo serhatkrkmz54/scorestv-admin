@@ -171,7 +171,38 @@ console.log("\n7) Yıkıcı işlemler ONAY penceresinden geçiyor mu?");
 }
 
 // ---------------------------------------------------------------------
-console.log("\n8) Menü girişi bağlı mı?");
+console.log("\n8) Şikayet edilen EKLER gösteriliyor mu?");
+{
+  // Moderasyon kararı için ŞART: şikayetlerin çoğu görsel hakkında
+  // olacak ve metin sütunu o şikayeti hiç açıklamıyor.
+  const s = kod(oku("src/components/TeleskorAkisClient.tsx"));
+  yaz(/medya=\{ilk\.medya\}/.test(s), "gönderi kutusuna medya geçiriliyor");
+  yaz(
+    /medya && medya\.length > 0 && <Ekler/.test(s),
+    "ek yokken hiç çizilmiyor",
+  );
+  // KÜÇÜK SÜRÜM: listede onlarca kart var; her biri 1080 piksellik bir
+  // görsel indirseydi ekran açılmazdı.
+  const bas = s.indexOf("function Ekler(");
+  const govde = bas < 0 ? "" : s.slice(bas, s.indexOf("\nfunction ", bas + 1));
+  yaz(/src=\{m\.kucuk\}/.test(govde), "önizleme KÜÇÜK sürümü kullanıyor");
+  yaz(
+    !/src=\{m\.buyuk\}/.test(govde) && !/src=\{m\.video\}/.test(govde),
+    "önizlemede büyük sürüm ya da mp4 İSTENMİYOR",
+  );
+  // Video kapağı fotoğraftan ayırt edilemez; işaret olmadan yönetici
+  // neye baktığını bilemez.
+  yaz(/tur === "VIDEO"/.test(govde), "video ayrımı yapılıyor");
+  yaz(/\u25B6/.test(govde), "videoda oynat işareti var");
+  // Yeni sekme: panelden ayrılmadan tam hâline bakılabilsin.
+  yaz(
+    /target="_blank"/.test(govde) && /rel="noreferrer"/.test(govde),
+    "tam hâli yeni sekmede ve rel=noreferrer",
+  );
+}
+
+// ---------------------------------------------------------------------
+console.log("\n9) Menü girişi bağlı mı?");
 {
   const s = kod(oku("src/components/Sidebar.tsx"));
   yaz(/href="\/teleskor\/akis"/.test(s), "kenar çubuğunda bağlantı var");
