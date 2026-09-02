@@ -235,9 +235,25 @@ function SikayetKarti({
             <span className="badge">
               {yorumHedefi ? "Yorum şikayeti" : "Gönderi şikayeti"}
             </span>
-            <span className="muted" style={{ fontWeight: 400, marginLeft: 8 }}>
-              maç #{ilk.mac_id}
-            </span>
+            {/* MAÇ ARTIK ZORUNLU DEĞİL (sunucu V41: düz gönderi).
+                Koşulsuz basılsaydı maçsız gönderilerde "maç #null"
+                yazardı — yöneticiye var olmayan bir kimlik göstermek,
+                hiçbir şey göstermemekten kötü. */}
+            {ilk.mac_id != null ? (
+              <span
+                className="muted"
+                style={{ fontWeight: 400, marginLeft: 8 }}
+              >
+                maç #{ilk.mac_id}
+              </span>
+            ) : (
+              <span
+                className="muted"
+                style={{ fontWeight: 400, marginLeft: 8 }}
+              >
+                serbest gönderi
+              </span>
+            )}
             {grup.length > 1 && (
               <span className="badge" style={{ marginLeft: 8 }}>
                 {grup.length} şikayet

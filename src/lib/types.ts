@@ -989,7 +989,13 @@ export interface TeleskorAkisSikayeti {
   /** null = hedef gönderinin kendisi */
   yorum_id: number | null;
 
-  mac_id: number;
+  /**
+   * Gönderinin maçı — DÜZ GÖNDERİDE null (sunucu V41).
+   *
+   * Tip `number` bırakılsaydı TypeScript "her zaman var" derdi ve
+   * ekran koşulsuz basardı: maçsız gönderilerde "maç #null" görünürdü.
+   */
+  mac_id: number | null;
   /**
    * Tahminin okunabilir hâli — "MS 1" ya da kombinede "MS 1 & KG VAR".
    *
