@@ -46,6 +46,14 @@ export default function TeleskorDestekClient() {
   const [busy, setBusy] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
+  /// BÜYÜTÜLEN GÖRSEL — modalda açık olanın adresi.
+  ///
+  /// Serhat (3 Eylül): "Panelde gelen fotoğrafa tıklayınca modalda
+  /// açılsın yeni sayfada değil." Yeni sekme yöneticiyi paneldeki
+  /// yazışmadan koparıyordu: bakmak için sekme değiştir, kapat, geri
+  /// dön. Modal aynı ekranda kalıyor.
+  const [buyutulen, setBuyutulen] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -222,7 +230,7 @@ export default function TeleskorDestekClient() {
                     {m.medya && m.medya.length > 0 && (
                       <div className="destek-ekler">
                         {m.medya.map((ek, i) => (
-                          <Ek key={i} ek={ek} />
+                          <Ek key={i} ek={ek} onAc={setBuyutulen} />
                         ))}
                       </div>
                     )}
@@ -257,6 +265,10 @@ export default function TeleskorDestekClient() {
           )}
         </div>
       </div>
+
+      {buyutulen && (
+        <GorselModal adres={buyutulen} onKapat={() => setBuyutulen(null)} />
+      )}
     </div>
   );
 }
@@ -274,7 +286,13 @@ export default function TeleskorDestekClient() {
  * CDN tabanı tanımsız bir kurulumda sunucu adres göndermiyor; boş
  * `src` ile bir etiket çizmek kırık resim ikonu üretirdi.
  */
-function Ek({ ek }: { ek: TeleskorDestekEki }) {
+function Ek({
+  ek,
+  onAc,
+}: {
+  ek: TeleskorDestekEki;
+  onAc: (adres: string) => void;
+}) {
   if (ek.tur === "VIDEO") {
     if (!ek.video) return null;
     return (
@@ -289,13 +307,78 @@ function Ek({ ek }: { ek: TeleskorDestekEki }) {
   }
   const adres = ek.buyuk || ek.kucuk;
   if (!adres) return null;
-  // Tam boyutu YENİ SEKMEDE: panelde lightbox yok ve moderasyon kararı
-  // için görselin tamamına bakmak gerekebilir.
+  // TAM BOYUT MODALDA, yeni sekmede DEĞİL (Serhat, 3 Eylül).
+  //
+  // Düğme, bağlantı değil: bu artık başka bir adrese gitmiyor, aynı
+  // sayfada bir katman açıyor. <a> kalsaydı orta tıklama ve "yeni
+  // sekmede aç" hâlâ ham dosyayı açar, yani iki farklı davranış
+  // olurdu. Ayrıca klavyeyle de çalışıyor.
   return (
-    <a href={adres} target="_blank" rel="noopener noreferrer">
+    <button
+      type="button"
+      className="destek-ek-dugme"
+      onClick={() => onAc(adres)}
+      title="Büyüt"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img className="destek-ek" src={ek.kucuk || adres} alt="Ek" />
-    </a>
+    </button>
+  );
+}
+
+/**
+ * GÖRSEL MODALI.
+ *
+ * <h3>Kapanış üç yoldan</h3>
+ * Zemine tıklama, sağ üstteki düğme ve Esc. Üçü de olağan beklenti;
+ * biri eksik olsaydı yönetici modalı kapatmanın yolunu ararken
+ * yazışmayı kaybederdi.
+ *
+ * <h3>Görsel `.modal` kabuğuna KONMUYOR</h3>
+ * O kabuk beyaz zeminli bir kart; ekran görüntüsü genelde beyaz
+ * zeminli olduğu için görselin nerede bitip kartın nerede başladığı
+ * belirsizleşirdi. Burada görsel doğrudan koyu zeminin üstünde ve
+ * ekranın büyük kısmını kullanıyor.
+ */
+function GorselModal({
+  adres,
+  onKapat,
+}: {
+  adres: string;
+  onKapat: () => void;
+}) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onKapat();
+    };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onKapat]);
+
+  return (
+    <div
+      className="modal-overlay destek-lightbox"
+      style={{ zIndex: 120 }}
+      onClick={onKapat}
+    >
+      <button
+        type="button"
+        className="btn btn-sm destek-lightbox-kapat"
+        onClick={onKapat}
+      >
+        Kapat
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="destek-lightbox-gorsel"
+        src={adres}
+        alt="Ek"
+        // Görselin kendisine tıklamak KAPATMIYOR: yönetici ayrıntıya
+        // bakmak için üstüne tıklayabilir ve modalın kaybolması
+        // şaşırtıcı olurdu. Zemin kapatıyor.
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
   );
 }
 

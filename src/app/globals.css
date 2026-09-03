@@ -3327,3 +3327,44 @@ table.data-table {
   display: block;
   background: var(--surface-2);
 }
+
+/* Görsel bir DÜĞMENİN içinde (modalı açıyor); tarayıcı varsayılanları
+   sıfırlanmak zorunda, yoksa çevresinde gri bir çerçeve ve dolgu kalır. */
+.destek-ek-dugme {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  line-height: 0;
+  border-radius: 8px;
+}
+
+.destek-ek-dugme:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* GÖRSEL MODALI — koyu zemin, kart YOK.
+   `.modal` kabuğu beyaz yüzeyli; ekran görüntüleri de genelde beyaz
+   zeminli olduğu için görselin nerede bitip kartın nerede başladığı
+   belirsizleşirdi. */
+.destek-lightbox {
+  background: rgba(7, 39, 90, 0.82);
+  cursor: zoom-out;
+  padding: 32px;
+}
+
+.destek-lightbox-gorsel {
+  max-width: min(1100px, 92vw);
+  max-height: 88vh;
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  cursor: default;
+  display: block;
+}
+
+.destek-lightbox-kapat {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+}
