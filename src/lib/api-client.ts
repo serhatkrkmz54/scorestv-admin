@@ -66,6 +66,8 @@ import type {
   CeviriSozlukSatiri,
   TeleskorSohbetSikayeti,
   TeleskorAkisSikayeti,
+  TeleskorDestekTalebi,
+  TeleskorDestekYazismasi,
   DenetimSayfasi,
   DenetimZinciri,
   SaglikOzeti,
@@ -839,6 +841,54 @@ export async function apiTeleskorSikayetKapat(
     method: "POST",
   });
   await parse<{ ok: boolean }>(res);
+}
+
+// ---- TELESKOR — Destek yazışması ----
+
+/** Destek talepleri; süzgeç verilmezse KAPALI olmayanlar. */
+export async function apiTeleskorDestekListe(
+  durum?: string,
+  limit = 100,
+): Promise<TeleskorDestekTalebi[]> {
+  const sorgu = new URLSearchParams({ limit: String(limit) });
+  if (durum) sorgu.set("durum", durum);
+  const res = await fetch(`/api/teleskor/destek?${sorgu.toString()}`, {
+    method: "GET",
+  });
+  return parse<TeleskorDestekTalebi[]>(res);
+}
+
+/** Talebin yazışması. Açmak yöneticinin okundu damgasını atıyor. */
+export async function apiTeleskorDestekYazisma(
+  id: number,
+): Promise<TeleskorDestekYazismasi> {
+  const res = await fetch(`/api/teleskor/destek/${id}`, { method: "GET" });
+  return parse<TeleskorDestekYazismasi>(res);
+}
+
+/** Cevap yaz — kullanıcı uygulamadan okuyor ve bildirim alıyor. */
+export async function apiTeleskorDestekCevap(
+  id: number,
+  metin: string,
+): Promise<TeleskorDestekYazismasi> {
+  const res = await fetch(`/api/teleskor/destek/${id}/cevap`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ metin }),
+  });
+  return parse<TeleskorDestekYazismasi>(res);
+}
+
+export async function apiTeleskorDestekDurum(
+  id: number,
+  durum: string,
+): Promise<void> {
+  const res = await fetch(`/api/teleskor/destek/${id}/durum`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ durum }),
+  });
+  await parse<unknown>(res);
 }
 
 // ---- TELESKOR — Sosyal akış moderasyonu ----

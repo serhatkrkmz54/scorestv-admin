@@ -1388,3 +1388,47 @@ export interface ArsivDurumu {
   ozet: Record<string, number>;
   dosyalar: ArsivDosyasi[];
 }
+
+/**
+ * DESTEK TALEBİ — uygulamadaki "Bize Ulaşın" yazışmasının künyesi.
+ *
+ * Teleskor mesajları artık ScoresTV'nin iletişim kutusuna DÜŞMÜYOR
+ * (Serhat'ın kararı, 3 Eylül): yazışma teleskor-backend'de yaşıyor ve
+ * buradan yazılan cevabı kullanıcı UYGULAMADAN okuyor. Eskiden paneldeki
+ * "Yanıtla" düğmesi bir `mailto:` bağlantısıydı; cevap hiçbir yerde
+ * saklanmıyordu.
+ */
+export interface TeleskorDestekTalebi {
+  id: number;
+  konu: string;
+  /** ACIK | CEVAPLANDI | KAPALI */
+  durum: string;
+  acilis: string;
+  sonMesajAn: string;
+  /** Yöneticinin okumadığı KULLANICI mesajı sayısı. */
+  okunmamis: number;
+  onizleme: string;
+  kullaniciAdi: string | null;
+  gorunenAd: string | null;
+  eposta: string | null;
+}
+
+export interface TeleskorDestekMesaji {
+  id: number;
+  /** KULLANICI | ADMIN */
+  yazan: string;
+  metin: string;
+  an: string;
+  /** Cevabı yazan yöneticinin görünen adı; boş olabilir. */
+  adminAd: string | null;
+}
+
+export interface TeleskorDestekYazismasi {
+  id: number;
+  konu: string;
+  durum: string;
+  kullaniciAdi?: string | null;
+  gorunenAd?: string | null;
+  eposta?: string | null;
+  mesajlar: TeleskorDestekMesaji[];
+}

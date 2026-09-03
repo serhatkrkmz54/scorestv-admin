@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   UserCog,
   Languages,
+  LifeBuoy,
   ShieldAlert,
   MessagesSquare,
   Activity,
@@ -187,6 +188,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
+  const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
@@ -357,6 +359,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <UserCog className="icon" size={22} />
               Üyeler
+            </Link>
+            <Link
+              href="/teleskor/destek"
+              className={`nav-item ${isTeleskorDestek ? "active" : ""}`}
+            >
+              <LifeBuoy className="icon" size={22} />
+              Destek
             </Link>
             <Link
               href="/teleskor/sohbet"
