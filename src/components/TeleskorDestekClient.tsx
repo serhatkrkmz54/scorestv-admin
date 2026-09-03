@@ -222,7 +222,12 @@ export default function TeleskorDestekClient() {
                   >
                     <div className="destek-balon-ust">
                       {m.yazan === "ADMIN"
-                        ? m.adminAd || "Teleskor Destek"
+                        // PANELDE GERÇEK AD DURUYOR: kimin cevap yazdığını
+                        // görmek işin gereği. Kullanıcı yolunda sunucu bu
+                        // alanı hiç göndermiyor ve uygulama "Teleskor
+                        // Ekibi" yazıyor (Serhat, 3 Eylül) — destek
+                        // personelinin adı kullanıcıya gösterilmiyor.
+                        ? m.adminAd || "Teleskor Ekibi"
                         : secili.gorunenAd || secili.kullaniciAdi || "Kullanıcı"}
                       <span className="muted"> · {formatDate(m.an)}</span>
                     </div>
