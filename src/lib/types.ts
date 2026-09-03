@@ -851,11 +851,83 @@ export interface TeleskorUserPage {
   hasNext: boolean;
 }
 
+/**
+ * Profil fotoğrafının üç boyutu (Teleskor CDN adresleri).
+ *
+ * Fotoğrafı olmayan üyede sunucu `null` gönderiyor — boş metin DEĞİL.
+ * Ekran o durumda baş harf rozeti çiziyor; kırık bir `<img>` göstermek
+ * "fotoğraf var ama yüklenemedi" gibi okunurdu.
+ */
+export interface TeleskorAvatar {
+  large: string;
+  medium: string;
+  small: string;
+}
+
+/** Favori bir varlık (lig, takım, oyuncu, teknik direktör, hakem, maç). */
+export interface TeleskorFavori {
+  /** Teleskor motorundaki kimlik — adı çözülemese bile HER ZAMAN dolu. */
+  id: number;
+  /**
+   * Motorun katalogunda bulundu mu. `false` ise kayıt silinmiş/taslak
+   * olabilir ya da motora ulaşılamamıştır — ikisinde de ad boş gelir ve
+   * ekran kimliği gösterir. Favori satırı yine de listeleniyor: eksik
+   * göstermek "kullanıcının böyle bir favorisi yok" demek olurdu.
+   */
+  katalogda: boolean;
+  /**
+   * Alanlar İSTEĞE BAĞLI çünkü sunucu boş değerleri hiç göndermiyor
+   * (JSON'da `null` yerine alan yok — ölçüldü). Ekran hepsini "yok"
+   * gibi ele alıyor; `null` bekleyip `undefined` alan bir kontrol
+   * sessizce yanlış çalışırdı.
+   */
+  ad?: string | null;
+  gorsel?: string | null;
+  /** Takımda ülke, oyuncu/teknik direktörde kulüp, hakemde ülke. */
+  altYazi?: string | null;
+  spor?: string | null;
+}
+
+/** Favori türleri — sunucudaki `FavoriTuru` ile birebir. */
+export type TeleskorFavoriTuru =
+  | "LEAGUE"
+  | "TEAM"
+  | "PLAYER"
+  | "MATCH"
+  | "COACH"
+  | "REFEREE"
+  | "DISLIKED_TEAM";
+
+/**
+ * Üyenin profil dökümü — uygulamada gördüğü profilin yönetici karşılığı.
+ */
+export interface TeleskorUserProfil {
+  /** Herkese açık profil kapalıysa profili kimse göremez. */
+  profilAcik: boolean;
+  sayilar: {
+    takipci: number;
+    takip: number;
+    gonderi: number;
+    yorum: number;
+    dizilis: number;
+    sohbetMesaji: number;
+    kazanilanTelepuan: number;
+  };
+  favoriler: Record<TeleskorFavoriTuru, TeleskorFavori[]>;
+  /**
+   * Motora ulaşılamadı: kimlikler doğru ama adlar boş. Ekran bunu AÇIKÇA
+   * yazıyor — boş adları "katalogda yok" diye okumak yanlış olurdu.
+   */
+  motorUlasilamadi: boolean;
+}
+
 export interface TeleskorUserDetail extends TeleskorUserSummary {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
   birthDate: string | null;
+  /** Profil fotoğrafı; yoksa null (bkz. {@link TeleskorAvatar}). */
+  avatar: TeleskorAvatar | null;
   phoneVerified: boolean;
   hasPassword: boolean;
   linkedProviders: string[];

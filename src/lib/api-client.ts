@@ -58,6 +58,7 @@ import type {
   TeleskorOrderStatus,
   TeleskorUserPage,
   TeleskorUserDetail,
+  TeleskorUserProfil,
   TeleskorCreateUserRequest,
   TeleskorRole,
   TeleskorPointAccount,
@@ -694,6 +695,19 @@ export async function apiTeleskorUsers(params?: {
 export async function apiTeleskorUser(id: number): Promise<TeleskorUserDetail> {
   const res = await fetch(`/api/teleskor/users/${id}`, { method: "GET" });
   return parse<TeleskorUserDetail>(res);
+}
+
+/**
+ * Üyenin profil dökümü: favoriler, sevmediği takımlar ve profil sayıları.
+ *
+ * AYRI istek (detayla birlikte değil): favori adları Teleskor motorundan
+ * çözülüyor ve motor yavaşsa ya da kapalıysa hesap bilgisi onu beklemesin.
+ */
+export async function apiTeleskorUserProfil(
+  id: number,
+): Promise<TeleskorUserProfil> {
+  const res = await fetch(`/api/teleskor/users/${id}/profil`, { method: "GET" });
+  return parse<TeleskorUserProfil>(res);
 }
 
 export async function apiTeleskorCreateUser(

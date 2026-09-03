@@ -12,11 +12,15 @@ import {
   apiTeleskorUserDuzenle,
   apiTeleskorKilitAc,
   apiTeleskorAvatarSil,
+  apiTeleskorUserProfil,
   ApiError,
 } from "@/lib/api-client";
 import type {
   TeleskorUserSummary,
   TeleskorUserDetail,
+  TeleskorUserProfil,
+  TeleskorFavori,
+  TeleskorFavoriTuru,
   TeleskorPointAccount,
   TeleskorRole,
 } from "@/lib/types";
@@ -61,6 +65,102 @@ const TUR_TR: Record<string, string> = {
   ADMIN_EKLEME: "Yönetici ekledi",
   ADMIN_DUSME: "Yönetici düştü",
 };
+
+/** Favori türlerinin başlıkları — ekrandaki sıra da bu. */
+const FAVORI_TR: { tur: TeleskorFavoriTuru; baslik: string }[] = [
+  { tur: "TEAM", baslik: "Takımlar" },
+  { tur: "LEAGUE", baslik: "Ligler" },
+  { tur: "PLAYER", baslik: "Oyuncular" },
+  { tur: "COACH", baslik: "Teknik direktörler" },
+  { tur: "REFEREE", baslik: "Hakemler" },
+  { tur: "DISLIKED_TEAM", baslik: "Sevmediği takımlar" },
+  { tur: "MATCH", baslik: "Takip ettiği maçlar" },
+];
+
+/**
+ * Tek favori kartı — yuvarlak görsel + ad + alt yazı.
+ *
+ * <p>ADI ÇÖZÜLEMEYEN KAYIT DA ÇİZİLİYOR (`#123`, soluk): favori satırı
+ * veritabanında duruyor ve gizlenirse panelde "bu kullanıcının 5 değil 4
+ * favorisi var" gibi görünürdü. Sebebi tooltip'te yazıyor.
+ */
+function FavoriKarti({ f }: { f: TeleskorFavori }) {
+  const bilinmiyor = !f.katalogda || !f.ad;
+  return (
+    <div
+      title={
+        bilinmiyor
+          ? `#${f.id} — adı çözülemedi (kayıt katalogda yok ya da motora ulaşılamadı)`
+          : `#${f.id}${f.spor ? ` · ${f.spor === "BASKETBALL" ? "Basketbol" : "Futbol"}` : ""}`
+      }
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 10px 6px 6px",
+        border: "1px solid var(--border, #e5e7eb)",
+        borderRadius: 999,
+        maxWidth: 260,
+      }}
+    >
+      {/* next/image DEĞİL: görseller Teleskor motorunun ve sağlayıcının
+          alan adlarından geliyor ve o liste önceden bilinmiyor —
+          next.config'e her yeni alan adını eklemek gerekirdi. Optimize
+          edilmemiş 28 pikselik bir logo bunu hak etmiyor.
+          Görsel YOKSA <img> hiç çizilmiyor: olmayan bir yer tutucu
+          dosyaya işaret etmek her kartta 404 üretirdi. */}
+      {f.gorsel ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={f.gorsel}
+          alt=""
+          width={28}
+          height={28}
+          style={{
+            borderRadius: "50%",
+            objectFit: "contain",
+            background: "#fff",
+            flex: "0 0 auto",
+          }}
+          onError={(e) => {
+            // Sağlayıcının görseli kırıksa kırık ikon göstermek yerine gizle.
+            (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+          }}
+        />
+      ) : (
+        <div
+          aria-hidden
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: "var(--border, #e5e7eb)",
+            flex: "0 0 auto",
+          }}
+        />
+      )}
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            opacity: bilinmiyor ? 0.6 : 1,
+          }}
+        >
+          {f.ad ?? `#${f.id}`}
+        </div>
+        {f.altYazi && (
+          <div className="muted" style={{ fontSize: 11.5 }}>
+            {f.altYazi}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Üye detayındaki bir işlem satırı: solda ne olduğu, sağda düğmeler.
@@ -161,6 +261,13 @@ export default function TeleskorUsersClient() {
   const [acilan, setAcilan] = useState<TeleskorUserSummary | null>(null);
   const [secili, setSecili] = useState<TeleskorUserDetail | null>(null);
   const [puanlar, setPuanlar] = useState<TeleskorPointAccount | null>(null);
+
+  // PROFİL DÖKÜMÜ AYRI YÜKLENİYOR — favori adları Teleskor motorundan
+  // çözülüyor ve motor yavaşsa hesap bilgisi onu beklememeli. `null`
+  // "henüz gelmedi", `false` "alınamadı" demek: ikisi ekranda farklı
+  // yazıyor, çünkü "yükleniyor" ile "hata" aynı şey değil.
+  const [profil, setProfil] = useState<TeleskorUserProfil | null>(null);
+  const [profilHata, setProfilHata] = useState<string | null>(null);
   const [yeniAcik, setYeniAcik] = useState(false);
   const [yeni, setYeni] = useState({ ...BOS_YENI });
   const [islemde, setIslemde] = useState(false);
@@ -247,6 +354,8 @@ export default function TeleskorUsersClient() {
     setAcilan(null);
     setSecili(null);
     setPuanlar(null);
+    setProfil(null);
+    setProfilHata(null);
     setDuzenle(null);
   }
 
@@ -255,6 +364,17 @@ export default function TeleskorUsersClient() {
     setAcilan(u);
     setSecili(null);
     setPuanlar(null);
+    setProfil(null);
+    setProfilHata(null);
+    // Profil dökümü BEKLENMİYOR (await yok): motor yavaş olabilir ve
+    // hesap bilgisi ile düğmeler onu beklerse yönetim işi gecikirdi.
+    apiTeleskorUserProfil(u.id)
+      .then(setProfil)
+      .catch((e) =>
+        setProfilHata(
+          e instanceof ApiError ? e.message : "Profil bilgisi alınamadı.",
+        ),
+      );
     try {
       // İkisi PARALEL: sıralı olsaydı pencere iki gidiş-dönüş bekletirdi
       // ve ikisi birbirine bağlı değil.
@@ -678,6 +798,58 @@ export default function TeleskorUsersClient() {
               </div>
             ) : (
             <div className="card-pad">
+          {/* PROFİL FOTOĞRAFI — panelde şimdiye kadar hiç görünmüyordu,
+              yalnız "Fotoğrafı kaldır" düğmesi vardı: moderasyon kararı
+              görmediğin bir fotoğraf üzerinden veriliyordu. Orta boy
+              (160px) kullanılıyor; küçüğü rozet için, büyüğü boşuna
+              indirilirdi. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {secili.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={secili.avatar.medium}
+                alt={`${secili.username} profil fotoğrafı`}
+                width={64}
+                height={64}
+                style={{ borderRadius: "50%", objectFit: "cover" }}
+              />
+            ) : (
+              <div
+                aria-hidden
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: "50%",
+                  background: "var(--border, #e5e7eb)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 24,
+                  fontWeight: 700,
+                }}
+              >
+                {secili.username.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div style={{ fontWeight: 700 }}>
+                {secili.displayName ?? secili.username}
+              </div>
+              <div className="muted" style={{ fontSize: 12.5 }}>
+                {secili.avatar ? "Profil fotoğrafı var" : "Profil fotoğrafı yok"}
+                {profil ? (
+                  profil.profilAcik ? (
+                    " · Herkese açık profil AÇIK"
+                  ) : (
+                    <b> · Herkese açık profil KAPALI</b>
+                  )
+                ) : (
+                  ""
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="form-grid" style={{ marginTop: 10 }}>
             <div className="field">
               <label className="label">Ad Soyad</label>
@@ -719,6 +891,101 @@ export default function TeleskorUsersClient() {
                 {puanlar ? `${puanlar.bakiye} TP` : "…"}
               </div>
             </div>
+          </div>
+
+          {/* PROFİL VE FAVORİLER — kullanıcının uygulamada gördüğü
+              profilin karşılığı. Ayrı istekle geliyor (detayAc): favori
+              adları Teleskor motorundan çözülüyor. */}
+          <div style={{ marginTop: 16 }}>
+            <div className="card-title" style={{ fontSize: 14, marginBottom: 8 }}>
+              Profil ve favoriler
+            </div>
+
+            {profilHata ? (
+              <div className="muted" style={{ fontSize: 13 }}>
+                {profilHata}
+              </div>
+            ) : !profil ? (
+              <div className="muted" style={{ fontSize: 13 }}>
+                Yükleniyor…
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    fontSize: 13,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span>
+                    <b>{profil.sayilar.takipci}</b> takipçi
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.takip}</b> takip
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.gonderi}</b> gönderi
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.yorum}</b> yorum
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.sohbetMesaji}</b> sohbet mesajı
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.dizilis}</b> diziliş
+                  </span>
+                  <span>
+                    <b>{profil.sayilar.kazanilanTelepuan}</b> TP kazanmış
+                  </span>
+                </div>
+
+                {/* MOTOR KAPALIYSA AÇIKÇA SÖYLENİYOR: adların boş olması
+                    "favorisi yok" değil "adı çözülemedi" demek. */}
+                {profil.motorUlasilamadi && (
+                  <div
+                    className="muted"
+                    style={{ fontSize: 12.5, marginBottom: 8 }}
+                  >
+                    Teleskor motoruna ulaşılamadı — favori kimlikleri doğru,
+                    ancak adlar ve görseller çözülemedi.
+                  </div>
+                )}
+
+                {FAVORI_TR.every(
+                  ({ tur }) => (profil.favoriler[tur] ?? []).length === 0,
+                ) ? (
+                  <div className="muted" style={{ fontSize: 13 }}>
+                    Bu üyenin hiç favorisi yok.
+                  </div>
+                ) : (
+                  FAVORI_TR.map(({ tur, baslik }) => {
+                    const liste = profil.favoriler[tur] ?? [];
+                    if (liste.length === 0) return null;
+                    return (
+                      <div key={tur} style={{ marginBottom: 10 }}>
+                        <div
+                          className="muted"
+                          style={{ fontSize: 12, marginBottom: 5 }}
+                        >
+                          {baslik} ({liste.length})
+                        </div>
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+                        >
+                          {liste.map((f) => (
+                            <FavoriKarti key={`${tur}-${f.id}`} f={f} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </>
+            )}
           </div>
 
           {/* İŞLEMLER GRUPLANDI — tek satırda on bir düğme vardı.
