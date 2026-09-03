@@ -1413,6 +1413,25 @@ export interface TeleskorDestekTalebi {
   eposta: string | null;
 }
 
+/**
+ * Destek mesajına iliştirilmiş görsel ya da video (V49).
+ *
+ * Gönderi akışıyla AYNI hattan geçtiği için alanlar da aynı:
+ * `kucuk` videoda KAPAK KARESİ, `video` yalnız videoda dolu. CDN
+ * tabanı tanımsızsa (local) adresler HİÇ gelmiyor — uydurma bir adres
+ * kırık resim ikonu gösterirdi.
+ */
+export interface TeleskorDestekEki {
+  /** FOTO | VIDEO */
+  tur: string;
+  kucuk?: string;
+  buyuk?: string;
+  video?: string;
+  genislik?: number | null;
+  yukseklik?: number | null;
+  saniye?: number | null;
+}
+
 export interface TeleskorDestekMesaji {
   id: number;
   /** KULLANICI | ADMIN */
@@ -1421,6 +1440,8 @@ export interface TeleskorDestekMesaji {
   an: string;
   /** Cevabı yazan yöneticinin görünen adı; boş olabilir. */
   adminAd: string | null;
+  /** Ekler — boş dizi olabilir. */
+  medya?: TeleskorDestekEki[];
 }
 
 export interface TeleskorDestekYazismasi {

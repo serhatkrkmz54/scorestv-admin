@@ -3309,3 +3309,21 @@ table.data-table {
 .destek-yazma textarea {
   resize: vertical;
 }
+
+/* Destek mesajındaki ekler — görsel ve video (V49).
+   Küçük tutuluyor: yazışmanın kendisi asıl içerik, ek onu okumayı
+   zorlaştırmamalı. Tam boyut görselde yeni sekmede açılıyor. */
+.destek-ekler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.destek-ek {
+  max-width: 180px;
+  max-height: 180px;
+  border-radius: 8px;
+  display: block;
+  background: var(--surface-2);
+}

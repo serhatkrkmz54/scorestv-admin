@@ -9,6 +9,7 @@ import {
   ApiError,
 } from "@/lib/api-client";
 import type {
+  TeleskorDestekEki,
   TeleskorDestekTalebi,
   TeleskorDestekYazismasi,
 } from "@/lib/types";
@@ -218,6 +219,13 @@ export default function TeleskorDestekClient() {
                       <span className="muted"> · {formatDate(m.an)}</span>
                     </div>
                     <div className="destek-balon-metin">{m.metin}</div>
+                    {m.medya && m.medya.length > 0 && (
+                      <div className="destek-ekler">
+                        {m.medya.map((ek, i) => (
+                          <Ek key={i} ek={ek} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -250,6 +258,44 @@ export default function TeleskorDestekClient() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * TEK EK — görsel ya da video.
+ *
+ * <h3>Video AYRI bir etiket, kapak görseli DEĞİL</h3>
+ * Uygulamada kapağa dokunulunca oynatıcı açılıyor; panelde tarayıcının
+ * kendi oynatıcısı var ve videoyu kapak görseli gibi göstermek
+ * yöneticiyi "neden oynamıyor?" diye uğraştırırdı. `poster` kapak
+ * karesi: video yüklenmeden önce de bir şey görünüyor.
+ *
+ * <h3>Adres yoksa hiçbir şey çizilmiyor</h3>
+ * CDN tabanı tanımsız bir kurulumda sunucu adres göndermiyor; boş
+ * `src` ile bir etiket çizmek kırık resim ikonu üretirdi.
+ */
+function Ek({ ek }: { ek: TeleskorDestekEki }) {
+  if (ek.tur === "VIDEO") {
+    if (!ek.video) return null;
+    return (
+      <video
+        className="destek-ek"
+        src={ek.video}
+        poster={ek.kucuk || undefined}
+        controls
+        preload="metadata"
+      />
+    );
+  }
+  const adres = ek.buyuk || ek.kucuk;
+  if (!adres) return null;
+  // Tam boyutu YENİ SEKMEDE: panelde lightbox yok ve moderasyon kararı
+  // için görselin tamamına bakmak gerekebilir.
+  return (
+    <a href={adres} target="_blank" rel="noopener noreferrer">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className="destek-ek" src={ek.kucuk || adres} alt="Ek" />
+    </a>
   );
 }
 
