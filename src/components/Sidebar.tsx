@@ -10,6 +10,7 @@ import {
   Bell,
   BellRing,
   Megaphone,
+  Sparkles,
   Image as ImageIcon,
   Settings,
   MessageSquare,
@@ -192,6 +193,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
+  const isTeleskorSurumNotu = pathname.startsWith("/teleskor/surum-notu");
   const isTeleskorOneCikanLigler = pathname.startsWith(
     "/teleskor/one-cikan-ligler"
   );
@@ -381,6 +383,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <Megaphone className="icon" size={22} />
               Duyurular
+            </Link>
+            <Link
+              href="/teleskor/surum-notu"
+              className={`nav-item ${isTeleskorSurumNotu ? "active" : ""}`}
+            >
+              <Sparkles className="icon" size={22} />
+              Sürüm Notları
             </Link>
             <Link
               href="/teleskor/destek"

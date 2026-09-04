@@ -1635,3 +1635,35 @@ export interface OneCikanLigIstegi {
   ligler: { saglayiciId: string; adNotu?: string | null }[];
   reason: string;
 }
+
+/**
+ * SÜRÜM NOTU — "Neler değişti" metni (V54).
+ *
+ * <p>Kullanıcı bunu uygulamadaki Gelen Kutusu'nda duyurularla aynı
+ * listede okuyor. Duyurudan farkı: bu bir BELGE, gönderim değil —
+ * düzeltilebiliyor ve silinebiliyor.
+ */
+export interface SurumNotu {
+  id: number;
+  /** Ekranda görünen etiket: "1.0.72". */
+  surum: string;
+  baslik: string;
+  metin: string;
+  /** SurumKodu.coz() çıktısı — sıralanabilir sayı. */
+  minSurumKod: number;
+  yayinAt: string;
+  /** İleri tarihli notlarda false: yazıldı ama kullanıcıya henüz gitmedi. */
+  yayinda: boolean;
+  medya: TeleskorDestekEki[];
+}
+
+export interface SurumNotuIstegi {
+  surum: string;
+  baslik: string;
+  metin: string;
+  /** Boş bırakılırsa `surum` kullanılıyor. */
+  minSurum?: string;
+  /** ISO-8601; boşsa şimdi. */
+  yayinAt?: string;
+  medyaIdler?: number[];
+}

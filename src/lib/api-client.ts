@@ -6,6 +6,8 @@
 import type {
   AdminUserView,
   AppUser,
+  SurumNotu,
+  SurumNotuIstegi,
   BroadcastListItem,
   BroadcastRequest,
   BroadcastResult,
@@ -1237,4 +1239,46 @@ export async function apiTeleskorLigAra(
     { cache: "no-store" },
   );
   return parse<OneCikanLigAramaSatiri[]>(res);
+}
+
+// ---- Teleskor: sürüm notları (Gelen Kutusu) ----
+
+/** Sürüm notları — yayınlanmamış (ileri tarihli) olanlar da geliyor. */
+export async function apiTeleskorSurumNotlari(): Promise<SurumNotu[]> {
+  const res = await fetch("/api/teleskor/surum-notu", { method: "GET" });
+  return parse<SurumNotu[]>(res);
+}
+
+/**
+ * Sürüm notu yazar.
+ *
+ * <p>BİLDİRİM GÖNDERMİYOR: not Gelen Kutusu'na düşüyor, telefon
+ * titremiyor. Duyurulmak isteniyorsa Duyurular sayfasından ayrıca bir
+ * DUYURU gönderilmeli — iki iş, iki bilinçli tık.
+ */
+export async function apiTeleskorSurumNotuYaz(
+  istek: SurumNotuIstegi,
+): Promise<{ id: number }> {
+  const res = await fetch("/api/teleskor/surum-notu", jsonInit("POST", istek));
+  return parse<{ id: number }>(res);
+}
+
+/** Başlık ve metni düzeltir; sürüm ve görseller değişmez. */
+export async function apiTeleskorSurumNotuDuzelt(
+  id: number,
+  baslik: string,
+  metin: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/surum-notu/${id}`,
+    jsonInit("PUT", { baslik, metin }),
+  );
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorSurumNotuSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/surum-notu/${id}`, {
+    method: "DELETE",
+  });
+  await parse<unknown>(res);
 }
