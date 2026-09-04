@@ -951,6 +951,23 @@ export interface TeleskorUserDetail extends TeleskorUserSummary {
    * rozeti çizmiyor ama "rozetsiz" de DEMİYOR.
    */
   onayli?: boolean;
+  /**
+   * SUSTURMA bitiş anı (ISO). Hesabı KAPATMAZ: kullanıcı giriş yapıyor,
+   * okuyor ve desteğe yazabiliyor; kapanan tek şey gönderi/yorum/sohbet.
+   *
+   * GEÇMİŞ bir tarih "susturulmuştu, bitti" demek — satır bilerek
+   * temizlenmiyor, "daha önce susturulmuş muydu" bilgisi bir sonraki
+   * moderasyon kararında işe yarıyor. Ekran bu yüzden tarihi bugüne göre
+   * karşılaştırıyor, yalnız doluluğa bakmıyor.
+   *
+   * Alan eski sunucu sürümünde gelmiyor (Jackson null alanları atıyor;
+   * susturması olmayan hesapta da gelmiyor) → her iki durumda da
+   * `undefined`. İkisi ayırt edilemiyor ve gerek de yok: ikisi de
+   * "şu an susturulmuş değil" demek.
+   */
+  mutedUntil?: string | null;
+  /** Kullanıcıya GÖSTERİLEN gerekçe (yazma yolundaki 403 mesajında geçiyor). */
+  muteReason?: string | null;
   passwordChangedAt: string | null;
   deactivatedAt: string | null;
   deletionRequestedAt: string | null;

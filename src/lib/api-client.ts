@@ -985,6 +985,36 @@ export async function apiTeleskorOnayRozeti(
   await parse<{ ok: boolean }>(res);
 }
 
+/**
+ * Kullanıcıyı süreli olarak susturur (gönderi/yorum/sohbet kapanır).
+ *
+ * <p>`gerekce` KULLANICIYA GÖSTERİLİYOR: yazma denemesinde dönen 403
+ * mesajı bu metni taşıyor.
+ */
+export async function apiTeleskorSustur(
+  id: number,
+  saat: number,
+  gerekce: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/sustur`,
+    jsonInit("POST", { saat, reason: gerekce }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
+/** Susturmayı kaldırır (gerekçe denetim kaydına yazılıyor). */
+export async function apiTeleskorSusturmayiKaldir(
+  id: number,
+  gerekce: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/sustur`,
+    jsonInit("DELETE", { reason: gerekce }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
 /** Profil fotoğrafını kaldırır (moderasyon; yalnız silme). */
 export async function apiTeleskorAvatarSil(
   id: number,

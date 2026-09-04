@@ -13,6 +13,8 @@ import {
   apiTeleskorKilitAc,
   apiTeleskorAvatarSil,
   apiTeleskorOnayRozeti,
+  apiTeleskorSustur,
+  apiTeleskorSusturmayiKaldir,
   apiTeleskorUserProfil,
   ApiError,
 } from "@/lib/api-client";
@@ -296,7 +298,16 @@ export default function TeleskorUsersClient() {
   const [onayModal, setOnayModal] = useState<{
     baslik: string;
     uyari: string;
-    onayla: (gerekce: string) => Promise<void>;
+    /** Susturma için süre seçimi; diğer işlemlerde yok. */
+    secim?: {
+      etiket: string;
+      varsayilan: string;
+      secenekler: { deger: string; etiket: string }[];
+    };
+    /** Gerekçenin etiketi: susturmada metin KULLANICIYA gösteriliyor. */
+    alanEtiketi?: string;
+    alanIpucu?: string;
+    onayla: (gerekce: string, secilen: string) => Promise<void>;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -474,6 +485,56 @@ export default function TeleskorUsersClient() {
     });
   }
 
+  /**
+   * SUSTURMA — süreli yazma yasağı.
+   *
+   * <p>Gerekçe kutusunun etiketi burada bilerek farklı: bu metin denetim
+   * kaydına GİRMEKLE KALMIYOR, kullanıcının ekranında birebir görünüyor.
+   * "Denetim kaydına yazılır" ipucu bırakılsaydı moderatör kendi
+   * notlarını yazardı ("üçüncü uyarı, bir dahakine ban") ve cezalandırılan
+   * kişi onu okurdu.
+   */
+  function sustur(u: TeleskorUserDetail) {
+    setOnayModal({
+      baslik: "Kullanıcıyı sustur",
+      uyari:
+        `${u.username} seçilen süre boyunca gönderi, yorum ve sohbet ` +
+        "mesajı YAZAMAZ. Hesabı kapanmaz: giriş yapabilir, okuyabilir, " +
+        "favorilerini yönetebilir ve Bize Ulaşın'dan itiraz edebilir. " +
+        "Yazdığın gerekçe kullanıcıya AYNEN gösterilir.",
+      alanEtiketi: "Gerekçe (zorunlu — kullanıcıya gösterilir)",
+      alanIpucu: "Örn. Küfür içeren yorum",
+      secim: {
+        etiket: "Süre",
+        varsayilan: "24",
+        secenekler: [
+          { deger: "1", etiket: "1 saat" },
+          { deger: "24", etiket: "1 gün" },
+          { deger: "72", etiket: "3 gün" },
+          { deger: "168", etiket: "7 gün" },
+          { deger: "720", etiket: "30 gün" },
+        ],
+      },
+      onayla: async (gerekce, saat) => {
+        await apiTeleskorSustur(u.id, Number(saat), gerekce);
+        await detayAc(u);
+      },
+    });
+  }
+
+  function susturmayiKaldir(u: TeleskorUserDetail) {
+    setOnayModal({
+      baslik: "Susturmayı kaldır",
+      uyari:
+        `${u.username} yeniden gönderi, yorum ve sohbet mesajı yazabilecek. ` +
+        "Bu gerekçe kullanıcıya gösterilmiyor, yalnız denetim kaydına girer.",
+      onayla: async (gerekce) => {
+        await apiTeleskorSusturmayiKaldir(u.id, gerekce);
+        await detayAc(u);
+      },
+    });
+  }
+
   function avatarSil(u: TeleskorUserDetail) {
     setOnayModal({
       baslik: "Profil fotoğrafını kaldır",
@@ -568,6 +629,13 @@ export default function TeleskorUsersClient() {
       setIslemde(false);
     }
   }
+
+  // ŞU AN susturulmuş mu? Alanın DOLU olması yetmiyor: ceza bitince satır
+  // temizlenmiyor, tarih geçmişte kalıyor. Yalnız doluluğa bakılsaydı
+  // cezası aylar önce dolmuş bir hesap panelde sonsuza kadar "susturuldu"
+  // görünürdü — ve "Susturmayı kaldır" düğmesi 400 dönerdi.
+  const susturmaAcik =
+    !!secili?.mutedUntil && new Date(secili.mutedUntil).getTime() > Date.now();
 
   return (
     <div className="stack">
@@ -928,6 +996,29 @@ export default function TeleskorUsersClient() {
               </div>
             </div>
             <div className="field">
+              <label className="label">Susturma</label>
+              <div>
+                {susturmaAcik ? (
+                  <>
+                    <span className="badge badge-archived">SUSTURULDU</span>{" "}
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {formatDate(secili.mutedUntil!)} tarihine kadar
+                      {secili.muteReason ? ` — ${secili.muteReason}` : ""}
+                    </span>
+                  </>
+                ) : secili.mutedUntil ? (
+                  // Tarih dolu ama GEÇMİŞ: ceza bitmiş. Satır bilerek
+                  // temizlenmiyor — "daha önce susturulmuş muydu" bilgisi
+                  // bir sonraki moderasyon kararında işe yarıyor.
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    süresi doldu ({formatDate(secili.mutedUntil)})
+                  </span>
+                ) : (
+                  <span className="muted">yok</span>
+                )}
+              </div>
+            </div>
+            <div className="field">
               <label className="label">Telepuan bakiyesi</label>
               <div style={{ fontWeight: 700 }}>
                 {puanlar ? `${puanlar.bakiye} TP` : "…"}
@@ -1101,6 +1192,42 @@ export default function TeleskorUsersClient() {
               >
                 {secili.onayli ? "Rozeti geri al" : "Rozet ver"}
               </button>
+            </IslemSatiri>
+
+            {/* SUSTURMA kendi satırında: hesap kapatmayla aynı yerde
+                dursaydı ikisi aynı ağırlıkta görünürdü. Susturma
+                hesabı KAPATMIYOR — kullanıcı giriş yapıyor, okuyor ve
+                desteğe yazabiliyor; yalnız içerik üretemiyor. */}
+            <IslemSatiri
+              baslik="Susturma"
+              not={
+                susturmaAcik
+                  ? "Kullanıcı gönderi, yorum ve sohbet mesajı yazamıyor; okuyabiliyor ve desteğe yazabiliyor."
+                  : "Süreli yazma yasağı. Hesabı kapatmaz; gerekçe kullanıcıya gösterilir."
+              }
+            >
+              {susturmaAcik ? (
+                <button
+                  className="btn btn-sm"
+                  disabled={islemde}
+                  onClick={() => susturmayiKaldir(secili)}
+                >
+                  Susturmayı kaldır
+                </button>
+              ) : (
+                <button
+                  className="btn btn-sm"
+                  disabled={islemde || secili.role === "ADMIN"}
+                  title={
+                    secili.role === "ADMIN"
+                      ? "Yönetici hesabı susturulamaz."
+                      : "Gönderi, yorum ve sohbeti süreli olarak kapatır."
+                  }
+                  onClick={() => sustur(secili)}
+                >
+                  Sustur
+                </button>
+              )}
             </IslemSatiri>
 
             <IslemSatiri baslik="Rol">
@@ -1318,11 +1445,12 @@ export default function TeleskorUsersClient() {
         <TeleskorOnayModal
           baslik={onayModal.baslik}
           uyari={onayModal.uyari}
-          alanEtiketi="Gerekçe (zorunlu)"
-          alanIpucu="Denetim kaydına yazılır"
+          alanEtiketi={onayModal.alanEtiketi ?? "Gerekçe (zorunlu)"}
+          alanIpucu={onayModal.alanIpucu ?? "Denetim kaydına yazılır"}
+          secim={onayModal.secim}
           onKapat={() => setOnayModal(null)}
-          onOnayla={async (gerekce) => {
-            await onayModal.onayla(gerekce);
+          onOnayla={async (gerekce, secilen) => {
+            await onayModal.onayla(gerekce, secilen);
             setOnayModal(null);
             setHata(null);
           }}

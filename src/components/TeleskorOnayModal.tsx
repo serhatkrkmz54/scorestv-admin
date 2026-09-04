@@ -28,6 +28,7 @@ export default function TeleskorOnayModal({
   zorunlu = true,
   onayMetni = "Onayla",
   tehlikeli = false,
+  secim,
   onKapat,
   onOnayla,
 }: {
@@ -40,10 +41,26 @@ export default function TeleskorOnayModal({
   onayMetni?: string;
   /** Geri alınamaz işlem (iptal/iade, hesap kapatma) — düğme kırmızı. */
   tehlikeli?: boolean;
+  /**
+   * İSTEĞE BAĞLI ikinci alan: metnin yanında bir de seçim gerektiren
+   * işlemler için (bugün yalnız susturma süresi).
+   *
+   * Ayrı bir modal yazmak yerine buraya eklendi çünkü asıl değer bu
+   * bileşenin ÇÖZDÜĞÜ şeylerde: hatayı modalın içinde göstermek (metin
+   * kaybolmasın), gönderim sırasında düğmeyi kilitlemek, detay modalının
+   * üstünde açılmak. İkinci bir kopya yazılsaydı o üç karar zamanla
+   * ayrışırdı — ve ilk ayrışan hep hata gösterimi olur.
+   */
+  secim?: {
+    etiket: string;
+    varsayilan: string;
+    secenekler: { deger: string; etiket: string }[];
+  };
   onKapat: () => void;
-  onOnayla: (deger: string) => Promise<void>;
+  onOnayla: (deger: string, secim: string) => Promise<void>;
 }) {
   const [deger, setDeger] = useState("");
+  const [secilen, setSecilen] = useState(secim?.varsayilan ?? "");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -54,7 +71,7 @@ export default function TeleskorOnayModal({
     setGonderiliyor(true);
     setHata(null);
     try {
-      await onOnayla(deger.trim());
+      await onOnayla(deger.trim(), secilen);
     } catch (e) {
       // HATA MODALIN İÇİNDE: modal kapanıp arkadaki sayfada gösterilseydi
       // kullanıcı yazdığı metni kaybeder ve baştan yazardı.
@@ -85,6 +102,23 @@ export default function TeleskorOnayModal({
           </div>
 
           {hata && <div className="alert alert-error">{hata}</div>}
+
+          {secim && (
+            <div className="field">
+              <label className="label">{secim.etiket}</label>
+              <select
+                className="select"
+                value={secilen}
+                onChange={(e) => setSecilen(e.target.value)}
+              >
+                {secim.secenekler.map((s) => (
+                  <option key={s.deger} value={s.deger}>
+                    {s.etiket}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="field">
             <label className="label">{alanEtiketi}</label>
