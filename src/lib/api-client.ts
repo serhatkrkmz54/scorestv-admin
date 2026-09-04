@@ -81,6 +81,9 @@ import type {
   TabloOrnegi,
   KimlikSonucu,
   ArsivDurumu,
+  OneCikanLigYaniti,
+  OneCikanLigAramaSatiri,
+  OneCikanLigIstegi,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1179,4 +1182,38 @@ export async function apiTeleskorDuyuruGonder(
 ): Promise<{ id: number }> {
   const res = await fetch("/api/teleskor/duyuru", jsonInit("POST", istek));
   return parse<{ id: number }>(res);
+}
+
+/** Öne çıkan lig listesi (spor başına ayrı). */
+export async function apiTeleskorOneCikanLigler(
+  spor: string,
+): Promise<OneCikanLigYaniti> {
+  const res = await fetch(
+    `/api/teleskor/one-cikan-ligler?spor=${encodeURIComponent(spor)}`,
+    { cache: "no-store" },
+  );
+  return parse<OneCikanLigYaniti>(res);
+}
+
+/** Listeyi BÜTÜN olarak kaydeder; yanıt kaydedilmiş listenin kendisi. */
+export async function apiTeleskorOneCikanLigKaydet(
+  istek: OneCikanLigIstegi,
+): Promise<OneCikanLigYaniti> {
+  const res = await fetch(
+    "/api/teleskor/one-cikan-ligler",
+    jsonInit("PUT", istek),
+  );
+  return parse<OneCikanLigYaniti>(res);
+}
+
+/** Listeye eklenecek ligi aramak için. */
+export async function apiTeleskorLigAra(
+  spor: string,
+  q: string,
+): Promise<OneCikanLigAramaSatiri[]> {
+  const res = await fetch(
+    `/api/teleskor/one-cikan-ligler/ara?spor=${encodeURIComponent(spor)}&q=${encodeURIComponent(q)}`,
+    { cache: "no-store" },
+  );
+  return parse<OneCikanLigAramaSatiri[]>(res);
 }

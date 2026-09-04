@@ -1570,3 +1570,68 @@ export interface DuyuruIstegi {
   metin: string;
   hedefYol?: string;
 }
+
+/**
+ * ÖNE ÇIKAN LİG — anasayfanın üst bloğundaki bir satır.
+ *
+ * <p>NULL ALANLAR YANITTA HİÇ GELMİYOR (Jackson boş alanları atıyor), o
+ * yüzden hepsi isteğe bağlı ve `!= null` ile karşılaştırılıyor. Aynı
+ * tuzağa yayın tanısında bir kez düşüldü: `x !== null` her zaman doğru
+ * çıkıyordu ve ekranda `#undefined` görünecekti.
+ *
+ * @property ligId  motorun iç kimliği; **yoksa lig motorda çözülemedi**
+ *                  (yanlış sağlayıcı kimliği ya da motor kapalı) ve
+ *                  anasayfada o kart hiç çıkmıyor
+ * @property adNotu panelde kimliğin yanında duran not — ekrandaki ad
+ *                  motorun katalogundan geliyor, buradan DEĞİL
+ */
+export interface OneCikanLig {
+  sira: number;
+  saglayiciId: string;
+  ligId?: number | null;
+  ad?: string | null;
+  logo?: string | null;
+  ulke?: string | null;
+  ulkeBayrak?: string | null;
+  adNotu?: string | null;
+}
+
+/**
+ * @property kaynak "PANEL" = liste veritabanından; "AYAR" = tablo boş ve
+ *                  api-1'in `.env` listesi geçerli. Ekranda açıkça
+ *                  yazıyor — "kaydettim ama değişmedi" sorusunun ilk
+ *                  cevabı bu.
+ * @property cozulen `toplam`dan azsa listede motorda karşılığı olmayan
+ *                  bir sağlayıcı kimliği var
+ */
+export interface OneCikanLigYaniti {
+  spor: string;
+  kaynak: string;
+  toplam: number;
+  cozulen: number;
+  ligler: OneCikanLig[];
+}
+
+/**
+ * Arama sonucu.
+ *
+ * @property saglayiciId **yoksa bu satır listeye eklenemez**: motorda o
+ *                  ligin sağlayıcı eşlemesi yok ve saklanacak kalıcı bir
+ *                  kimlik üretilemiyor. Ekran satırı gösteriyor ama
+ *                  düğmeyi kapatıyor — gizlenseydi "aradım, çıkmadı"
+ *                  denirdi.
+ */
+export interface OneCikanLigAramaSatiri {
+  ligId: number;
+  saglayiciId?: string | null;
+  ad?: string | null;
+  logo?: string | null;
+  ulke?: string | null;
+  ulkeBayrak?: string | null;
+}
+
+export interface OneCikanLigIstegi {
+  spor: string;
+  ligler: { saglayiciId: string; adNotu?: string | null }[];
+  reason: string;
+}

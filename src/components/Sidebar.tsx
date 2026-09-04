@@ -30,6 +30,7 @@ import {
   PackageCheck,
   Users,
   Radio,
+  Star,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -191,6 +192,9 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
+  const isTeleskorOneCikanLigler = pathname.startsWith(
+    "/teleskor/one-cikan-ligler"
+  );
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
@@ -361,6 +365,15 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <UserCog className="icon" size={22} />
               Üyeler
+            </Link>
+            <Link
+              href="/teleskor/one-cikan-ligler"
+              className={`nav-item ${
+                isTeleskorOneCikanLigler ? "active" : ""
+              }`}
+            >
+              <Star className="icon" size={22} />
+              Öne Çıkan Ligler
             </Link>
             <Link
               href="/teleskor/duyuru"
