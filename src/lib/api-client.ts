@@ -72,6 +72,9 @@ import type {
   DenetimZinciri,
   SaglikOzeti,
   YayinTanisi,
+  DuyuruKaydi,
+  DuyuruOnizleme,
+  DuyuruIstegi,
   SozlesmeMetni,
   MotorOzeti,
   SenkronSonucu,
@@ -1117,4 +1120,33 @@ export async function apiMotorArsivIslem(
     jsonInit("POST", { islem }),
   );
   return parse<{ durum?: string; mesaj?: string }>(res);
+}
+
+// ---- TELESKOR — Duyurular ----
+
+export async function apiTeleskorDuyurular(): Promise<DuyuruKaydi[]> {
+  const res = await fetch("/api/teleskor/duyuru", { method: "GET" });
+  return parse<DuyuruKaydi[]>(res);
+}
+
+/** "Bu duyuru kaç kişiye gider?" — gönder düğmesinden önceki tek soru. */
+export async function apiTeleskorDuyuruOnizleme(
+  tur: string,
+): Promise<DuyuruOnizleme> {
+  const res = await fetch(
+    `/api/teleskor/duyuru/onizleme?tur=${encodeURIComponent(tur)}`,
+    { method: "GET" },
+  );
+  return parse<DuyuruOnizleme>(res);
+}
+
+/**
+ * Duyuruyu gönderir. 202 döner: kayıt açıldı, gönderim arka planda
+ * sürüyor — sonuç listeden izleniyor.
+ */
+export async function apiTeleskorDuyuruGonder(
+  istek: DuyuruIstegi,
+): Promise<{ id: number }> {
+  const res = await fetch("/api/teleskor/duyuru", jsonInit("POST", istek));
+  return parse<{ id: number }>(res);
 }

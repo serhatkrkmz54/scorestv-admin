@@ -9,6 +9,7 @@ import {
   PlusCircle,
   Bell,
   BellRing,
+  Megaphone,
   Image as ImageIcon,
   Settings,
   MessageSquare,
@@ -189,6 +190,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
+  const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
@@ -359,6 +361,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <UserCog className="icon" size={22} />
               Üyeler
+            </Link>
+            <Link
+              href="/teleskor/duyuru"
+              className={`nav-item ${isTeleskorDuyuru ? "active" : ""}`}
+            >
+              <Megaphone className="icon" size={22} />
+              Duyurular
             </Link>
             <Link
               href="/teleskor/destek"

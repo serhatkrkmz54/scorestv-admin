@@ -1504,3 +1504,52 @@ export interface TeleskorDestekYazismasi {
   eposta?: string | null;
   mesajlar: TeleskorDestekMesaji[];
 }
+
+// ---- TELESKOR — Duyurular ----
+
+/**
+ * DUYURU  : hizmet bilgilendirmesi (bakım, arıza, yeni özellik).
+ *           Genel yayın konusuna gider; uygulamayı kurmuş HERKES alır.
+ * KAMPANYA: ticari ileti. YALNIZ açık rıza verenlere gider (6563) ve
+ *           hedef kitle SEÇİLEMEZ — sunucu belirliyor.
+ */
+export type DuyuruTuru = "DUYURU" | "KAMPANYA";
+
+export interface DuyuruOnizleme {
+  tur: DuyuruTuru;
+  ticari: boolean;
+  /** Bildirim servisi kapalıysa gönderim ucu 503 döner. */
+  fcmHazir: boolean;
+  /**
+   * Kaç kişiye gideceği. KAMPANYA'da kesin sayı; DUYURU'da alan HİÇ
+   * GELMEZ (sunucu boş alanları yanıta koymuyor — ölçüldü): FCM konuya
+   * kaç cihazın abone olduğunu söylemiyor ve tahmin yazılmıyor.
+   */
+  kitle?: number | null;
+  aciklama: string;
+}
+
+export interface DuyuruKaydi {
+  id: number;
+  tur: DuyuruTuru;
+  baslik: string;
+  metin: string;
+  hedefYol: string | null;
+  /** GONDERILIYOR | TAMAM | HATA */
+  durum: string;
+  /** Konu yayınında bilinmiyor → gelmez. */
+  hedefSayisi?: number | null;
+  basarili: number;
+  basarisiz: number;
+  hata: string | null;
+  gonderen: string | null;
+  an: string;
+  bittiAn: string | null;
+}
+
+export interface DuyuruIstegi {
+  tur: DuyuruTuru;
+  baslik: string;
+  metin: string;
+  hedefYol?: string;
+}
