@@ -17,20 +17,26 @@ export async function POST(
   if ("error" in izin) return izin.error;
 
   const { id } = await ctx.params;
-  let govde: { metin?: string };
+  let govde: { metin?: string; medyaIdler?: number[] };
   try {
-    govde = (await req.json()) as { metin?: string };
+    govde = (await req.json()) as { metin?: string; medyaIdler?: number[] };
   } catch {
     return NextResponse.json({ message: "Geçersiz istek." }, { status: 400 });
   }
   const metin = (govde.metin ?? "").trim();
   if (!metin) {
+    // METİN EK OLSA DA ZORUNLU — kullanıcı tarafındaki kuralın aynısı.
+    // Yalnız ekran görüntüsü gönderilen bir cevap, karşı tarafta
+    // "ne demek istedi?" sorusu üretirdi.
     return NextResponse.json({ message: "Cevap boş olamaz." }, { status: 400 });
   }
+  const medyaIdler = Array.isArray(govde.medyaIdler)
+    ? govde.medyaIdler.filter((x) => Number.isInteger(x))
+    : [];
 
   const r = await teleskorJson<TeleskorDestekYazismasi>(
     `/api/v1/admin/destek/${encodeURIComponent(id)}/cevap`,
-    { method: "POST", body: JSON.stringify({ metin }) },
+    { method: "POST", body: JSON.stringify({ metin, medyaIdler }) },
   );
   return teleskorResponse(r, "Cevap gönderilemedi.");
 }

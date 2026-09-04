@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   apiTeleskorDestekListe,
   apiTeleskorDestekYazisma,
   apiTeleskorDestekCevap,
+  apiTeleskorDestekMedya,
   apiTeleskorDestekDurum,
   ApiError,
 } from "@/lib/api-client";
@@ -54,6 +55,18 @@ export default function TeleskorDestekClient() {
   /// dön. Modal aynı ekranda kalıyor.
   const [buyutulen, setBuyutulen] = useState<string | null>(null);
 
+  /// CEVABA İLİŞTİRİLECEK DOSYALAR — yüklenmiş, henüz gönderilmemiş.
+  ///
+  /// Dosya "Cevabı gönder"e basınca değil, SEÇİLİR SEÇİLMEZ yükleniyor:
+  /// 50 MB'lık bir video gönderme anında yüklenseydi yönetici saniyelerce
+  /// bekler ve ağ koptuğunda yazdığı metni de kaybederdi.
+  const [ekler, setEkler] = useState<{ id: number; ad: string }[]>([]);
+  const [ekYukleniyor, setEkYukleniyor] = useState(0);
+  const dosyaSecici = useRef<HTMLInputElement | null>(null);
+
+  /** Gönderiyle AYNI sınır — aynı kavramın iki ekranda farklı davranmaması için. */
+  const EN_FAZLA_EK = 4;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,6 +87,10 @@ export default function TeleskorDestekClient() {
     async (id: number) => {
       setSeciliId(id);
       setCevap("");
+      // EKLER DE SIFIRLANIYOR: başka bir talebe geçilince yüklenmiş
+      // dosyalar orada durursa yanlış yazışmaya iliştirilirdi. Sunucuda
+      // iliştirilmemiş dosya bir gün sonra kendiliğinden temizleniyor.
+      setEkler([]);
       try {
         setSecili(await apiTeleskorDestekYazisma(id));
         setHata(null);
@@ -87,17 +104,57 @@ export default function TeleskorDestekClient() {
   );
 
   async function gonder() {
-    if (!seciliId || !cevap.trim() || busy) return;
+    if (!seciliId || !cevap.trim() || busy || ekYukleniyor > 0) return;
     setBusy(true);
     try {
-      setSecili(await apiTeleskorDestekCevap(seciliId, cevap.trim()));
+      setSecili(
+        await apiTeleskorDestekCevap(
+          seciliId,
+          cevap.trim(),
+          ekler.map((e) => e.id),
+        ),
+      );
       setCevap("");
+      setEkler([]);
       setHata(null);
       await load();
     } catch (e) {
       setHata(e instanceof ApiError ? e.message : "Cevap gönderilemedi.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  /**
+   * Seçilen dosyaları SIRAYLA yükler.
+   *
+   * <p>Paralel değil: sunucuda saatlik bir yükleme kotası var ve hepsi
+   * aynı anda gidince kotaya tek seferde yükleniyor. Sıra ayrıca hata
+   * mesajını da anlamlı kılıyor — hangi dosyada takıldığı belli oluyor.
+   */
+  async function dosyaEkle(secilenler: FileList | null) {
+    if (!secilenler || secilenler.length === 0) return;
+    const yer = EN_FAZLA_EK - ekler.length - ekYukleniyor;
+    if (yer <= 0) {
+      setHata(`Bir cevaba en fazla ${EN_FAZLA_EK} dosya eklenebilir.`);
+      return;
+    }
+    const liste = Array.from(secilenler).slice(0, yer);
+    setEkYukleniyor((n) => n + liste.length);
+    for (const dosya of liste) {
+      try {
+        const y = await apiTeleskorDestekMedya(dosya);
+        setEkler((mevcut) => [...mevcut, { id: y.id, ad: dosya.name }]);
+        setHata(null);
+      } catch (e) {
+        // SUNUCUNUN MESAJI gösteriliyor: "saatlik sınıra ulaştın" ya da
+        // "en fazla 5 MB" gibi cümleler ne yapılacağını söylüyor.
+        setHata(
+          e instanceof ApiError ? e.message : `${dosya.name} yüklenemedi.`,
+        );
+      } finally {
+        setEkYukleniyor((n) => n - 1);
+      }
     }
   }
 
@@ -252,18 +309,79 @@ export default function TeleskorDestekClient() {
                   value={cevap}
                   onChange={(e) => setCevap(e.target.value)}
                 />
-                <div className="spread">
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Cevap gidince talep &quot;Cevaplandı&quot; olur ve
-                    kullanıcıya bildirim düşer.
-                  </span>
-                  <button
-                    className="btn btn-primary"
-                    disabled={busy || !cevap.trim()}
-                    onClick={() => void gonder()}
+                {(ekler.length > 0 || ekYukleniyor > 0) && (
+                  <div
+                    className="stack"
+                    style={{ gap: 6, marginTop: 8, marginBottom: 4 }}
                   >
-                    {busy ? "Gönderiliyor…" : "Cevabı gönder"}
-                  </button>
+                    {ekler.map((e) => (
+                      <div key={e.id} className="spread">
+                        <span style={{ fontSize: 12.5 }}>📎 {e.ad}</span>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          onClick={() =>
+                            setEkler((m) => m.filter((x) => x.id !== e.id))
+                          }
+                        >
+                          Kaldır
+                        </button>
+                      </div>
+                    ))}
+                    {ekYukleniyor > 0 && (
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        {ekYukleniyor} dosya yükleniyor…
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  ref={dosyaSecici}
+                  type="file"
+                  hidden
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+                  onChange={(e) => {
+                    void dosyaEkle(e.target.files);
+                    // AYNI DOSYA İKİNCİ KEZ SEÇİLEBİLSİN: input değeri
+                    // aynı kalırsa `change` hiç tetiklenmiyor ve kullanıcı
+                    // "tıkladım olmadı" diyor.
+                    e.target.value = "";
+                  }}
+                />
+
+                <div className="spread">
+                  <div className="stack" style={{ gap: 2 }}>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      Cevap gidince talep &quot;Cevaplandı&quot; olur ve
+                      kullanıcıya bildirim düşer.
+                    </span>
+                    <span className="muted" style={{ fontSize: 11.5 }}>
+                      Ek: en fazla {EN_FAZLA_EK} dosya · görsel 5 MB ·
+                      video 50 MB ve 60 sn.
+                    </span>
+                  </div>
+                  <div className="stack" style={{ gap: 6 }}>
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      disabled={
+                        busy || ekler.length + ekYukleniyor >= EN_FAZLA_EK
+                      }
+                      onClick={() => dosyaSecici.current?.click()}
+                    >
+                      📎 Dosya ekle
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      // EK YÜKLENİRKEN KAPALI: açık kalsaydı yönetici
+                      // gönderebilir ve dosya henüz kimliği alınmadığı
+                      // için sessizce dışarıda kalırdı.
+                      disabled={busy || !cevap.trim() || ekYukleniyor > 0}
+                      onClick={() => void gonder()}
+                    >
+                      {busy ? "Gönderiliyor…" : "Cevabı gönder"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </>

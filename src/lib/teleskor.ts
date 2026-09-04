@@ -174,6 +174,66 @@ export async function teleskorJson<T = unknown>(
 }
 
 /**
+ * DOSYA YÜKLEME — Teleskor'a multipart istek.
+ *
+ * <h3>Neden {@link teleskorJson} kullanılmıyor</h3>
+ * O fonksiyon her isteğe {@code Content-Type: application/json} koyuyor.
+ * Multipart'ta bu başlığı EL İLE yazmak imkânsız: içinde bir sınır
+ * (boundary) dizesi var ve onu `fetch` gövdeyi görünce kendisi üretiyor.
+ * Elle yazılan bir başlık o sınırı taşımaz ve sunucu gövdeyi
+ * ayrıştıramaz — istek 400 döner ve sebebi hiçbir yerde görünmez.
+ * Başlığı `undefined` ile ezmek de çalışmıyor: nesneden `Headers`
+ * kurulurken değer `"undefined"` METNİNE dönüyor.
+ *
+ * <p>Token yönetimi (giriş, 401/403'te bir kez yeniden giriş) aynı
+ * havuzdan geliyor; kopyalanan tek şey istek gövdesi.
+ */
+export async function teleskorDosya<T = unknown>(
+  path: string,
+  form: FormData,
+): Promise<TeleskorResult<T>> {
+  if (!teleskorConfigured()) {
+    return { ok: false, status: 503, body: null, notConfigured: true };
+  }
+
+  const gonder = async (t: string) => {
+    try {
+      return await fetch(BASE + path, {
+        method: "POST",
+        body: form,
+        headers: { Authorization: `Bearer ${t}` },
+        cache: "no-store",
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  let t = await currentToken();
+  if (!t) return { ok: false, status: 502, body: null };
+
+  let res = await gonder(t);
+  if (res && (res.status === 401 || res.status === 403)) {
+    token = null;
+    t = await login();
+    if (!t) return { ok: false, status: 502, body: null };
+    res = await gonder(t);
+  }
+  if (!res) return { ok: false, status: 503, body: null };
+
+  const text = await res.text();
+  let body: T | null = null;
+  if (text) {
+    try {
+      body = JSON.parse(text) as T;
+    } catch {
+      body = text as unknown as T;
+    }
+  }
+  return { ok: res.ok, status: res.status, body };
+}
+
+/**
  * İşlemi yapan editörün kimliği — Teleskor'un denetim kaydına yazılsın diye
  * not alanlarına ekleniyor.
  *

@@ -877,13 +877,34 @@ export async function apiTeleskorDestekYazisma(
 export async function apiTeleskorDestekCevap(
   id: number,
   metin: string,
+  medyaIdler: number[] = [],
 ): Promise<TeleskorDestekYazismasi> {
   const res = await fetch(`/api/teleskor/destek/${id}/cevap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ metin }),
+    body: JSON.stringify({ metin, medyaIdler }),
   });
   return parse<TeleskorDestekYazismasi>(res);
+}
+
+/**
+ * Cevaba eklenecek dosyayı ÖNCEDEN yükler; dönen kimlik
+ * {@link apiTeleskorDestekCevap} çağrısında gönderiliyor.
+ *
+ * <p>`Content-Type` BİLEREK yazılmıyor: `FormData` verildiğinde tarayıcı
+ * başlığı sınır (boundary) dizesiyle birlikte kendisi üretiyor. Elle
+ * yazılan bir başlık o sınırı taşımaz ve sunucu gövdeyi ayrıştıramaz.
+ */
+export async function apiTeleskorDestekMedya(
+  dosya: File,
+): Promise<{ id: number }> {
+  const form = new FormData();
+  form.append("file", dosya);
+  const res = await fetch("/api/teleskor/destek/medya", {
+    method: "POST",
+    body: form,
+  });
+  return parse<{ id: number }>(res);
 }
 
 export async function apiTeleskorDestekDurum(
