@@ -71,6 +71,7 @@ import type {
   DenetimSayfasi,
   DenetimZinciri,
   SaglikOzeti,
+  YayinTanisi,
   SozlesmeMetni,
   MotorOzeti,
   SenkronSonucu,
@@ -962,6 +963,25 @@ export async function apiTeleskorKilitAc(
   await parse<{ ok: boolean }>(res);
 }
 
+/**
+ * Onaylı hesap rozetini verir ya da geri alır.
+ *
+ * Rozet bir KİMLİK iddiası, e-posta doğrulaması değil; gerekçe zorunlu ve
+ * denetim kaydına yazılıyor. Kullanıcının oturumları KAPANMIYOR — rozet
+ * token'da taşınmadığı için yeniden giriş gerekmiyor.
+ */
+export async function apiTeleskorOnayRozeti(
+  id: number,
+  onayli: boolean,
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/onay-rozeti`,
+    jsonInit("PUT", { onayli, reason }),
+  );
+  await parse<{ ok: boolean }>(res);
+}
+
 /** Profil fotoğrafını kaldırır (moderasyon; yalnız silme). */
 export async function apiTeleskorAvatarSil(
   id: number,
@@ -1007,6 +1027,18 @@ export async function apiDenetimDogrula(): Promise<DenetimZinciri> {
 export async function apiTeleskorSaglik(): Promise<SaglikOzeti> {
   const res = await fetch("/api/teleskor/saglik", { method: "GET" });
   return parse<SaglikOzeti>(res);
+}
+
+/**
+ * Yayın tanısı. `macId` verilmezse yalnız ayar durumu denetlenir;
+ * verilince o maçın beş kapısı tek tek sınanır.
+ */
+export async function apiTeleskorYayinTani(
+  macId?: number,
+): Promise<YayinTanisi> {
+  const q = macId ? `?mac=${macId}` : "";
+  const res = await fetch(`/api/teleskor/yayin${q}`, { method: "GET" });
+  return parse<YayinTanisi>(res);
 }
 
 // ---- TELESKOR — Sözleşme metinleri ----

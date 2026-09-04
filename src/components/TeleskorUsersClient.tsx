@@ -12,6 +12,7 @@ import {
   apiTeleskorUserDuzenle,
   apiTeleskorKilitAc,
   apiTeleskorAvatarSil,
+  apiTeleskorOnayRozeti,
   apiTeleskorUserProfil,
   ApiError,
 } from "@/lib/api-client";
@@ -443,6 +444,32 @@ export default function TeleskorUsersClient() {
         "bekliyor olabilir. Kilit açılınca hemen deneyebilir.",
       onayla: async (gerekce) => {
         await apiTeleskorKilitAc(u.id, gerekce);
+      },
+    });
+  }
+
+  /**
+   * ONAYLI HESAP ROZETİ.
+   *
+   * Uyarı metni bilerek uzun: bu düğme "doğrulanmış e-posta" gibi teknik
+   * bir işaret değil, uygulamada herkesin gördüğü bir GÜVEN işareti.
+   * Yanlış verilirse kullanıcılar sahte bir hesaba gerçek sanıp güvenir.
+   */
+  function onayRozeti(u: TeleskorUserDetail) {
+    const verilecek = !u.onayli;
+    setOnayModal({
+      baslik: verilecek ? "Onaylı hesap rozeti ver" : "Onaylı hesap rozetini geri al",
+      uyari: verilecek
+        ? `${u.username} hesabı uygulamada ONAYLI görünecek. Bu rozet bir ` +
+          "KİMLİK iddiasıdır ('bu hesap gerçekten o kulüp, o gazeteci'), " +
+          "e-posta doğrulaması DEĞİL — o zaten neredeyse her hesapta var. " +
+          "Kimliği doğrulamadan verme: kullanıcılar rozete bakıp güveniyor."
+        : `${u.username} hesabının onay rozeti kaldırılacak. Kullanıcının ` +
+          "oturumları KAPANMIYOR; rozet token'da taşınmıyor.",
+      onayla: async (gerekce) => {
+        await apiTeleskorOnayRozeti(u.id, verilecek, gerekce);
+        await detayAc(u);
+        await load();
       },
     });
   }
@@ -886,6 +913,21 @@ export default function TeleskorUsersClient() {
               </div>
             </div>
             <div className="field">
+              <label className="label">Onaylı hesap</label>
+              <div>
+                {secili.onayli === true ? (
+                  <span className="badge badge-published">ROZETLİ</span>
+                ) : secili.onayli === false ? (
+                  <span className="muted">yok</span>
+                ) : (
+                  // Giriş kilidiyle aynı gerekçe: eski sunucu sürümü alanı
+                  // göndermiyor ve "yok" yazmak bilmediğimizi bilir gibi
+                  // davranmak olurdu.
+                  <span className="muted">bilinmiyor</span>
+                )}
+              </div>
+            </div>
+            <div className="field">
               <label className="label">Telepuan bakiyesi</label>
               <div style={{ fontWeight: 700 }}>
                 {puanlar ? `${puanlar.bakiye} TP` : "…"}
@@ -1041,6 +1083,23 @@ export default function TeleskorUsersClient() {
                 onClick={() => kilitAc(secili)}
               >
                 Kilidi aç
+              </button>
+              {/* ROZET — sunucuda V-göçünden beri vardı ama panelde hiç
+                  düğmesi yoktu, yani hiç verilemiyordu. Düğme DURUMU
+                  söylüyor (kilitte olduğu gibi): rozetliyse "geri al".
+                  Alan gelmiyorsa (eski sunucu) düğme kapalı — bilmediğimiz
+                  bir durumu değiştirmeye kalkmıyoruz. */}
+              <button
+                className="btn btn-sm"
+                disabled={islemde || secili.onayli === undefined}
+                title={
+                  secili.onayli === undefined
+                    ? "Sunucu bu alanı göndermiyor; rozet durumu bilinmiyor."
+                    : "Onaylı hesap rozeti bir KİMLİK iddiasıdır, e-posta doğrulaması değil."
+                }
+                onClick={() => onayRozeti(secili)}
+              >
+                {secili.onayli ? "Rozeti geri al" : "Rozet ver"}
               </button>
             </IslemSatiri>
 

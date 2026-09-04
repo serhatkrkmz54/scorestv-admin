@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiTeleskorSaglik, ApiError } from "@/lib/api-client";
-import type { SaglikOzeti } from "@/lib/types";
+import {
+  apiTeleskorSaglik,
+  apiTeleskorYayinTani,
+  ApiError,
+} from "@/lib/api-client";
+import type { SaglikOzeti, YayinTanisi } from "@/lib/types";
 
 /**
  * SİSTEM SAĞLIĞI — "bir şey mi bozuldu" sorusunun tek bakışta cevabı.
@@ -16,8 +20,14 @@ import type { SaglikOzeti } from "@/lib/types";
  *       saniyede bir yokluyor; önbellek ancak aynı maçı aynı anda çok kişi
  *       açtığında devreye giriyor. Anlamlı olan, trafik yüksekken düşük
  *       kalması.</li>
- *   <li><b>Veritabanı yükü:</b> uç başına sorgu sayısı. Ortalama yükselen
- *       bir uç, araya girmiş bir döngünün (N+1) ilk işareti.</li>
+ *   <li><b>Veritabanı yükü:</b> uç başına sorgu sayısı. Yükselen TEKİL
+ *       sütunu, araya girmiş bir döngünün (N+1) ilk işareti — toplam
+ *       değil: 33 gidiş-dönüşün 32'si toplu yazımsa o satır bir N+1
+ *       DEĞİL (Bilyoner bülteni tam olarak böyle görünüyordu ve
+ *       sunucudaki alarm bu yüzden düzeltilmişti; panel eski kuralı
+ *       taşımaya devam ediyordu).</li>
+ *   <li><b>Yayın tanısı:</b> "şalteri açtım ama düğme çıkmadı" — beş
+ *       kapıdan hangisinin kapalı olduğunu söylüyor.</li>
  * </ol>
  *
  * <h3>SALT OKUNUR</h3>
@@ -42,6 +52,28 @@ export default function TeleskorSaglikClient() {
   const [veri, setVeri] = useState<SaglikOzeti | null>(null);
   const [loading, setLoading] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
+
+  // YAYIN TANISI ayrı state'te ve SAYFAYLA BİRLİKTE ÇEKİLMİYOR: maç
+  // kimliği isteyen, elle tetiklenen bir tanı bu. Sayfa açılışında
+  // çağrılsaydı her yenilemede sağlayıcıya bir istek daha giderdi.
+  const [macId, setMacId] = useState("");
+  const [tani, setTani] = useState<YayinTanisi | null>(null);
+  const [taniYukleniyor, setTaniYukleniyor] = useState(false);
+  const [taniHata, setTaniHata] = useState<string | null>(null);
+
+  async function taniCalistir() {
+    setTaniYukleniyor(true);
+    setTaniHata(null);
+    try {
+      const n = macId.trim();
+      setTani(await apiTeleskorYayinTani(n ? Number(n) : undefined));
+    } catch (e) {
+      setTani(null);
+      setTaniHata(e instanceof ApiError ? e.message : "Tanı alınamadı.");
+    } finally {
+      setTaniYukleniyor(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -218,8 +250,8 @@ export default function TeleskorSaglikClient() {
               Toplam {db.totalQueries} sorgu · {db.userQueries} kullanıcı
               isteğinden · {db.systemQueries} gece görevlerinden.
               {" "}
-              <b>Ortalaması yükselen bir uç</b>, araya girmiş bir döngünün
-              (N+1) ilk işaretidir.
+              <b>TEKİL sütunu yükselen bir uç</b>, araya girmiş bir döngünün
+              (N+1) ilk işaretidir — toplu yazım değil.
             </div>
             {db.operations.length === 0 ? (
               <div className="muted" style={{ fontSize: 13 }}>
@@ -233,42 +265,177 @@ export default function TeleskorSaglikClient() {
                     <th style={{ width: 90 }}>Kaynak</th>
                     <th style={{ textAlign: "right" }}>Çalışma</th>
                     <th style={{ textAlign: "right" }}>Ortalama</th>
+                    <th
+                      style={{ textAlign: "right" }}
+                      title="Bunun kadarı TOPLU yazım (batch). Alarm yalnız kalan tekil gidiş-dönüşlere bakar."
+                    >
+                      Toplu
+                    </th>
+                    <th style={{ textAlign: "right" }}>Tekil</th>
                     <th style={{ textAlign: "right" }}>En az</th>
                     <th style={{ textAlign: "right" }}>En çok</th>
                     <th style={{ textAlign: "right" }}>Ort. ms</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {db.operations.map((o) => (
-                    <tr key={`${o.source}:${o.operation}`}>
-                      <td style={{ fontSize: 12.5 }}>{o.operation}</td>
-                      <td style={{ fontSize: 12 }}>{o.source}</td>
-                      <td style={{ textAlign: "right" }}>{o.executions}</td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          fontWeight: o.averageQueries > 25 ? 700 : 400,
-                          color:
-                            o.averageQueries > 25
-                              ? "var(--danger, #dc2626)"
-                              : undefined,
-                        }}
-                      >
-                        {o.averageQueries.toFixed(1)}
-                      </td>
-                      <td style={{ textAlign: "right" }}>{o.minQueries}</td>
-                      <td style={{ textAlign: "right" }}>{o.maxQueries}</td>
-                      <td style={{ textAlign: "right" }}>
-                        {o.averageMillis.toFixed(0)}
-                      </td>
-                    </tr>
-                  ))}
+                  {db.operations.map((o) => {
+                    // TEKİL = toplam − toplu. Alarmın baktığı sayı bu.
+                    // Eski sunucu `averageBatches` göndermiyor; o zaman
+                    // tekil = toplam olur ve davranış eskisiyle aynı kalır.
+                    const toplu = o.averageBatches ?? 0;
+                    const tekil = o.averageQueries - toplu;
+                    const alarm = tekil > 25;
+                    return (
+                      <tr key={`${o.source}:${o.operation}`}>
+                        <td style={{ fontSize: 12.5 }}>{o.operation}</td>
+                        <td style={{ fontSize: 12 }}>{o.source}</td>
+                        <td style={{ textAlign: "right" }}>{o.executions}</td>
+                        <td style={{ textAlign: "right" }}>
+                          {o.averageQueries.toFixed(1)}
+                        </td>
+                        <td
+                          style={{ textAlign: "right" }}
+                          className={toplu > 0 ? undefined : "muted"}
+                        >
+                          {o.averageBatches === undefined
+                            ? "—"
+                            : toplu.toFixed(1)}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: alarm ? 700 : 400,
+                            color: alarm ? "var(--danger, #dc2626)" : undefined,
+                          }}
+                          title={
+                            alarm
+                              ? "Tekil gidiş-dönüş eşiği (25) aşıldı — araya bir döngü girmiş olabilir."
+                              : undefined
+                          }
+                        >
+                          {tekil.toFixed(1)}
+                        </td>
+                        <td style={{ textAlign: "right" }}>{o.minQueries}</td>
+                        <td style={{ textAlign: "right" }}>{o.maxQueries}</td>
+                        <td style={{ textAlign: "right" }}>
+                          {o.averageMillis.toFixed(0)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
           </>
         )}
       </div>
+
+      {/* YAYIN TANISI
+
+          Uygulamadaki yayın düğmesinin çıkmaması için BEŞ ayrı sebep var
+          ve beşi de istemciye aynı sessiz 404 olarak görünüyor — bu doğru
+          (üçünde de düğme çizilmemeli), ama sunucu tarafında da ayırt
+          edilemiyordu. Bu kart o boşluğu kapatıyor.
+
+          ELLE TETİKLENİYOR: diğer üç rapor sayfa açılışında geliyor, bu
+          gelmiyor. Sebebi maç kimliği değil — tanı, sağlayıcıya gerçek
+          bir istek atıp "şu an oynatılabilir akış var mı" diye soruyor
+          ve önbelleği bilerek atlıyor. Her sayfa yenilemesinde çalışsaydı
+          hiç sorulmayan bir soru için sağlayıcıya trafik giderdi. */}
+      <div className="card card-pad">
+        <div className="card-title">Yayın tanısı</div>
+        <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
+          &quot;Şalteri açtım ama uygulamada yayın düğmesi çıkmadı&quot; —
+          hangi kapının kapalı olduğunu söyler. Maç kimliği <b>boş
+          bırakılırsa</b> yalnız ayarlar denetlenir; bir maç kimliği
+          yazılırsa o maça özgü kapılar da sınanır (motorun yayın bayrağı,
+          lig engeli, sağlayıcıda gerçekten akış var mı).
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input
+            className="input"
+            style={{ maxWidth: 200 }}
+            placeholder="Maç kimliği (isteğe bağlı)"
+            inputMode="numeric"
+            value={macId}
+            onChange={(e) =>
+              // Yalnız rakam: sunucu Long bekliyor ve serbest metni oraya
+              // taşımanın bir faydası yok.
+              setMacId(e.target.value.replace(/[^0-9]/g, ""))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") taniCalistir();
+            }}
+          />
+          <button
+            className="btn btn-primary"
+            disabled={taniYukleniyor}
+            onClick={taniCalistir}
+          >
+            {taniYukleniyor ? "Denetleniyor…" : "Denetle"}
+          </button>
+        </div>
+
+        {taniHata && (
+          <div className="alert alert-error" style={{ marginTop: 10 }}>
+            {taniHata}
+          </div>
+        )}
+
+        {tani && (
+          <div style={{ marginTop: 12 }}>
+            {/* AÇIKLAMA ÖNCE: sunucunun Türkçe cümlesi zaten "ne yapmalı"yı
+                söylüyor; alttaki kutucuklar onun dayanağı. */}
+            <div
+              className={
+                tani.yayinVar ? "alert" : "alert alert-error"
+              }
+              style={{ fontSize: 13 }}
+            >
+              {tani.aciklama}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginTop: 10,
+              }}
+            >
+              <Kapi ad="Şalter (VIDEO_ENABLED)" acik={tani.salterAcik} />
+              <Kapi ad="Adres şablonu" acik={tani.sablonVar} />
+              {/* TOKEN'IN DEĞERİ DÖNMÜYOR, yalnız dolu mu bilgisi —
+                  tanı için gereken de bu. */}
+              <Kapi ad="Yayın anahtarı" acik={tani.tokenVar} />
+              <Kapi ad="Akış doğrulayıcı" acik={tani.dogrulamaKurulu} />
+              {/* `== null` bilerek gevşek: sunucu maç verilmediğinde bu
+                  alanı HİÇ göndermiyor (ölçüldü), yani `!== null` her
+                  zaman doğru çıkar ve "Maç #undefined" rozeti çizilirdi. */}
+              {tani.macId != null && (
+                <Kapi ad={`Maç #${tani.macId} yayını`} acik={tani.yayinVar} />
+              )}
+            </div>
+            {tani.macId == null && (
+              <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                Yalnız ayarlar denetlendi. Belirli bir maçta düğme
+                çıkmıyorsa o maçın kimliğini yazıp tekrar denetle.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+/** Tek kapı: açık/kapalı rozeti. Dört-beş kez tekrarlandığı için ayrı. */
+function Kapi({ ad, acik }: { ad: string; acik: boolean }) {
+  return (
+    <span
+      className={`badge ${acik ? "badge-published" : "badge-archived"}`}
+      title={acik ? "Bu kapı açık" : "Bu kapı KAPALI"}
+    >
+      {acik ? "✓" : "✕"} {ad}
+    </span>
   );
 }

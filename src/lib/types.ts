@@ -940,6 +940,17 @@ export interface TeleskorUserDetail extends TeleskorUserSummary {
    * aynı şey değil.
    */
   girisKilitli?: boolean;
+  /**
+   * ONAYLI HESAP ROZETİ — yönetici elle veriyor.
+   *
+   * `emailVerified` ile KARIŞTIRMA: o, adresin sahibi mi sorusunun cevabı
+   * ve neredeyse her hesapta true. Bu ise bir KİMLİK iddiası ("bu hesap
+   * gerçekten o kulüp / o gazeteci") ve seyrek olmak zorunda.
+   *
+   * Eski sunucu sürümünde alan gelmiyor → `undefined`; ekran o durumda
+   * rozeti çizmiyor ama "rozetsiz" de DEMİYOR.
+   */
+  onayli?: boolean;
   passwordChangedAt: string | null;
   deactivatedAt: string | null;
   deletionRequestedAt: string | null;
@@ -1180,6 +1191,18 @@ export interface DbYukSatiri {
   minQueries: number;
   maxQueries: number;
   averageMillis: number;
+  /**
+   * TOPLU YAZIM (batch) sayısı — N+1 teşhisinin ayırt edici alanı.
+   *
+   * 33 gidiş-dönüş ya bir döngüdür ya da bir toplu yazım. Bilyoner
+   * bülteni ~16 bin oran satırını 500'lük partilerle yazıyor ve tek
+   * çalışmada 33 gidiş-dönüş yapıyor — bu bir N+1 DEĞİL. Alarm yalnız
+   * TEKİL gidiş-dönüşlere bakmalı: `averageQueries - averageBatches`.
+   *
+   * Eski sunucu sürümünde gelmiyor → `undefined`, sütun boş görünür.
+   */
+  totalBatches?: number;
+  averageBatches?: number;
 }
 
 export interface DbYukRaporu {
@@ -1193,6 +1216,34 @@ export interface SaglikOzeti {
   motorDurumu: MotorDurumu | null;
   motorKullanimi: MotorKullanimi | null;
   dbYuk: DbYukRaporu | null;
+}
+
+/**
+ * YAYIN TANISI — "şalteri açtım ama düğme çıkmadı" sorusunun cevabı.
+ *
+ * Uygulamadaki yayın düğmesinin çıkmaması için BEŞ ayrı sebep var ve
+ * beşi de istemciye aynı sessiz 404 olarak görünüyor (bu doğru: üçünde
+ * de düğme çizilmemeli). Bu uç aynı karar yolundan geçip hangi kapının
+ * kapandığını Türkçe söylüyor.
+ *
+ * `VIDEO_TOKEN`'ın DEĞERİ dönmüyor, yalnız dolu mu bilgisi.
+ */
+export interface YayinTanisi {
+  salterAcik: boolean;
+  sablonVar: boolean;
+  tokenVar: boolean;
+  dogrulamaKurulu: boolean;
+  /**
+   * `?mac=` verilmediyse alan HİÇ GELMİYOR (null değil, yok) — ölçüldü.
+   *
+   * Sunucu boş alanları yanıta koymuyor, yani `macId === null`
+   * karşılaştırması burada ASLA doğru olmaz ve "Maç #undefined" gibi bir
+   * rozet çizilirdi. Karşılaştırma `== null` ile yapılıyor: hem `null`
+   * hem `undefined` "maç verilmedi" demek.
+   */
+  macId?: number | null;
+  yayinVar: boolean;
+  aciklama: string;
 }
 
 // ---- TELESKOR — Sözleşme metinleri ----
