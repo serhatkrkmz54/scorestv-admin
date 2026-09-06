@@ -1261,14 +1261,19 @@ export async function apiTeleskorOzetMaclari(
  *
  * <p>Maç başına ayrı istek yerine TEK istek: 600 maçlık bir cumartesi
  * aksi hâlde 600 istek ederdi.
+ *
+ * <p><b>Kimlikler GÖVDEDE, adres satırında değil.</b> İlk sürüm
+ * `?ids=1,2,3` yazıyordu ve üretimde 520 ile patladı: gerçek bir günde
+ * ~1900 maç var, yani ~16 KB'lık bir adres — nginx'in 8 KB'lık başlık
+ * tamponunu aşıyor ve istek origin'e hiç ulaşmıyor.
  */
 export async function apiTeleskorOzetDurumlari(
   macIds: number[],
 ): Promise<Record<string, TeleskorMacOzeti>> {
   if (macIds.length === 0) return {};
   const res = await fetch(
-    `/api/teleskor/mac-ozeti?ids=${macIds.join(",")}`,
-    { cache: "no-store" },
+    "/api/teleskor/mac-ozeti",
+    jsonInit("POST", { ids: macIds.map(String) }),
   );
   return parse<Record<string, TeleskorMacOzeti>>(res);
 }
