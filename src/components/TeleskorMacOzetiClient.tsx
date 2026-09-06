@@ -430,7 +430,22 @@ export default function TeleskorMacOzetiClient() {
                   {ozet && (
                     <div style={{ display: "grid", gap: 4 }}>
                       <span className="muted" style={{ fontSize: 12 }}>
-                        Kayıtlı oynatıcı adresi ({ozet.saglayici})
+                        Kayıtlı oynatıcı adresi ({ozet.saglayici}) ·{" "}
+                        {/* AYRI SEKMEDE AÇMA — teşhis için.
+                            Oynatıcı "yapılandırma hatası" verdiğinde iki
+                            ihtimal var: videonun kendisi gömülmeye kapalı
+                            (maç özetlerinde çok sık — yayın hakkı), ya da
+                            gömen sayfada bir sorun. Adres burada tek başına
+                            açılıp denendiğinde ikisi ayrılıyor: orada da
+                            hata veriyorsa video kapalı demektir. */}
+                        <a
+                          href={ozet.embedUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: "var(--brand)" }}
+                        >
+                          ayrı sekmede aç
+                        </a>
                       </span>
                       <iframe
                         src={ozet.embedUrl}
