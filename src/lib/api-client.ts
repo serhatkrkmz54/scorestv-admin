@@ -84,6 +84,7 @@ import type {
   KimlikSonucu,
   ArsivDurumu,
   OneCikanLigYaniti,
+  TeleskorMacOzeti,
   OneCikanLigAramaSatiri,
   OneCikanLigIstegi,
 } from "./types";
@@ -1239,6 +1240,75 @@ export async function apiTeleskorLigAra(
     { cache: "no-store" },
   );
   return parse<OneCikanLigAramaSatiri[]>(res);
+}
+
+// ---- Teleskor: maç özeti videosu (V55) ----
+
+/** Günün maçları — özet eklenecek maçı seçmek için. */
+export async function apiTeleskorOzetMaclari(
+  date: string,
+  sport: string,
+): Promise<unknown> {
+  const res = await fetch(
+    `/api/teleskor/mac-ozeti/maclar?date=${encodeURIComponent(date)}&sport=${encodeURIComponent(sport)}`,
+    { cache: "no-store" },
+  );
+  return parse<unknown>(res);
+}
+
+/**
+ * Verilen maçlarda özet var mı — gün ekranı.
+ *
+ * <p>Maç başına ayrı istek yerine TEK istek: 600 maçlık bir cumartesi
+ * aksi hâlde 600 istek ederdi.
+ */
+export async function apiTeleskorOzetDurumlari(
+  macIds: number[],
+): Promise<Record<string, TeleskorMacOzeti>> {
+  if (macIds.length === 0) return {};
+  const res = await fetch(
+    `/api/teleskor/mac-ozeti?ids=${macIds.join(",")}`,
+    { cache: "no-store" },
+  );
+  return parse<Record<string, TeleskorMacOzeti>>(res);
+}
+
+/** Son eklenen özetler. */
+export async function apiTeleskorSonOzetler(
+  limit = 50,
+): Promise<TeleskorMacOzeti[]> {
+  const res = await fetch(`/api/teleskor/mac-ozeti?limit=${limit}`, {
+    cache: "no-store",
+  });
+  return parse<TeleskorMacOzeti[]>(res);
+}
+
+/**
+ * Özeti kaydeder.
+ *
+ * @param adres bağlantı YA DA tam `<iframe>` bloğu — sunucu ikisini de
+ *              kabul edip yalnız oynatıcı adresini saklıyor.
+ */
+export async function apiTeleskorOzetKaydet(
+  macId: number,
+  adres: string,
+  baslik: string | null,
+  yayinda: boolean,
+): Promise<TeleskorMacOzeti> {
+  const res = await fetch(
+    `/api/teleskor/mac-ozeti/${macId}`,
+    jsonInit("PUT", { adres, baslik, yayinda }),
+  );
+  return parse<TeleskorMacOzeti>(res);
+}
+
+/** Özeti siler (idempotent). */
+export async function apiTeleskorOzetSil(macId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/mac-ozeti/${macId}`, {
+    method: "DELETE",
+    headers: { "x-requested-with": "fetch" },
+  });
+  if (!res.ok) await parse<unknown>(res);
 }
 
 // ---- Teleskor: sürüm notları (Gelen Kutusu) ----

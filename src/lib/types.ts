@@ -1630,6 +1630,24 @@ export interface OneCikanLigAramaSatiri {
   ulkeBayrak?: string | null;
 }
 
+/**
+ * MAÇ ÖZETİ — yöneticinin maç sonunda eklediği video (Teleskor V55).
+ *
+ * <p>`embedUrl` sunucunun ÇEVİRDİĞİ hazır gömme adresi: yönetici
+ * `youtube.com/watch?v=…` yapıştırsa da burada `…/embed/…` görünüyor.
+ * Panel adresi kendi kurmuyor; kural tek yerde (sunucuda) yaşıyor.
+ */
+export interface TeleskorMacOzeti {
+  macId: number;
+  baslik: string | null;
+  embedUrl: string;
+  saglayici: string;
+  yayinda: boolean;
+  adminId: number | null;
+  olusturuldu: string;
+  guncellendi: string;
+}
+
 export interface OneCikanLigIstegi {
   spor: string;
   ligler: { saglayiciId: string; adNotu?: string | null }[];
