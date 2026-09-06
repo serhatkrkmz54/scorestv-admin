@@ -38,10 +38,47 @@ type Mac = {
   awayTeam?: { name?: string | null } | null;
 };
 
+/**
+ * Tarih aritmetiği YEREL saatle, `toISOString()` ile DEĞİL.
+ *
+ * <p>`toISOString()` UTC'ye çeviriyor: Türkiye +03 olduğu için gece
+ * 00:00-03:00 arasında panele bakan yönetici bir gün geriye kayardı ve
+ * "dün" iki gün önceyi gösterirdi. Sessiz bir hata olurdu — ekranda
+ * maçlar yine gelir, yalnız yanlış günün maçları gelirdi.
+ */
+function gunAdresi(d: Date): string {
+  const ay = String(d.getMonth() + 1).padStart(2, "0");
+  const gun = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${ay}-${gun}`;
+}
+
+function bugunTarihi(): string {
+  return gunAdresi(new Date());
+}
+
 function dunTarihi(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return gunAdresi(d);
+}
+
+/** Seçili günü n gün kaydırır (ok tuşları). */
+function gunKaydir(tarih: string, n: number): string {
+  const [y, a, g] = tarih.split("-").map(Number);
+  const d = new Date(y, (a ?? 1) - 1, g ?? 1);
+  d.setDate(d.getDate() + n);
+  return gunAdresi(d);
+}
+
+/** "6 Eylül Cumartesi" — takvim açmadan hangi güne bakıldığı görünsün. */
+function gunEtiketi(tarih: string): string {
+  const [y, a, g] = tarih.split("-").map(Number);
+  if (!y || !a || !g) return tarih;
+  return new Date(y, a - 1, g).toLocaleDateString("tr-TR", {
+    day: "numeric",
+    month: "long",
+    weekday: "long",
+  });
 }
 
 function saat(iso?: string | null): string {
@@ -116,6 +153,12 @@ export default function TeleskorMacOzetiClient() {
     });
   }, [maclar]);
 
+  /** Araç çubuğundaki sayaç — "bu günde kaç maçın özeti girilmiş". */
+  const ozetSayisi = useMemo(
+    () => maclar.filter((m) => ozetler[String(m.id)]).length,
+    [maclar, ozetler],
+  );
+
   function ac(m: Mac) {
     const mevcut = ozetler[String(m.id)];
     setAcikMac(m.id);
@@ -182,24 +225,97 @@ export default function TeleskorMacOzetiClient() {
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>Tarih</span>
+      <div className="ozet-arac">
+        {/* TARİH GEZİNMESİ — asıl kazanç görünüm değil, ok tuşları.
+            Yönetici gün gün geziyor; her gün için takvim açmak
+            gereksiz iki tıktı. */}
+        <div className="ozet-tarih">
+          <button
+            type="button"
+            title="Önceki gün"
+            aria-label="Önceki gün"
+            onClick={() => setTarih((t) => gunKaydir(t, -1))}
+          >
+            ‹
+          </button>
           <input
             type="date"
             value={tarih}
-            onChange={(e) => setTarih(e.target.value)}
+            // Boş değer YOK SAYILIYOR: kullanıcı alanı temizlediğinde
+            // (ya da yarım tarih yazarken) tarayıcı boş metin gönderiyor
+            // ve o hâliyle sunucuya gidilseydi "Tarih YYYY-AA-GG
+            // biçiminde olmalı" hatası çıkardı.
+            onChange={(e) => e.target.value && setTarih(e.target.value)}
           />
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>Spor</span>
-          <select value={spor} onChange={(e) => setSpor(e.target.value)}>
-            <option value="FOOTBALL">Futbol</option>
-            <option value="BASKETBALL">Basketbol</option>
-          </select>
-        </label>
-        <button className="btn" onClick={() => void yukle()} disabled={yukleniyor}>
-          {yukleniyor ? "Yükleniyor…" : "Yenile"}
+          {/* İLERİ GİTMEK ENGELLENMİYOR: bu ekranın kuralı "engelleme,
+              söyle" (bitmemiş maçta da düğme açık). İleride maç yoksa
+              boş durum kutusu zaten sebebini yazıyor. */}
+          <button
+            type="button"
+            title="Sonraki gün"
+            aria-label="Sonraki gün"
+            onClick={() => setTarih((t) => gunKaydir(t, 1))}
+          >
+            ›
+          </button>
+        </div>
+
+        {/* Tarih alanının biçimini TARAYICI seçiyor (tr'de 05.09.2026,
+            en'de 09/05/2026). Hangi güne bakıldığı yazıyla da yazılıyor:
+            gün/ay sırası kafa karıştırmasın. */}
+        <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>
+          {gunEtiketi(tarih)}
+        </span>
+
+        <div className="ozet-seg">
+          <button
+            type="button"
+            aria-pressed={tarih === dunTarihi()}
+            onClick={() => setTarih(dunTarihi())}
+          >
+            Dün
+          </button>
+          <button
+            type="button"
+            aria-pressed={tarih === bugunTarihi()}
+            onClick={() => setTarih(bugunTarihi())}
+          >
+            Bugün
+          </button>
+        </div>
+
+        {/* İKİ SEÇENEK İÇİN AÇILIR KUTU YOK: seçenekleri görmek için
+            tıklamak gerekiyordu ve ikisi de ekrana sığıyor. */}
+        <div className="ozet-seg">
+          <button
+            type="button"
+            aria-pressed={spor === "FOOTBALL"}
+            onClick={() => setSpor("FOOTBALL")}
+          >
+            Futbol
+          </button>
+          <button
+            type="button"
+            aria-pressed={spor === "BASKETBALL"}
+            onClick={() => setSpor("BASKETBALL")}
+          >
+            Basketbol
+          </button>
+        </div>
+
+        <span className="ozet-esnek" />
+
+        <span className="muted" style={{ fontSize: 12.5 }}>
+          {yukleniyor
+            ? "Yükleniyor…"
+            : `${sirali.length} maç · ${ozetSayisi} özet`}
+        </span>
+        <button
+          className="btn btn-sm"
+          onClick={() => void yukle()}
+          disabled={yukleniyor}
+        >
+          Yenile
         </button>
       </div>
 
@@ -207,7 +323,10 @@ export default function TeleskorMacOzetiClient() {
       {bilgi && <div className="alert">{bilgi}</div>}
 
       {!yukleniyor && sirali.length === 0 && (
-        <div className="muted">Bu tarihte maç bulunamadı.</div>
+        <div className="state-box">
+          <div className="big">Bu günde maç yok</div>
+          Başka bir tarih seç ya da sporu değiştir.
+        </div>
       )}
 
       <div style={{ display: "grid", gap: 8 }}>
@@ -221,19 +340,11 @@ export default function TeleskorMacOzetiClient() {
               className="card"
               style={{ padding: 10, display: "grid", gap: 8 }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span className="muted" style={{ fontSize: 12, minWidth: 46 }}>
-                  {saat(m.kickoffAt)}
-                </span>
-                <span style={{ flex: 1, minWidth: 220 }}>
-                  <b>{m.homeTeam?.name ?? "?"}</b> {skor(m)}{" "}
+              <div className="ozet-satir">
+                <span className="ozet-saat">{saat(m.kickoffAt)}</span>
+                <span className="ozet-eslesme">
+                  <b>{m.homeTeam?.name ?? "?"}</b>
+                  <span className="ozet-skor">{skor(m)}</span>
                   <b>{m.awayTeam?.name ?? "?"}</b>
                   <br />
                   <span className="muted" style={{ fontSize: 12 }}>
@@ -245,56 +356,70 @@ export default function TeleskorMacOzetiClient() {
                     durumu geç güncelleyebiliyor ve yöneticinin elindeki
                     video geçerli olabilir. Engellemek yerine söylüyoruz. */}
                 {!bitti && (
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    maç bitmedi
-                  </span>
+                  <span className="badge badge-scheduled">maç bitmedi</span>
                 )}
                 {ozet && (
                   <span
-                    className="badge"
+                    className={
+                      ozet.yayinda
+                        ? "badge badge-published"
+                        : "badge badge-draft"
+                    }
                     title={ozet.embedUrl}
-                    style={{ fontSize: 12 }}
                   >
-                    {ozet.yayinda ? "✓ özet var" : "○ yayında değil"}
+                    <span className="badge-dot" />
+                    {ozet.yayinda ? "özet var" : "yayında değil"}
                   </span>
                 )}
-                <button className="btn" onClick={() => (acik ? setAcikMac(null) : ac(m))}>
+                <button
+                  className={acik ? "btn btn-sm" : "btn btn-sm btn-primary"}
+                  onClick={() => (acik ? setAcikMac(null) : ac(m))}
+                >
                   {acik ? "Kapat" : ozet ? "Düzenle" : "Özet ekle"}
                 </button>
               </div>
 
               {acik && (
                 <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ display: "grid", gap: 4 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>
+                  <div>
+                    <span className="label">
                       Video bağlantısı veya iframe kodu
                     </span>
                     <textarea
+                      className="textarea"
                       rows={3}
                       value={adres}
                       placeholder="https://www.youtube.com/watch?v=..."
                       onChange={(e) => setAdres(e.target.value)}
                     />
-                  </label>
-                  <label style={{ display: "grid", gap: 4 }}>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      Başlık (isteğe bağlı — boşsa &quot;Maç özeti&quot;)
-                    </span>
+                  </div>
+                  <div>
+                    <span className="label">Başlık</span>
                     <input
+                      className="input"
                       value={baslik}
                       maxLength={160}
                       placeholder={`${m.homeTeam?.name ?? ""} ${skor(m)} ${m.awayTeam?.name ?? ""} | Özet`}
                       onChange={(e) => setBaslik(e.target.value)}
                     />
-                  </label>
-                  <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <div className="hint">
+                      İsteğe bağlı — boş bırakırsan &quot;Maç özeti&quot; yazar.
+                    </div>
+                  </div>
+                  <label
+                    className="check-row"
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
                     <input
                       type="checkbox"
                       checked={yayinda}
                       onChange={(e) => setYayinda(e.target.checked)}
                     />
-                    <span>
-                      Yayında (kapatırsan uygulamada sekme çıkmaz, kayıt durur)
+                    <span style={{ fontSize: 13 }}>
+                      Yayında{" "}
+                      <span className="muted">
+                        (kapatırsan uygulamada sekme çıkmaz, kayıt durur)
+                      </span>
                     </span>
                   </label>
 

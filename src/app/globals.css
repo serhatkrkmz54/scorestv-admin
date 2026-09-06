@@ -3368,3 +3368,148 @@ table.data-table {
   top: 16px;
   right: 20px;
 }
+
+/* ---------- Teleskor: maç özeti araç çubuğu ----------
+   Ekranın ekseni TARİH: yönetici gün gün geziyor. Çıplak bir
+   <input type="date"> + iki seçenekli <select> hem tarayıcı
+   varsayılanı gibi duruyordu hem de her gün değişimi için takvimi
+   açmayı gerektiriyordu. Buradaki tek yeni şey görünüm değil,
+   ok tuşlarıyla gün gezinmesi. */
+.ozet-arac {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.ozet-arac .ozet-esnek {
+  flex: 1 1 auto;
+}
+
+/* Tarih gezinme: ‹ [gg.aa.yyyy] › */
+.ozet-tarih {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border 0.14s, box-shadow 0.14s;
+}
+
+.ozet-tarih:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.ozet-tarih button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 12px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.ozet-tarih button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.ozet-tarih input {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 6px;
+  min-width: 128px;
+  text-align: center;
+}
+
+.ozet-tarih input:focus {
+  outline: none;
+}
+
+.ozet-tarih input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+/* Koyu temada takvim simgesi ve yerleşik seçici beyaz kalıyordu. */
+:root[data-theme="dark"] .ozet-tarih input {
+  color-scheme: dark;
+}
+
+/* Bölmeli seçici — iki seçenek için açılır kutu fazla ağır kaçıyor. */
+.ozet-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.ozet-seg button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.ozet-seg button:hover {
+  color: var(--text);
+}
+
+.ozet-seg button[aria-pressed="true"] {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* Maç satırı */
+.ozet-satir {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ozet-saat {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 42px;
+}
+
+.ozet-eslesme {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.ozet-skor {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  padding: 0 4px;
+}
+
+@media (max-width: 620px) {
+  .ozet-tarih input {
+    min-width: 108px;
+  }
+}
