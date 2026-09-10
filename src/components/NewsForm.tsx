@@ -294,7 +294,7 @@ function NewsFormInner(
         : null,
       title: title.trim(),
       summary: summary.trim() || null,
-      body,
+      body: govdeyiKirp(body),
       coverImageKey: coverKey ?? null,
       category: category || null,
       sport: sport || null,
@@ -874,6 +874,21 @@ function NewsFormInner(
       </div>
     </div>
   );
+}
+
+/**
+ * Gövdenin SONUNDAKİ boş paragrafları atar.
+ *
+ * <p>Editör, belge bir görsel/video/tablo ile bittiğinde sona boş bir paragraf
+ * ekliyor (RichEditor'daki {@code SonParagraf}) — yoksa o medyanın altına yazı
+ * yazmak imkânsız oluyor. O paragraf editörde ŞART, kayıtta gereksiz: haberin
+ * sonunda okuyucunun gördüğü boş bir satır bırakıyor.
+ *
+ * <p>Yalnız SON boş paragraflar atılıyor; ARADAKİLERE dokunulmuyor — onlar
+ * yöneticinin bilerek verdiği boşluk olabilir.
+ */
+function govdeyiKirp(html: string): string {
+  return html.replace(/(?:<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>\s*)+$/i, "");
 }
 
 /** Bir etiketin gövdede kaç kez geçtiğini sayar. */

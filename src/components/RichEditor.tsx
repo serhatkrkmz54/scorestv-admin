@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
-import { TextSelection } from "@tiptap/pm/state";
+import { NodeSelection, Plugin, TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
@@ -16,7 +16,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TextStyle from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import { Mark, mergeAttributes } from "@tiptap/core";
+import { Extension, Mark, mergeAttributes, type CommandProps } from "@tiptap/core";
 import {
   Bold,
   Italic,
@@ -79,6 +79,78 @@ const Glow = Mark.create({
         style: "text-shadow: 0 0 6px currentColor, 0 0 14px currentColor;",
       }),
       0,
+    ];
+  },
+});
+
+/**
+ * Medya (görsel/video) eklendikten sonra imleci ONUN ALTINA taşır; altında
+ * yazılabilir bir satır yoksa boş paragraf açar.
+ *
+ * <p><b>Neden şart — ÖLÇÜLDÜ.</b> Hem {@code setImage} hem
+ * {@code setYoutubeVideo} işi {@code insertContent}'e devrediyor ve o da
+ * eklediği bloğu SEÇİLİ bırakıyor ({@code NodeSelection}). Sonraki her
+ * ekleme/yazma o seçimin ÜSTÜNE yazıyor:
+ * <pre>
+ *   video ekle → setImage      → video KAYBOLDU, yerinde resim var
+ *   resim ekle → resim ekle    → yalnız İKİNCİ resim kaldı
+ *   video ekle → harf yaz      → video KAYBOLDU, yerinde paragraf var
+ * </pre>
+ * Üçü de sessiz: hiçbir yerde hata patlamıyor, yalnız eklenen şey gidiyor.
+ * Serhat'ın iki şikâyeti ("resim ile video aynı anda olmuyor", "videonun
+ * altına yazı yazamıyorum") tek kök sebebin iki yüzü.
+ *
+ * <p>Ekleme ile imleç taşıma AYNI işlemde (zincirin içinde {@code .command()}):
+ * iki ayrı işlem olsaydı geri alma (Ctrl+Z) ikiye bölünürdü.
+ *
+ * <p>Boş paragraf İSRAF EDİLMİYOR: {@code insertContent} imlecin bulunduğu
+ * BOŞ paragrafı zaten yeni blokla değiştiriyor, yani üst üste eklenen iki
+ * görselin arasında boş satır kalmıyor (ölçüldü).
+ */
+function altaGec({ tr, dispatch }: CommandProps): boolean {
+  const secim = tr.selection;
+  const dugum = secim instanceof NodeSelection ? secim.node : null;
+  // Seçim bir blok düğümde değilse imleç zaten yazılabilir bir yerde.
+  if (!dugum || dugum.isTextblock) return true;
+  if (!dispatch) return true;
+
+  const son = secim.to;
+  const sonraki = tr.doc.resolve(son).nodeAfter;
+  if (!sonraki || !sonraki.isTextblock) {
+    tr.insert(son, tr.doc.type.schema.nodes.paragraph.create());
+  }
+  // Ya var olan satırın başı ya da yeni açılan paragrafın içi.
+  tr.setSelection(TextSelection.create(tr.doc, son + 1));
+  return true;
+}
+
+/**
+ * Belgenin sonunda HER ZAMAN yazılabilir bir satır bulundurur.
+ *
+ * <p>{@code altaGec} yalnız BİZİM ekleme yollarımızı düzeltiyor; belgenin
+ * sonuna medya başka yollardan da düşebiliyor: HTML yapıştırma, sürükle-bırak,
+ * geri alma, son paragrafı silme ve <b>kaydedilmiş bir haberi açma</b> (gövde
+ * bir görselle bitiyorsa). O durumlarda imleci koyacak yer olmadığı için yazı
+ * eklenemiyor — kullanıcı için "editör bozuk" demek.
+ *
+ * <p>Koşul {@code isTextblock}: sonda paragraf/başlık varsa DOKUNULMUYOR
+ * (yoksa kullanıcının sildiği boş satır geri gelirdi). Yalnız tablo, görsel,
+ * video, ayraç gibi yazılamayan bir düğümle bitiyorsa tek paragraf ekleniyor.
+ */
+const SonParagraf = Extension.create({
+  name: "sonParagraf",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        appendTransaction: (_islemler, _eski, yeni) => {
+          const son = yeni.doc.lastChild;
+          if (!son || son.isTextblock) return null;
+          return yeni.tr.insert(
+            yeni.doc.content.size,
+            yeni.schema.nodes.paragraph.create(),
+          );
+        },
+      }),
     ];
   },
 });
@@ -189,6 +261,7 @@ export default function RichEditor({
       TableRow,
       TableHeader,
       TableCell,
+      SonParagraf,
     ],
     content: value || "",
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -300,7 +373,9 @@ export default function RichEditor({
       // Ekleme SIRALI: paralel biten işleri seçim sırasına göre bekliyoruz.
       for (const is of isler) {
         const adres = await is;
-        if (adres) editor.chain().focus().setImage({ src: adres }).run();
+        // altaGec ŞART: onsuz her yeni görsel bir öncekinin ÜSTÜNE yazıyor ve
+        // beş fotoğraf yüklenmesine rağmen ekranda yalnız son fotoğraf kalıyor.
+        if (adres) editor.chain().focus().setImage({ src: adres }).command(altaGec).run();
       }
 
       // Biten satırlar kendiliğinden kalksın; HATALI satırlar kalsın —
@@ -330,7 +405,9 @@ export default function RichEditor({
       const cozum = videoCoz(metin);
       if (cozum.tur === "youtube") {
         setUyari(null);
-        editor.commands.setYoutubeVideo({ src: cozum.adres });
+        // Videodan sonra imleç ALTINA geçiyor: yoksa yazılan ilk harf videonun
+        // üstüne yazıp onu siliyor (ölçüldü).
+        editor.chain().focus().setYoutubeVideo({ src: cozum.adres }).command(altaGec).run();
         return true;
       }
       if (cozum.tur === "yok" && cozum.sebep !== "http") {

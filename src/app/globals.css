@@ -1536,6 +1536,43 @@ table.data-table {
   outline: none;
 }
 
+/* Blok düğümler (görsel, video, tablo, ayraç) ARASINDAKİ imleç.
+   Eklenti (Gapcursor) StarterKit ile zaten yüklüydü ama CSS'i YOKTU: imleç
+   oradaydı, GÖRÜNMÜYORDU — kullanıcı yazmaya başlayana kadar nereye yazdığını
+   bilmiyordu. Renk currentColor: koyu temada da görünüyor (paketin kendi
+   CSS'i siyah sabit). */
+.editor-content .ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.editor-content .ProseMirror-gapcursor::after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 24px;
+  border-top: 2px solid var(--brand, currentColor);
+  animation: editor-imlec 1.1s steps(2, start) infinite;
+}
+
+.editor-content .ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+@keyframes editor-imlec {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* Seçili blok düğüm — hangi görselin/videonun seçili olduğu görünsün. */
+.editor-content .ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid var(--brand, #1677ff);
+  outline-offset: 2px;
+}
+
 .editor-content .ProseMirror p {
   margin: 0 0 0.9em;
 }
