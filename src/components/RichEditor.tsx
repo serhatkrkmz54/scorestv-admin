@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { TextSelection } from "@tiptap/pm/state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
@@ -39,8 +40,11 @@ import {
   Redo2,
   Baseline,
   Sparkles,
+  X as XIcon,
 } from "lucide-react";
-import { apiUploadImage, ApiError } from "@/lib/api-client";
+import { apiUploadImageIlerlemeli, ApiError } from "@/lib/api-client";
+import { kucult, baytMetni } from "@/lib/gorsel";
+import { videoCoz } from "@/lib/video-gomme";
 
 // Resimlere "width" niteliği ekleyen genişletilmiş Image — editörde
 // boyutlandırma için. width, HTML NİTELİĞİ olarak render edilir (backend
@@ -79,10 +83,70 @@ const Glow = Mark.create({
   },
 });
 
+/** Bir seferde en fazla kaç görsel — yanlışlıkla klasör sürüklemeye karşı. */
+const TAVAN = 20;
+
+/**
+ * Eş zamanlı yükleme sayısı. Tarayıcı aynı sunucuya ~6 bağlantı açıyor;
+ * 3 seçildi ki sayfanın kendi istekleri (kaydetme, medya listesi) sıraya
+ * girmesin. Daha fazlası zaten hızlandırmaz — aynı yükleme hızı bölünüyor.
+ */
+const KANAL = 3;
+
+/** Yükleme kuyruğundaki tek satır. */
+interface YuklemeSatiri {
+  id: number;
+  ad: string;
+  yuzde: number;
+  durum: "kucultuluyor" | "yukleniyor" | "bitti" | "hata";
+  /** Küçültme kazancı ("1,4 MB → 210 KB") ya da hata metni. */
+  not?: string;
+}
+
+/**
+ * Eş zamanlılığı sınırlayan kanal. İşler HEMEN başlatılıyor ama en fazla
+ * {@code n} tanesi aynı anda koşuyor.
+ */
+function kanalAc(n: number) {
+  let aktif = 0;
+  const kuyruk: (() => void)[] = [];
+  return async function <T>(is: () => Promise<T>): Promise<T> {
+    if (aktif >= n) await new Promise<void>((devam) => kuyruk.push(devam));
+    aktif++;
+    try {
+      return await is();
+    } finally {
+      aktif--;
+      kuyruk.shift()?.();
+    }
+  };
+}
+
+/** Dosya listesinden yalnız görselleri alır. */
+function gorselleriAyikla(dosyalar: FileList | null | undefined): File[] {
+  if (!dosyalar) return [];
+  return Array.from(dosyalar).filter((d) => d.type.startsWith("image/"));
+}
+
 /**
  * TipTap zengin metin editörü. HTML çıktısı editor.getHTML() ile onChange'e
  * verilir. Görseller /api/news/images'e yüklenir, dönen URL editöre eklenir.
  * Backend body'yi zaten sanitize eder; burada temel bir editör yeterlidir.
+ *
+ * <p>Görsel yolu üç şeyi birden yapıyor ve üçü de bir şikâyetin cevabı:
+ * <ul>
+ *   <li><b>ÇOKLU seçim</b> — dosya girdisi tek dosya alıyordu
+ *       ({@code files[0]}), yani "birden fazla fotoğraf yükleyemiyorum"
+ *       gerçek bir hataydı.</li>
+ *   <li><b>Yüklemeden önce küçültme</b> ({@code lib/gorsel}) — kapak yolunda
+ *       vardı, gövde yolunda YOKTU; telefondan gelen 5 MB'lık dosya ham
+ *       gidiyordu.</li>
+ *   <li><b>İlerleme</b> — hiçbir geri bildirim olmadığı için editör donmuş
+ *       görünüyordu.</li>
+ * </ul>
+ *
+ * <p>Sıra korunuyor: yüklemeler PARALEL, ekleme SIRALI. Tamamlanma sırasına
+ * göre eklenseydi hızlı yüklenen küçük dosya yazının başına geçerdi.
  */
 export default function RichEditor({
   value,
@@ -93,6 +157,14 @@ export default function RichEditor({
   onChange: (html: string) => void;
   placeholder?: string;
 }) {
+  const [kuyruk, setKuyruk] = useState<YuklemeSatiri[]>([]);
+  const [uyari, setUyari] = useState<string | null>(null);
+  const sayacRef = useRef(0);
+  // Editör kurulurken editorProps'un içinden çağrılacak işlevler; editör henüz
+  // yoktan var olduğu için ref üzerinden bağlanıyorlar.
+  const gorselYukleRef = useRef<(dosyalar: File[]) => void>(() => {});
+  const videoYapistirRef = useRef<(metin: string) => boolean>(() => false);
+
   const editor = useEditor({
     // SSR uyumsuzluğunu önle (Next 15/16 App Router).
     immediatelyRender: false,
@@ -120,7 +192,186 @@ export default function RichEditor({
     ],
     content: value || "",
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    editorProps: {
+      handlePaste(_view, event) {
+        const pano = (event as ClipboardEvent).clipboardData;
+        if (!pano) return false;
+
+        // Görsel dosyası YALNIZ pano düz dosya taşıyorsa alınıyor. Bir web
+        // sayfasından metin kopyalandığında pano hem text/html hem görsel
+        // taşıyabiliyor; koşulsuz dosyayı alsaydık yapıştırılan PARAGRAF
+        // kaybolur, yerine tek bir fotoğraf düşerdi.
+        const html = pano.getData("text/html");
+        const dosyalar = gorselleriAyikla(pano.files);
+        if (dosyalar.length > 0 && !html) {
+          event.preventDefault();
+          gorselYukleRef.current(dosyalar);
+          return true;
+        }
+
+        // Video adresi / gömme bloğu → çerçeveyi editör kuruyor.
+        const metin = pano.getData("text/plain");
+        if (metin && videoYapistirRef.current(metin)) {
+          event.preventDefault();
+          return true;
+        }
+        return false;
+      },
+      handleDrop(view, event) {
+        const tasima = (event as DragEvent).dataTransfer;
+        const dosyalar = gorselleriAyikla(tasima?.files);
+        if (dosyalar.length === 0) return false;
+        event.preventDefault();
+        // İmleci BIRAKILAN noktaya taşı — yoksa görseller o an imlecin
+        // bulunduğu yere (genelde yazının başına) düşer.
+        const nokta = view.posAtCoords({
+          left: (event as DragEvent).clientX,
+          top: (event as DragEvent).clientY,
+        });
+        if (nokta) {
+          view.dispatch(
+            view.state.tr.setSelection(TextSelection.create(view.state.doc, nokta.pos)),
+          );
+        }
+        gorselYukleRef.current(dosyalar);
+        return true;
+      },
+    },
   });
+
+  /** Kuyruk satırını günceller (yoksa hiçbir şey yapmaz). */
+  const satirGuncelle = useCallback((id: number, yama: Partial<YuklemeSatiri>) => {
+    setKuyruk((eski) => eski.map((s) => (s.id === id ? { ...s, ...yama } : s)));
+  }, []);
+
+  /**
+   * Görselleri küçültüp yükler ve SIRAYLA editöre ekler.
+   *
+   * <p>Hata tek dosyayı düşürür, turu düşürmez: beşinci fotoğraf reddedilse
+   * bile ilk dördü yazının içinde kalıyor.
+   */
+  const gorselleriYukle = useCallback(
+    async (secilen: File[]) => {
+      if (!editor || secilen.length === 0) return;
+      setUyari(null);
+      let dosyalar = secilen;
+      if (dosyalar.length > TAVAN) {
+        dosyalar = dosyalar.slice(0, TAVAN);
+        setUyari(
+          `Bir seferde en fazla ${TAVAN} görsel eklenebilir; ilk ${TAVAN} tanesi alındı.`,
+        );
+      }
+
+      const satirlar = dosyalar.map((d) => ({
+        id: ++sayacRef.current,
+        ad: d.name || "görsel",
+        yuzde: 0,
+        durum: "kucultuluyor" as const,
+      }));
+      setKuyruk((eski) => [...eski, ...satirlar]);
+
+      const kanal = kanalAc(KANAL);
+      const isler = dosyalar.map((dosya, i) =>
+        kanal(async (): Promise<string | null> => {
+          const satir = satirlar[i];
+          try {
+            const k = await kucult(dosya);
+            satirGuncelle(satir.id, {
+              durum: "yukleniyor",
+              not: k.kucultuldu
+                ? `${baytMetni(k.oncekiBayt)} → ${baytMetni(k.sonrakiBayt)}`
+                : undefined,
+            });
+            const sonuc = await apiUploadImageIlerlemeli(k.dosya, (y) =>
+              satirGuncelle(satir.id, { yuzde: y }),
+            );
+            satirGuncelle(satir.id, { durum: "bitti", yuzde: 100 });
+            return sonuc.url;
+          } catch (err) {
+            satirGuncelle(satir.id, {
+              durum: "hata",
+              not: err instanceof ApiError ? err.message : "Yüklenemedi.",
+            });
+            return null;
+          }
+        }),
+      );
+
+      // Ekleme SIRALI: paralel biten işleri seçim sırasına göre bekliyoruz.
+      for (const is of isler) {
+        const adres = await is;
+        if (adres) editor.chain().focus().setImage({ src: adres }).run();
+      }
+
+      // Biten satırlar kendiliğinden kalksın; HATALI satırlar kalsın —
+      // sessizce kaybolan bir hata, hata olmamasından kötü.
+      const bitenler = satirlar.map((s) => s.id);
+      window.setTimeout(() => {
+        setKuyruk((eski) =>
+          eski.filter((s) => !(bitenler.includes(s.id) && s.durum === "bitti")),
+        );
+      }, 1500);
+    },
+    [editor, satirGuncelle],
+  );
+
+  /**
+   * Yapıştırılan metin bir video adresiyse gömer. {@code true} dönerse
+   * yapıştırma tamamen bizde demektir.
+   *
+   * <p>Neden kendi elimizle: TipTap'in YouTube eklentisinin kendi yapıştırma
+   * kuralı VAR, ama {@code Link} eklentisinin {@code autolink}'iyle aynı olayda
+   * yarışıyor — hangisinin kazandığı garanti değil. Burada sıra bizde ve
+   * sonuç her seferinde aynı.
+   */
+  const videoYapistir = useCallback(
+    (metin: string, kaynak: "yapistirma" | "dugme" = "yapistirma"): boolean => {
+      if (!editor) return false;
+      const cozum = videoCoz(metin);
+      if (cozum.tur === "youtube") {
+        setUyari(null);
+        editor.commands.setYoutubeVideo({ src: cozum.adres });
+        return true;
+      }
+      if (cozum.tur === "yok" && cozum.sebep !== "http") {
+        // Tanınmayan metin: düğmeden geldiyse söyle, yapıştırmada sus.
+        if (kaynak === "dugme") {
+          setUyari(
+            cozum.sebep === "taninmayan-alan"
+              ? "Bu alan adı izinli listede değil. Şu an yalnız YouTube adresleri gömülebiliyor."
+              : "Bu bir video adresi gibi görünmüyor. YouTube bağlantısını ya da 'Paylaş → Yerleştir' kodunu yapıştırın.",
+          );
+        }
+        return false;
+      }
+      if (cozum.tur === "desteklenmiyor") {
+        // Adres tanındı ama gömülemiyor. Yapıştırma yolunda metin editöre
+        // düşmeye devam ediyor (bağlantı olur); düğme yolunda hiçbir şey
+        // eklenmiyor — mesaj bu farkı söylemek zorunda, yoksa kullanıcı
+        // eklenmemiş bir bağlantıyı arar.
+        setUyari(
+          kaynak === "dugme"
+            ? `${cozum.platform} videosu editöre gömülemiyor. Şu an yalnız YouTube adresleri gömülebiliyor.`
+            : `${cozum.platform} videosu editöre gömülemiyor; adres bağlantı olarak eklendi. Video için YouTube adresi kullanın.`,
+        );
+        return false;
+      }
+      if (cozum.tur === "yok" && cozum.sebep === "http") {
+        setUyari(
+          "Video adresi https ile başlamalı; http adresler tarayıcıda engellenip boş kutu bırakıyor.",
+        );
+        return false;
+      }
+      return false;
+    },
+    [editor],
+  );
+
+  // editorProps içindeki kapanışlar en güncel işlevi görsün.
+  useEffect(() => {
+    gorselYukleRef.current = (d) => void gorselleriYukle(d);
+    videoYapistirRef.current = videoYapistir;
+  }, [gorselleriYukle, videoYapistir]);
 
   // Dış value değişirse (ör. kopyalama / veri yüklendiğinde) editörü senkronla.
   useEffect(() => {
@@ -146,7 +397,46 @@ export default function RichEditor({
 
   return (
     <div className="editor-shell">
-      <Toolbar editor={editor} />
+      <Toolbar
+        editor={editor}
+        onGorsel={(d) => void gorselleriYukle(d)}
+        onVideo={videoYapistir}
+        onUyari={setUyari}
+      />
+      {(kuyruk.length > 0 || uyari) && (
+        <div className="editor-yukleme">
+          {uyari && (
+            <div className="editor-yukleme-uyari">
+              <span>{uyari}</span>
+              <button type="button" onClick={() => setUyari(null)} title="Kapat">
+                <XIcon size={13} />
+              </button>
+            </div>
+          )}
+          {kuyruk.map((s) => (
+            <div key={s.id} className={`editor-yukleme-satir ${s.durum}`}>
+              <span className="eys-ad" title={s.ad}>
+                {s.ad}
+              </span>
+              <span className="eys-bar">
+                <span
+                  className="eys-dolgu"
+                  style={{ width: `${s.durum === "hata" ? 100 : s.yuzde}%` }}
+                />
+              </span>
+              <span className="eys-not">
+                {s.durum === "kucultuluyor"
+                  ? "küçültülüyor…"
+                  : s.durum === "hata"
+                    ? (s.not ?? "hata")
+                    : s.durum === "bitti"
+                      ? (s.not ?? "eklendi")
+                      : `${s.yuzde}%${s.not ? ` · ${s.not}` : ""}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="editor-content">
         <EditorContent editor={editor} />
       </div>
@@ -154,7 +444,17 @@ export default function RichEditor({
   );
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({
+  editor,
+  onGorsel,
+  onVideo,
+  onUyari,
+}: {
+  editor: Editor;
+  onGorsel: (dosyalar: File[]) => void;
+  onVideo: (metin: string, kaynak?: "yapistirma" | "dugme") => boolean;
+  onUyari: (mesaj: string | null) => void;
+}) {
   const setLink = useCallback(() => {
     const prev = editor.getAttributes("link").href as string | undefined;
     const url = window.prompt("Bağlantı adresi (URL):", prev ?? "https://");
@@ -170,24 +470,27 @@ function Toolbar({ editor }: { editor: Editor }) {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        const res = await apiUploadImage(file);
-        editor.chain().focus().setImage({ src: res.url }).run();
-      } catch (err) {
-        alert(err instanceof ApiError ? err.message : "Görsel yüklenemedi.");
-      }
+    // ÇOKLU seçim — eskiden yoktu ve yalnız files[0] okunuyordu.
+    input.multiple = true;
+    input.onchange = () => {
+      const dosyalar = Array.from(input.files ?? []);
+      if (dosyalar.length > 0) onGorsel(dosyalar);
     };
     input.click();
-  }, [editor]);
+  }, [onGorsel]);
 
   const addYoutube = useCallback(() => {
-    const url = window.prompt("YouTube video adresi:");
-    if (!url) return;
-    editor.commands.setYoutubeVideo({ src: url });
-  }, [editor]);
+    const ham = window.prompt(
+      "Video adresi (YouTube bağlantısı ya da 'Paylaş → Yerleştir' kodu):",
+    );
+    if (!ham) return;
+    // Aynı çözümleyici yapıştırma yolunda da çalışıyor: iki yol iki farklı
+    // kural uygulasaydı düğmeyle çalışan adres yapıştırınca çalışmazdı.
+    // Fark yalnız SESSİZLİKTE: düğme bir adres BEKLİYOR, o yüzden tanınmayan
+    // adres burada söylenir; yapıştırmada söylenmez (sıradan metin
+    // yapıştıran kullanıcıya her seferinde uyarı çıkardı).
+    onVideo(ham, "dugme");
+  }, [onVideo]);
 
   const insertTable = useCallback(() => {
     editor
@@ -370,10 +673,16 @@ function Toolbar({ editor }: { editor: Editor }) {
       <B onClick={setLink} active={editor.isActive("link")} title="Bağlantı ekle/kaldır">
         <Link2 size={16} />
       </B>
-      <B onClick={addImage} title="Görsel yükle">
+      <B
+        onClick={addImage}
+        title="Görsel yükle (birden fazla seçebilirsin; sürükleyip bırakmak ya da yapıştırmak da olur)"
+      >
         <ImagePlus size={16} />
       </B>
-      <B onClick={addYoutube} title="YouTube ekle">
+      <B
+        onClick={addYoutube}
+        title="Video ekle (YouTube adresini doğrudan içeriğe yapıştırmak da yeter)"
+      >
         <YoutubeIcon size={16} />
       </B>
       <B onClick={insertTable} title="Tablo ekle">

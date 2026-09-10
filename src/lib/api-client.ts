@@ -304,6 +304,65 @@ export async function apiUploadImage(file: File): Promise<ImageUploadResult> {
   return parse<ImageUploadResult>(res);
 }
 
+/**
+ * Görsel yükleme — YÜKLEME İLERLEMESİYLE. {@code fetch} gönderim ilerlemesini
+ * bildirmiyor (yalnız indirmeyi), o yüzden burada XHR kullanılıyor: tek sebep
+ * bu, başka bir farkı yok ve aynı BFF rotasına gidiyor.
+ *
+ * <p>İlerleme bir konfor değil ölçüm: "çok geç yüklüyor" şikâyetinin bir kısmı
+ * hiçbir geri bildirim olmamasıydı — editör donmuş görünüyordu. Yüzde
+ * görünürse yavaşlığın ağda mı işlemede mi olduğu da anlaşılıyor (yüzde 100'e
+ * gelip bekliyorsa iş sunucuda).
+ *
+ * @param onIlerleme 0-100 arası; tarayıcı toplam boyutu bilmiyorsa HİÇ
+ *                   çağrılmaz (uydurma bir yüzde göstermiyoruz).
+ */
+export function apiUploadImageIlerlemeli(
+  file: File,
+  onIlerleme?: (yuzde: number) => void,
+  signal?: AbortSignal,
+): Promise<ImageUploadResult> {
+  return new Promise<ImageUploadResult>((cevap, hata) => {
+    if (signal?.aborted) {
+      hata(new ApiError(0, "Yükleme iptal edildi."));
+      return;
+    }
+    const form = new FormData();
+    form.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/news/images");
+    // Aynı köken; çerezler zaten gidiyor. BFF'in checkSameOrigin kapısı için
+    // tarayıcı Origin başlığını kendisi ekliyor.
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onIlerleme) {
+        onIlerleme(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      let govde: unknown = null;
+      if (xhr.responseText) {
+        try {
+          govde = JSON.parse(xhr.responseText);
+        } catch {
+          govde = { message: xhr.responseText };
+        }
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        cevap(govde as ImageUploadResult);
+        return;
+      }
+      const b = (govde ?? {}) as { message?: string; errors?: Record<string, string> };
+      hata(new ApiError(xhr.status, b.message ?? "Görsel yüklenemedi.", b.errors));
+    };
+    xhr.onerror = () => hata(new ApiError(0, "Sunucuya ulaşılamadı."));
+    xhr.ontimeout = () => hata(new ApiError(0, "Yükleme zaman aşımına uğradı."));
+    xhr.onabort = () => hata(new ApiError(0, "Yükleme iptal edildi."));
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.send(form);
+  });
+}
+
 /** Medya kütüphanesi — daha önce yüklenmiş görseller (en yeni üstte). */
 export async function apiListMedia(limit = 120): Promise<MediaItem[]> {
   const res = await fetch(`/api/news/media?limit=${limit}`, { method: "GET" });

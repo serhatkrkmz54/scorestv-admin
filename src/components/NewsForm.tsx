@@ -240,6 +240,14 @@ function NewsFormInner(
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [ok, setOk] = useState<string | null>(null);
+  /**
+   * Sunucu kaydederken gövdeden bir şey DÜŞÜRDÜYSE buraya yazılıyor.
+   * Backend body'yi sanitize ediyor ve izin listesi burada bilinmiyor; bu
+   * yüzden "video/görsel kayboldu" sorusu tahminle değil ÖLÇÜMLE
+   * cevaplanıyor: gönderilenle geri döneni sayıyoruz. Sessiz kayıp,
+   * görünen bir hatadan çok daha pahalı.
+   */
+  const [sanitizeUyarisi, setSanitizeUyarisi] = useState<string | null>(null);
 
   const ids = useMemo(() => {
     const teamIds: number[] = [];
@@ -333,6 +341,7 @@ function NewsFormInner(
   async function save(publishAfter: boolean): Promise<boolean> {
     setError(null);
     setOk(null);
+    setSanitizeUyarisi(null);
     if (!validate()) {
       setError("Lütfen işaretli alanları düzeltin.");
       return false;
@@ -346,6 +355,9 @@ function NewsFormInner(
       } else {
         saved = await apiCreateNews(req);
       }
+      // Sunucu body'yi sanitize ediyor; ne düştüğü BURADA ölçülüyor
+      // (publish'ten ÖNCE — publish yanıtı bu karşılaştırmanın öznesi değil).
+      setSanitizeUyarisi(sanitizeFarki(req.body ?? "", saved.body ?? ""));
       if (publishAfter && saved.status !== "PUBLISHED") {
         // Taslak → yayınla yolu: push niyetini publish ucuna taşı (aksi halde
         // "yayınlarken bildir" işaretli olsa bile bu yolda push kaçıyordu).
@@ -554,6 +566,7 @@ function NewsFormInner(
 
       {error && <div className="alert alert-error">{error}</div>}
       {ok && <div className="alert alert-success">{ok}</div>}
+      {sanitizeUyarisi && <div className="alert alert-warning">{sanitizeUyarisi}</div>}
 
       {showPreview && (
         <NewsLivePreview
@@ -860,6 +873,47 @@ function NewsFormInner(
         </button>
       </div>
     </div>
+  );
+}
+
+/** Bir etiketin gövdede kaç kez geçtiğini sayar. */
+function etiketSay(html: string, etiket: string): number {
+  const re = new RegExp(`<${etiket}\\b`, "gi");
+  return (html.match(re) ?? []).length;
+}
+
+/**
+ * Gönderilen gövde ile sunucunun GERİ DÖNDÜRDÜĞÜ (sanitize edilmiş) gövdeyi
+ * karşılaştırır; bir şey düştüyse Türkçe bir uyarı, düşmediyse {@code null}
+ * döner.
+ *
+ * <p>Neden var: backend gövdeyi sanitize ediyor ve izin listesi bu depoda
+ * yazılı değil. "Videoyu koydum, kaydettim, kayboldu" durumunun tek belirtisi
+ * ekranda eksik bir öğe — hiçbir yerde hata patlamıyor. Bu karşılaştırma o
+ * kaybı GÖRÜNÜR kılıyor ve hangisinin düştüğünü söylüyor, yani bir sonraki
+ * adım tahminle değil ölçümle belirleniyor.
+ *
+ * <p>Yalnız AZALMAYA bakıyor: sanitize bir öğeyi sarmalayıp sayısını artırırsa
+ * bu bir kayıp değil, o yüzden uyarı üretmiyor.
+ */
+function sanitizeFarki(gonderilen: string, donen: string): string | null {
+  const turler: { etiket: string; ad: string }[] = [
+    { etiket: "iframe", ad: "video" },
+    { etiket: "img", ad: "görsel" },
+    { etiket: "video", ad: "video dosyası" },
+    { etiket: "table", ad: "tablo" },
+  ];
+  const dusenler: string[] = [];
+  for (const t of turler) {
+    const fark = etiketSay(gonderilen, t.etiket) - etiketSay(donen, t.etiket);
+    if (fark > 0) dusenler.push(`${fark} ${t.ad}`);
+  }
+  if (dusenler.length === 0) return null;
+  return (
+    `Sunucu kaydederken içerikten ${dusenler.join(", ")} düştü. ` +
+    "Bu bir tarayıcı sorunu değil: backend'in içerik temizleyicisi bu öğeye " +
+    "izin vermiyor. Ekranda görünmemesi normal — kalıcı çözüm için backend'in " +
+    "izin listesine eklenmesi gerekiyor."
   );
 }
 

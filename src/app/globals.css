@@ -1161,6 +1161,12 @@ table.data-table {
   border: 1px solid var(--brand-soft);
 }
 
+.alert-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid rgba(178, 106, 0, 0.25);
+}
+
 /* ---------- Login (iki kolon: sol görsel · sağ form) ---------- */
 .login-shell {
   min-height: 100vh;
@@ -1423,6 +1429,94 @@ table.data-table {
   width: 1px;
   background: var(--border-strong);
   margin: 5px 4px;
+}
+
+/* Görsel yükleme şeridi — araç çubuğunun altında, yalnız iş varken görünür.
+   Amaç konfor değil ölçüm: yüzde 100'e gelip bekliyorsa yavaşlık ağda değil
+   sunucuda demektir. */
+.editor-yukleme {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.editor-yukleme-uyari {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.editor-yukleme-uyari button {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.editor-yukleme-uyari button:hover {
+  opacity: 1;
+}
+
+.editor-yukleme-satir {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px auto;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.eys-ad {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eys-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.eys-dolgu {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transition: width 0.15s linear;
+}
+
+.editor-yukleme-satir.bitti .eys-dolgu {
+  background: var(--success);
+}
+
+/* Hata satırı KALIR (kendiliğinden kaybolmaz): sessizce kaybolan bir hata,
+   hata olmamasından kötü. */
+.editor-yukleme-satir.hata {
+  color: var(--danger);
+}
+
+.editor-yukleme-satir.hata .eys-dolgu {
+  background: var(--danger);
+}
+
+.eys-not {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .editor-content {
