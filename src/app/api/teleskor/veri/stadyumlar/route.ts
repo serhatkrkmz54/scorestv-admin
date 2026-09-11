@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { checkSameOrigin } from "@/lib/origin-check";
 import { teleskorJson } from "@/lib/teleskor";
 import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
 import type { VeriStadyumu } from "@/lib/types";
@@ -33,4 +34,33 @@ export async function GET(req: NextRequest) {
     `/api/v1/admin/engine/veri/stadyumlar?q=${encodeURIComponent(q)}&ids=${encodeURIComponent(ids)}`,
   );
   return teleskorResponse(r, "Stadyum listesi alınamadı.");
+}
+
+/**
+ * Sağlayıcıda hiç olmayan bir stadyumu katalogda açar (motor V99).
+ *
+ * Alt liglerde sağlayıcı stadyumu göndermiyor; seçicide seçecek satır
+ * olmayınca takımın stadı düzeltilemiyor.
+ *
+ * Açan kişi burada gönderilmiyor: ürün backend'i oturumdan alıyor.
+ * Motorun 409'u (aynı adda kayıt var) düz geçiyor — karar kullanıcının.
+ */
+export async function POST(req: NextRequest) {
+  const bad = checkSameOrigin(req);
+  if (bad) return bad;
+  const izin = await teleskorAdmin();
+  if ("error" in izin) return izin.error;
+
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return NextResponse.json({ message: "Geçersiz istek." }, { status: 400 });
+  }
+
+  const r = await teleskorJson<VeriStadyumu>(
+    "/api/v1/admin/engine/veri/stadyumlar",
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return teleskorResponse(r, "Stadyum açılamadı.");
 }

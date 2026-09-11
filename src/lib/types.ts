@@ -1767,7 +1767,26 @@ export interface VeriStadyumu {
   yamali: boolean;
   /** Yer tutucu satır: aramada çıkmaz, yalnız `ids` ile çözülünce görünür. */
   taslak: boolean;
+  /**
+   * Panelden açıldı (motor V99): sağlayıcıda karşılığı yok, hiçbir senkron
+   * dokunamaz. Sağlayıcı aynı stadyumu sonradan gönderirse hangisinin bizim
+   * olduğunu söyleyen tek bilgi bu.
+   * Eski motor sürümünde gelmiyor — bu yüzden opsiyonel.
+   */
+  elle?: boolean;
   takimSayisi: number;
+}
+
+/** Panelden stadyum açma isteği. */
+export interface YeniStadyum {
+  ad: string;
+  sehir?: string | null;
+  kapasite?: number | null;
+  /** Spor ve ülke bu takımdan miras alınır — panele ülke seçicisi koymamak için. */
+  takimId?: number | null;
+  gerekce: string;
+  /** Aynı adda kayıt bulunduğunda ısrar. */
+  yineDeAc?: boolean;
 }
 
 export interface VeriKaydi {

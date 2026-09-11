@@ -92,6 +92,7 @@ import type {
   VeriOyuncusu,
   VeriKaydi,
   VeriStadyumu,
+  YeniStadyum,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1498,6 +1499,21 @@ export async function apiVeriStadyumlar(
     { cache: "no-store" },
   );
   return parse<VeriStadyumu[]>(res);
+}
+
+/**
+ * Sağlayıcıda olmayan bir stadyumu açar. Motor aynı adda kayıt bulursa 409
+ * döner ve mesajında var olanı gösterir; `yineDeAc: true` ile geçilir.
+ */
+export async function apiVeriStadyumAc(
+  istek: YeniStadyum,
+): Promise<VeriStadyumu> {
+  const res = await fetch("/api/teleskor/veri/stadyumlar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(istek),
+  });
+  return parse<VeriStadyumu>(res);
 }
 
 export async function apiVeriKayit(

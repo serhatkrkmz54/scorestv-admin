@@ -6,6 +6,7 @@ import {
   apiVeriEksik,
   apiVeriKayit,
   apiVeriOyuncular,
+  apiVeriStadyumAc,
   apiVeriStadyumlar,
   apiVeriYaz,
   apiTeleskorLigAra,
@@ -569,10 +570,17 @@ function KayitDuzenle({
  */
 function StadyumSecici({
   deger,
+  takimId,
   onSec,
   onYazmayaBasla,
 }: {
   deger: string;
+  /**
+   * Stadyum HANGİ takım için seçiliyor. Yeni stadyum açılırken spor ve ülke
+   * bundan miras alınıyor — panele ayrı bir ülke seçicisi koymamak için.
+   * VENUE kaydının kendi sayfasından gelindiğinde yok.
+   */
+  takimId?: number;
   onSec: (id: string) => void;
   onYazmayaBasla: () => void;
 }) {
@@ -586,6 +594,16 @@ function StadyumSecici({
   // Uçuştaki aramanın hangi metne ait olduğu. Kutu değiştiyse gelen sonuç
   // BAYAT sayılıyor ve ekrana basılmıyor — onboarding aramasında ödenen ders.
   const sonAramaRef = useRef("");
+  // Yeni stadyum formu — yalnız arama boş döndüğünde açılıyor.
+  const [ekleAcik, setEkleAcik] = useState(false);
+  const [yeniAd, setYeniAd] = useState("");
+  const [yeniSehir, setYeniSehir] = useState("");
+  const [yeniKapasite, setYeniKapasite] = useState("");
+  const [yeniGerekce, setYeniGerekce] = useState("");
+  const [ekleniyor, setEkleniyor] = useState(false);
+  const [ekleHata, setEkleHata] = useState("");
+  // 409 geldiyse (aynı adda kayıt var) ısrar düğmesi beliriyor.
+  const [cakisma, setCakisma] = useState(false);
 
   // Mevcut değerin adını çöz. `secili` bağımlılığa KONMUYOR: konsaydı her
   // çözümden sonra effect yeniden koşar ve sonsuz istek üretirdi.
@@ -650,7 +668,52 @@ function StadyumSecici({
     setAcik(false);
     setQ("");
     setSonuc([]);
+    kapatFormu();
     onYazmayaBasla();
+  }
+
+  function kapatFormu() {
+    setEkleAcik(false);
+    setEkleHata("");
+    setCakisma(false);
+    setYeniSehir("");
+    setYeniKapasite("");
+    setYeniGerekce("");
+  }
+
+  async function ekle(yineDeAc: boolean) {
+    const ad = yeniAd.trim();
+    if (ad.length < 2) {
+      setEkleHata("Stadyum adı en az iki harf olmalı.");
+      return;
+    }
+    if (yeniGerekce.trim().length < 3) {
+      setEkleHata("Gerekçe zorunlu: bu stadyumun adını nereden aldın?");
+      return;
+    }
+    setEkleniyor(true);
+    setEkleHata("");
+    try {
+      const olusan = await apiVeriStadyumAc({
+        ad,
+        sehir: yeniSehir.trim() || null,
+        // Boş bırakılan kapasite null; sayı olmayan değer de null — motor
+        // zaten akla yatkınlık denetimi yapıyor, burada ikinci bir kural
+        // yazmıyoruz.
+        kapasite: Number(yeniKapasite.trim()) || null,
+        takimId: takimId ?? null,
+        gerekce: yeniGerekce.trim(),
+        yineDeAc,
+      });
+      sec(olusan);
+    } catch (e) {
+      // 409 = aynı adda kayıt var. Motorun mesajı var olanı adıyla
+      // söylüyor; ısrar düğmesini burada açıyoruz.
+      setCakisma(e instanceof ApiError && e.status === 409);
+      setEkleHata(e instanceof ApiError ? e.message : "Stadyum açılamadı.");
+    } finally {
+      setEkleniyor(false);
+    }
   }
 
   if (!acik) {
@@ -732,8 +795,25 @@ function StadyumSecici({
             aranıyor…
           </div>
         ) : sonuc.length === 0 ? (
-          <div className="muted" style={{ fontSize: 12, padding: 10 }}>
-            Eşleşen stadyum yok.
+          <div style={{ padding: 10, display: "grid", gap: 8 }}>
+            <div className="muted" style={{ fontSize: 12 }}>
+              Eşleşen stadyum yok. Sağlayıcı alt liglerde stadyumu çoğu zaman
+              hiç göndermiyor.
+            </div>
+            {!ekleAcik && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => {
+                  setYeniAd(q.trim());
+                  setEkleAcik(true);
+                  setEkleHata("");
+                  setCakisma(false);
+                }}
+              >
+                “{q.trim()}” adıyla yeni stadyum ekle
+              </button>
+            )}
           </div>
         ) : (
           sonuc.map((s) => (
@@ -758,6 +838,86 @@ function StadyumSecici({
           ))
         )}
       </div>
+      {ekleAcik && (
+        <div
+          className="card-pad"
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            display: "grid",
+            gap: 6,
+          }}
+        >
+          <div className="card-title" style={{ marginBottom: 0 }}>
+            Yeni stadyum
+          </div>
+          <input
+            className="input"
+            value={yeniAd}
+            placeholder="Stadyum adı (zorunlu)"
+            onChange={(e) => setYeniAd(e.target.value)}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <input
+              className="input"
+              value={yeniSehir}
+              placeholder="Şehir"
+              onChange={(e) => setYeniSehir(e.target.value)}
+            />
+            <input
+              className="input"
+              value={yeniKapasite}
+              inputMode="numeric"
+              placeholder="Kapasite"
+              onChange={(e) => setYeniKapasite(e.target.value)}
+            />
+          </div>
+          <input
+            className="input"
+            style={{ fontSize: 12 }}
+            value={yeniGerekce}
+            placeholder="Gerekçe (zorunlu): adı nereden aldın?"
+            onChange={(e) => setYeniGerekce(e.target.value)}
+          />
+          <div className="muted" style={{ fontSize: 11 }}>
+            {takimId
+              ? "Spor ve ülke düzenlediğin takımdan alınır. Kayıt sağlayıcıya gönderilmez; senkron ona asla dokunmaz."
+              : "Ülke boş kalır (takım bağlamı yok). Kayıt sağlayıcıya gönderilmez; senkron ona asla dokunmaz."}
+          </div>
+          {ekleHata && (
+            <div style={{ fontSize: 11, color: "var(--danger)" }}>{ekleHata}</div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              disabled={ekleniyor}
+              onClick={() => ekle(false)}
+            >
+              {ekleniyor ? "Ekleniyor…" : "Ekle ve seç"}
+            </button>
+            {cakisma && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                disabled={ekleniyor}
+                onClick={() => ekle(true)}
+              >
+                Yine de ekle
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              disabled={ekleniyor}
+              onClick={kapatFormu}
+            >
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
@@ -765,6 +925,7 @@ function StadyumSecici({
           onClick={() => {
             setAcik(false);
             setQ("");
+            kapatFormu();
           }}
         >
           Vazgeç
@@ -800,6 +961,9 @@ function stadyumAltYazi(s: VeriStadyumu): string {
   parcalar.push(
     s.takimSayisi === 0 ? "takım bağlı değil" : `${s.takimSayisi} takım`,
   );
+  // Elle açılmış kayıtlar işaretli: sağlayıcı aynı stadyumu sonradan
+  // gönderirse hangisinin bizim olduğunu söyleyen tek bilgi bu.
+  if (s.elle) parcalar.push("elle eklendi");
   parcalar.push(`#${s.id}`);
   return parcalar.join(" · ");
 }
@@ -928,6 +1092,7 @@ function AlanSatiri({
         {stadyumAlani ? (
           <StadyumSecici
             deger={deger}
+            takimId={tur === "TEAM" ? id : undefined}
             onSec={setDeger}
             onYazmayaBasla={yazmayaBasla}
           />
