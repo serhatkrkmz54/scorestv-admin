@@ -485,6 +485,8 @@ function AlanSatiri({
   async function kaydet(kaldir = false) {
     setDurum("kaydediliyor");
     setMesaj("");
+
+    let yazildi = false;
     try {
       const r = await apiVeriYaz({
         tur,
@@ -494,12 +496,28 @@ function AlanSatiri({
         gerekce: kaldir ? undefined : gerekce,
         kaldir,
       });
+      yazildi = true;
       setDurum("ok");
       if (r.not) setMesaj(r.not);
-      await onDegisti();
     } catch (e) {
       setDurum("hata");
       setMesaj(e instanceof ApiError ? e.message : "Kaydedilemedi.");
+    }
+
+    // TAZELEME AYRI TUTULUYOR — yama bu noktada ZATEN YAZILDI.
+    //
+    // Eskiden tek try içindeydi ve tazelemedeki bir hata "Kaydedilemedi."
+    // yazdırıyordu. Yaşandı: eksik bir BFF rotası (`veri/oyuncular`) 404
+    // dönüyordu, PUT başarılıyken ekranda hata görünüyor ve kullanıcı
+    // yazılmış bir yamayı tekrar tekrar yazmaya çalışıyordu.
+    //
+    // Kayıt başarısızsa tazelemeye hiç girilmiyor: gösterilecek yeni bir
+    // durum yok ve ikinci bir hata mesajı birinciyi örterdi.
+    if (!yazildi) return;
+    try {
+      await onDegisti();
+    } catch {
+      setMesaj("Kaydedildi. (Liste tazelenemedi — sayfayı yenile.)");
     }
   }
 

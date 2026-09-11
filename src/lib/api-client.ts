@@ -103,19 +103,57 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Durum koduna karşılık gelen kısa Türkçe metin.
+ *
+ * <p>Yalnız gövde JSON DEĞİLKEN kullanılıyor — yani istek bir rota
+ * bulamadığında ya da araya bir hata sayfası girdiğinde. O gövde kullanıcıya
+ * hiçbir şey söylemiyor; söyleyen şey durum kodu.
+ */
+function durumMetni(status: number): string {
+  if (status === 404) {
+    return (
+      "İstek adresi bulunamadı (404). Panel ile sunucu sürümleri uyuşmuyor " +
+      "olabilir — panelin yeniden derlenmesi gerekebilir."
+    );
+  }
+  if (status === 401 || status === 403) return "Bu işlem için yetkin yok.";
+  if (status >= 500) return `Sunucu hatası (${status}).`;
+  return `Bir hata oluştu (${status}).`;
+}
+
+/**
+ * Yanıtı çözer.
+ *
+ * <p><b>JSON OLMAYAN GÖVDE MESAJ YAPILMAZ.</b> Eskiden yapılıyordu ve bir
+ * kez pahalıya patladı: Veri Düzeltme masasında eksik bir BFF rotası yüzünden
+ * istek Next'in 404 SAYFASINA düştü, o sayfanın tamamı (birkaç KB HTML)
+ * hata mesajı olarak ekrana basıldı. Panelin bütün hata gövdeleri
+ * {@code NextResponse.json} ile dönüyor; yani JSON olmayan bir gövde,
+ * isteğin hiçbir rota işleyicisine ULAŞMADIĞI anlamına geliyor.
+ */
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
   let body: unknown = null;
+  let jsonMu = false;
   if (text) {
     try {
       body = JSON.parse(text);
+      jsonMu = true;
     } catch {
-      body = { message: text };
+      body = null;
     }
   }
   if (!res.ok) {
-    const b = (body ?? {}) as { message?: string; errors?: Record<string, string> };
-    throw new ApiError(res.status, b.message ?? "Bir hata oluştu.", b.errors);
+    const b = (jsonMu ? body : null) as {
+      message?: string;
+      errors?: Record<string, string>;
+    } | null;
+    throw new ApiError(
+      res.status,
+      b?.message ?? durumMetni(res.status),
+      b?.errors,
+    );
   }
   return body as T;
 }
