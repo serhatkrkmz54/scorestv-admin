@@ -487,6 +487,11 @@ function KayitDuzenle({
   kayit: VeriKaydi;
   onDegisti: () => Promise<void>;
 }) {
+  // Eski motor sürümünde alan hiç gelmiyor; boş liste "paylaşım yok" DEĞİL
+  // "bilinmiyor" demek ve o durumda uyarı da çıkmıyor — yanlış bir güvence
+  // vermektense susmak doğru.
+  const paylasan = kayit.paylasanTakimlar ?? [];
+
   return (
     <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
       <div className="card-title" style={{ fontSize: 14, marginBottom: 12 }}>
@@ -495,6 +500,35 @@ function KayitDuzenle({
           ({kayit.tur} #{kayit.id})
         </span>
       </div>
+      {/* STADYUM PAYLAŞIMI UYARISI — hata değil, BİLGİ.
+          Stadyum paylaşmak olağan: aynı kulübün kadın/genç takımları, tek
+          millî stadı olan küçük ülkeler, aynı sahayı kullanan kulüpler.
+          Panel bunu söylemeyince kullanıcı bir takımın stadını düzeltiyor,
+          ötekinin de değiştiğini görüyor ve sistemi bozuk sanıyor. */}
+      {paylasan.length > 1 && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 8,
+            background: "var(--warning-soft)",
+            color: "var(--warning)",
+            fontSize: 12.5,
+            lineHeight: 1.5,
+          }}
+        >
+          <b>Bu stadyumu {paylasan.length} takım kullanıyor.</b> Burada
+          yaptığın değişiklik hepsinde birden görünür:{" "}
+          {paylasan.join(", ")}
+          {kayit.paylasanTakimlar!.length === 25 ? " …" : ""}
+          <div style={{ marginTop: 4, opacity: 0.85 }}>
+            Yanlışsa çare bu alanları değiştirmek değil: ilgili takımın
+            &quot;Takım bilgileri&quot; içinden <b>Stadyum</b> alanını doğru
+            stadyuma yöneltmek.
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gap: 12 }}>
         {kayit.alanlar.map((a) => (
           <AlanSatiri

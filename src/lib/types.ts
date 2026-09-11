@@ -1754,4 +1754,9 @@ export interface VeriKaydi {
   id: number;
   ad: string;
   alanlar: VeriAlanDurumu[];
+  /**
+   * Bu STADYUMU kullanan takımlar. Yalnız VENUE türünde dolu.
+   * Eski motor sürümünde hiç gelmiyor — bu yüzden opsiyonel.
+   */
+  paylasanTakimlar?: string[];
 }
