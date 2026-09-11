@@ -574,11 +574,31 @@ function AlanSatiri({
     }
   }
 
+  // Kullanıcı yeniden yazmaya başlayınca düğme "Kaydedildi ✓" durumundan
+  // çıkıyor. Çıkmasaydı kaydetmeden SONRA düğme sonsuza kadar o metinde
+  // kalırdı — tıklanabilir görünmez ve kullanıcı düğmenin kaybolduğunu
+  // sanardı. Eski mesaj da siliniyor: yeni bir değer için eski not yanıltıcı.
+  function yazmayaBasla() {
+    if (durum !== "") setDurum("");
+    if (mesaj !== "") setMesaj("");
+  }
+
   return (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(150px,1fr) minmax(200px,1.6fr) auto",
+        // ÜÇÜNCÜ SÜTUN SABİT — `auto` DEĞİL. İçeriğe göre ölçülseydi (ve
+        // ölçülüyordu) kaydetmeden sonra düğmeler değiştiği an sütun
+        // genişliği değişir ve İKİ INPUT birden yana kayardı: "Yamayı
+        // kaldır" belirip kaybolduğunda ~100px, "Kaydet" metni kısaldığında
+        // ~30px. Serhat'ın gördüğü kayma buydu.
+        //
+        // 140px TAHMİN DEĞİL: düğme metinleri headless Chromium'da
+        // panelin kendi .btn-sm kuralıyla (12px/600, padding 6px 11px)
+        // ölçüldü — "Kaydediliyor…" 121px (en genişi), "Yamayı kaldır"
+        // 115px, "Kaydedildi ✓" 110px. Ölçüm Ubuntu yerine DejaVu Sans ile
+        // yapıldı; o font DAHA GENİŞ, yani sayı üst sınır.
+        gridTemplateColumns: "minmax(150px,1fr) minmax(200px,1.6fr) 140px",
         gap: 12,
         alignItems: "start",
       }}
@@ -611,14 +631,20 @@ function AlanSatiri({
           className="input"
           value={deger}
           placeholder={alan.tip === "tarih" ? "YYYY-AA-GG" : ""}
-          onChange={(e) => setDeger(e.target.value)}
+          onChange={(e) => {
+            setDeger(e.target.value);
+            yazmayaBasla();
+          }}
         />
         <input
           className="input"
           style={{ fontSize: 12 }}
           value={gerekce}
           placeholder="Gerekçe (zorunlu): bu değeri nereden aldın?"
-          onChange={(e) => setGerekce(e.target.value)}
+          onChange={(e) => {
+            setGerekce(e.target.value);
+            yazmayaBasla();
+          }}
         />
         {mesaj && (
           <div
@@ -639,7 +665,11 @@ function AlanSatiri({
           disabled={durum === "kaydediliyor"}
           onClick={() => kaydet(false)}
         >
-          {durum === "kaydediliyor" ? "…" : durum === "ok" ? "✓" : "Kaydet"}
+          {durum === "kaydediliyor"
+            ? "Kaydediliyor…"
+            : durum === "ok"
+              ? "Kaydedildi ✓"
+              : "Kaydet"}
         </button>
         {yamaliMi && (
           <button
