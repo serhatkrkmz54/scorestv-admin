@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   apiVeriAlanlar,
   apiVeriEksik,
@@ -100,14 +100,60 @@ export default function TeleskorVeriClient() {
     setLig({ id: ligId, ad });
     setLigSecenekleri([]);
     setLigAramasi("");
-    setAcikTakim(null);
-    setKayit(null);
+    kapat();
     await raporuYukle(ligId);
   }
+
+  const kayitRef = useRef<HTMLDivElement | null>(null);
+
+  function kapat() {
+    setAcikTakim(null);
+    setKayit(null);
+    setOyuncular([]);
+  }
+
+  // MODAL AÇIKKEN: Esc kapatıyor, arka plan KAYDIRILMIYOR.
+  //
+  // İkincisi görsel bir ayrıntı değil: kilit olmasaydı modalın içindeki
+  // oyuncu listesinin sonuna gelince tekerlek arkadaki eksik raporunu
+  // kaydırmaya başlardı ve modal kapanınca rapor bambaşka bir yerde olurdu.
+  useEffect(() => {
+    if (!acikTakim) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") kapat();
+    };
+    window.addEventListener("keydown", onKey);
+    const oncekiOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      // Eski değere DÖNÜLÜYOR, boşaltılmıyor: başka bir yer kilidi
+      // koymuşsa onu kaldırmış olurduk.
+      document.body.style.overflow = oncekiOverflow;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acikTakim]);
+
+  // Alan düzenleyici modalın İÇİNDE, oyuncu listesinin altında açılıyor;
+  // 25 kişilik bir kadroda o da "aşağıda" kalıyor. Açılan kayıt görünür
+  // alana getiriliyor.
+  //
+  // Ölçüt kaydın KİMLİĞİ, nesnenin kendisi DEĞİL: her kaydetmeden sonra
+  // `kayit` yeniden okunuyor ve nesne değişiyor — nesneye bağlansaydı her
+  // kaydetmede ekran zıplardı.
+  useEffect(() => {
+    if (!kayit) return;
+    kayitRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kayit?.tur, kayit?.id]);
 
   async function takimAc(t: TakimEksigi) {
     setAcikTakim(t);
     setKayit(null);
+    // Liste ÖNCE boşaltılıyor. Modal anında açıldığı için, temizlenmeseydi
+    // istek dönene kadar YENİ takımın başlığı altında ESKİ takımın kadrosu
+    // görünürdü — sayfa altında açılırken göze çarpmayan bir kusur.
+    setOyuncular([]);
     try {
       setOyuncular(await apiVeriOyuncular(t.takimId));
     } catch {
@@ -274,121 +320,128 @@ export default function TeleskorVeriClient() {
         </div>
       )}
 
-      {/* ---------- Seçili takım ---------- */}
+      {/* ---------- Seçili takım: MODAL ----------
+          Eskiden sayfanın ALTINA açılıyordu ve uzun eksik raporlarında
+          kullanıcı onu görmek için kaydırmak zorunda kalıyordu (Serhat:
+          "en altta geliyor zor oluyor"). Aynı sorun üye sayfasında bir kez
+          çözülmüş; kalıp oradan alındı — zemine tıklamak ve Esc kapatıyor. */}
       {acikTakim && (
-        <div className="card card-pad">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div className="card-title">{acikTakim.takim}</div>
-            <button
-              className="btn btn-sm"
-              onClick={() => {
-                setAcikTakim(null);
-                setKayit(null);
-              }}
-            >
-              Kapat
-            </button>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              alignItems: "center",
-              marginBottom: 14,
-            }}
-          >
-            <button
-              className="btn btn-sm"
-              onClick={() => kayitAc("TEAM", acikTakim.takimId)}
-            >
-              Takım bilgileri
-            </button>
-            {acikTakim.venueId ? (
-              <button
-                className="btn btn-sm"
-                onClick={() => kayitAc("VENUE", acikTakim.venueId!)}
-              >
-                Stadyum bilgileri
+        <div className="modal-overlay" onClick={kapat}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="card-title" style={{ margin: 0 }}>
+                {acikTakim.takim}{" "}
+                <span
+                  className="muted"
+                  style={{ fontWeight: 400, fontSize: 13 }}
+                >
+                  #{acikTakim.takimId}
+                </span>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={kapat}>
+                Kapat
               </button>
-            ) : (
-              <span className="muted" style={{ fontSize: 12.5 }}>
-                Stadyum bağlı değil — önce &quot;Takım bilgileri&quot; içinden
-                stadyum seç.
-              </span>
-            )}
-          </div>
-
-          {oyuncular.length > 0 && (
-            <div className="table-wrap" style={{ marginBottom: 14 }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Oyuncu</th>
-                    <th>Mevki</th>
-                    <th>Doğum</th>
-                    <th>Boy</th>
-                    <th style={{ textAlign: "right" }}>Eksik</th>
-                    <th style={{ width: 96 }} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {oyuncular.map((o) => (
-                    <tr key={o.id}>
-                      <td>
-                        <div className="cell-title" style={{ maxWidth: 260 }}>
-                          {o.ad}
-                          {o.yamali && (
-                            <span
-                              className="badge badge-lang"
-                              style={{ marginLeft: 8 }}
-                              title="Bu kayıtta elle yama var — senkron dokunamıyor"
-                            >
-                              yamalı
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>{o.mevki ?? <Eksik>—</Eksik>}</td>
-                      <td>{o.dogum ?? <Eksik>—</Eksik>}</td>
-                      <td>{o.boy ?? <Eksik>—</Eksik>}</td>
-                      <Sayi deger={o.eksik} />
-                      <td>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => kayitAc("PLAYER", o.id)}
-                        >
-                          Düzenle
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
-          )}
 
-          {kayit && (
-            <KayitDuzenle
-              kayit={kayit}
-              onDegisti={async () => {
-                setKayit(await apiVeriKayit(kayit.tur, kayit.id));
-                if (acikTakim) {
-                  setOyuncular(await apiVeriOyuncular(acikTakim.takimId));
-                  if (lig) await raporuYukle(lig.id);
-                }
-              }}
-            />
-          )}
+            <div className="card-pad">
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  marginBottom: 14,
+                }}
+              >
+                <button
+                  className="btn btn-sm"
+                  onClick={() => kayitAc("TEAM", acikTakim.takimId)}
+                >
+                  Takım bilgileri
+                </button>
+                {acikTakim.venueId ? (
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => kayitAc("VENUE", acikTakim.venueId!)}
+                  >
+                    Stadyum bilgileri
+                  </button>
+                ) : (
+                  <span className="muted" style={{ fontSize: 12.5 }}>
+                    Stadyum bağlı değil — önce &quot;Takım bilgileri&quot;
+                    içinden stadyum seç.
+                  </span>
+                )}
+              </div>
+
+              {oyuncular.length > 0 && (
+                <div className="table-wrap" style={{ marginBottom: 14 }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Oyuncu</th>
+                        <th>Mevki</th>
+                        <th>Doğum</th>
+                        <th>Boy</th>
+                        <th style={{ textAlign: "right" }}>Eksik</th>
+                        <th style={{ width: 96 }} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {oyuncular.map((o) => (
+                        <tr key={o.id}>
+                          <td>
+                            <div
+                              className="cell-title"
+                              style={{ maxWidth: 260 }}
+                            >
+                              {o.ad}
+                              {o.yamali && (
+                                <span
+                                  className="badge badge-lang"
+                                  style={{ marginLeft: 8 }}
+                                  title="Bu kayıtta elle yama var — senkron dokunamıyor"
+                                >
+                                  yamalı
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{o.mevki ?? <Eksik>—</Eksik>}</td>
+                          <td>{o.dogum ?? <Eksik>—</Eksik>}</td>
+                          <td>{o.boy ?? <Eksik>—</Eksik>}</td>
+                          <Sayi deger={o.eksik} />
+                          <td>
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => kayitAc("PLAYER", o.id)}
+                            >
+                              Düzenle
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {kayit && (
+                <div ref={kayitRef}>
+                  <KayitDuzenle
+                    kayit={kayit}
+                    onDegisti={async () => {
+                      setKayit(await apiVeriKayit(kayit.tur, kayit.id));
+                      if (acikTakim) {
+                        setOyuncular(await apiVeriOyuncular(acikTakim.takimId));
+                        if (lig) await raporuYukle(lig.id);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
