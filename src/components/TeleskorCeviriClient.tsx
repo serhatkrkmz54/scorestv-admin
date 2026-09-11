@@ -38,6 +38,10 @@ const TURLER: [string, string][] = [
   ["COUNTRY", "Ülkeler"],
   ["COACH", "Teknik Direktörler"],
   ["REFEREE", "Hakemler"],
+  // 11 Eylül: motorun görünümü VENUE dalını V15'ten beri taşıyordu; eksik olan
+  // yalnız sunucudaki tür listesiydi (panel 400 alıyordu). Stadyum ADI burada,
+  // kapasite/şehir ise Veri Düzeltme masasında.
+  ["VENUE", "Stadyumlar"],
   ["CATEGORY", "Kategoriler"],
   ["BASKET_TEAM", "🏀 Takımlar"],
   ["BASKET_COMPETITION", "🏀 Ligler"],

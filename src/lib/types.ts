@@ -1685,3 +1685,73 @@ export interface SurumNotuIstegi {
   yayinAt?: string;
   medyaIdler?: number[];
 }
+
+// ---------------------------------------------------------------------------
+// VERİ DÜZELTME MASASI — alan yamaları (motor V96)
+//
+// Çeviri masası ADI düzeltiyor; bu masa ALANLARI: stadyum kapasitesi, şehir,
+// oyuncunun mevkisi/doğum tarihi/boyu, takımın stadı. Senkron yamalı alanın
+// üstüne yazamıyor (veritabanı tetikleyicisi).
+// ---------------------------------------------------------------------------
+
+export interface VeriAlani {
+  tur: "VENUE" | "TEAM" | "PLAYER";
+  alan: string;
+  etiket: string;
+  tip: "metin" | "tamsayi" | "tarih" | "referans";
+  referansTur?: string | null;
+  /** Eksik raporunda sayılsın mı (web sitesi olmayan alt lig takımı eksiklik değil). */
+  eksikSayilir: boolean;
+}
+
+/** Ligin bir takımı ve eksikleri — "neyi doldurmam gerekiyor" satırı. */
+export interface TakimEksigi {
+  takimId: number;
+  takim: string;
+  venueId?: number | null;
+  stadyum?: string | null;
+  kapasiteVar: boolean;
+  sehirVar: boolean;
+  oyuncu: number;
+  mevkiEksik: number;
+  dogumEksik: number;
+  boyEksik: number;
+  /** Mevkisi DE doğumu DE boyu olmayan oyuncu: "içinde hiç veri yok" kayıtlar. */
+  bosOyuncu: number;
+}
+
+export interface VeriOyuncusu {
+  id: number;
+  ad: string;
+  mevki?: string | null;
+  dogum?: string | null;
+  boy?: number | null;
+  yamali: boolean;
+  eksik: number;
+}
+
+// NOT: motorun yanıtında NULL alanlar HİÇ GÖNDERİLMİYOR (global NON_NULL).
+// Bu yüzden aşağıdakiler `| null` değil OPSİYONEL: `yama !== null` biçiminde
+// bir kontrol `undefined` için true döner ve yaması olmayan alanda "yamalı"
+// işareti çıkardı. Ölçüldü — uçtan uca denemede yakalandı.
+export interface VeriAlanDurumu {
+  alan: string;
+  etiket: string;
+  tip: "metin" | "tamsayi" | "tarih" | "referans";
+  referansTur?: string | null;
+  /** Ana tablodaki şu anki değer (yama varsa yamanın uygulanmış hâli). */
+  deger?: string | null;
+  /** Elle girdiğimiz yama; senkron buna ASLA dokunmuyor. */
+  yama?: string | null;
+  gerekce?: string | null;
+  saglayiciSonDeger?: string | null;
+  /** Yama var ama sağlayıcı artık başka bir şey gönderiyor — karar kullanıcının. */
+  sapma: boolean;
+}
+
+export interface VeriKaydi {
+  tur: "VENUE" | "TEAM" | "PLAYER";
+  id: number;
+  ad: string;
+  alanlar: VeriAlanDurumu[];
+}

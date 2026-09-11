@@ -87,6 +87,10 @@ import type {
   TeleskorMacOzeti,
   OneCikanLigAramaSatiri,
   OneCikanLigIstegi,
+  VeriAlani,
+  TakimEksigi,
+  VeriOyuncusu,
+  VeriKaydi,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1415,4 +1419,51 @@ export async function apiTeleskorSurumNotuSil(id: number): Promise<void> {
     method: "DELETE",
   });
   await parse<unknown>(res);
+}
+
+// ---------------------------------------------------------------------------
+// VERİ DÜZELTME MASASI (motor V96) — alan yamaları
+// ---------------------------------------------------------------------------
+
+export async function apiVeriAlanlar(): Promise<VeriAlani[]> {
+  const res = await fetch("/api/teleskor/veri/alanlar", { cache: "no-store" });
+  return parse<VeriAlani[]>(res);
+}
+
+export async function apiVeriEksik(lig: number): Promise<TakimEksigi[]> {
+  const res = await fetch(`/api/teleskor/veri/eksik?lig=${lig}`, {
+    cache: "no-store",
+  });
+  return parse<TakimEksigi[]>(res);
+}
+
+export async function apiVeriOyuncular(takim: number): Promise<VeriOyuncusu[]> {
+  const res = await fetch(`/api/teleskor/veri/oyuncular?takim=${takim}`, {
+    cache: "no-store",
+  });
+  return parse<VeriOyuncusu[]>(res);
+}
+
+export async function apiVeriKayit(
+  tur: string,
+  id: number,
+): Promise<VeriKaydi> {
+  const res = await fetch(
+    `/api/teleskor/veri/kayit?tur=${encodeURIComponent(tur)}&id=${id}`,
+    { cache: "no-store" },
+  );
+  return parse<VeriKaydi>(res);
+}
+
+/** `deger` null ise alan boşaltılır; `kaldir` ise yama silinir. */
+export async function apiVeriYaz(istek: {
+  tur: string;
+  id: number;
+  alan: string;
+  deger?: string | null;
+  gerekce?: string;
+  kaldir?: boolean;
+}): Promise<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }> {
+  const res = await fetch("/api/teleskor/veri", jsonInit("PUT", istek));
+  return parse<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }>(res);
 }

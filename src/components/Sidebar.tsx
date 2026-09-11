@@ -21,6 +21,7 @@ import {
   Gamepad2,
   ShoppingBag,
   UserCog,
+  ClipboardList,
   Languages,
   LifeBuoy,
   ShieldAlert,
@@ -192,6 +193,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
+  const isTeleskorVeri = pathname.startsWith("/teleskor/veri");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
   const isTeleskorSurumNotu = pathname.startsWith("/teleskor/surum-notu");
@@ -427,6 +429,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <Languages className="icon" size={22} />
               Çeviri Düzeltme
+            </Link>
+            <Link
+              href="/teleskor/veri"
+              className={`nav-item ${isTeleskorVeri ? "active" : ""}`}
+            >
+              <ClipboardList className="icon" size={22} />
+              Veri Düzeltme
             </Link>
             <Link
               href="/teleskor/denetim"
