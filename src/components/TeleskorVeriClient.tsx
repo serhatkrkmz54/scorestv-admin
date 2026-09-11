@@ -6,6 +6,7 @@ import {
   apiVeriEksik,
   apiVeriKayit,
   apiVeriOyuncular,
+  apiVeriStadyumlar,
   apiVeriYaz,
   apiTeleskorLigAra,
   ApiError,
@@ -15,6 +16,7 @@ import type {
   VeriAlanDurumu,
   VeriKaydi,
   VeriOyuncusu,
+  VeriStadyumu,
 } from "@/lib/types";
 
 /**
@@ -544,6 +546,264 @@ function KayitDuzenle({
   );
 }
 
+/**
+ * STADYUM SEÇİCİ — `referans` alanların çıplak sayı kutusunu bitiren bileşen.
+ *
+ * <h3>Neden var</h3>
+ * `TEAM.venue_id` motorun beyaz listesinde V96'dan beri yamalanabilir
+ * duruyordu, ama panel onu "kimlik (sayı)" yazan bir metin kutusu olarak
+ * çiziyordu: doğru stadyumu yazmak için kimliğini EZBERE bilmek gerekiyordu.
+ * Yani teknik olarak açık, pratikte kullanılamaz bir alandı.
+ *
+ * <h3>Takım sayısı SEÇMEDEN ÖNCE görünüyor</h3>
+ * Stadyum paylaşmak olağan (aynı kulübün genç/kadın takımları, tek millî
+ * stadı olan ülkeler, aynı şehirde aynı sahayı kullanan kulüpler). Serhat'ta
+ * yaşanan karışıklık ("Bodrumspor'un stadını düzelttim, Muğlaspor'unki de
+ * değişti") bunu görmemekten doğuyordu. Sayı seçim anında gösteriliyor —
+ * sonradan uyarmak, kararı verdikten sonra uyarmak demek.
+ *
+ * <h3>Yalnız VENUE</h3>
+ * `PLAYER.team_id` de bir `referans` alan ama seçicisi henüz yok; orada eski
+ * sayı kutusu duruyor. Bilerek: takım seçicisi ayrı bir uç ister ve bu tur
+ * takım sayfasını hedefliyor.
+ */
+function StadyumSecici({
+  deger,
+  onSec,
+  onYazmayaBasla,
+}: {
+  deger: string;
+  onSec: (id: string) => void;
+  onYazmayaBasla: () => void;
+}) {
+  const [secili, setSecili] = useState<VeriStadyumu | null>(null);
+  const [cozuluyor, setCozuluyor] = useState(false);
+  const [acik, setAcik] = useState(false);
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<VeriStadyumu[]>([]);
+  const [araniyor, setAraniyor] = useState(false);
+  const [hata, setHata] = useState("");
+  // Uçuştaki aramanın hangi metne ait olduğu. Kutu değiştiyse gelen sonuç
+  // BAYAT sayılıyor ve ekrana basılmıyor — onboarding aramasında ödenen ders.
+  const sonAramaRef = useRef("");
+
+  // Mevcut değerin adını çöz. `secili` bağımlılığa KONMUYOR: konsaydı her
+  // çözümden sonra effect yeniden koşar ve sonsuz istek üretirdi.
+  useEffect(() => {
+    const n = Number(deger);
+    if (!deger.trim() || !Number.isInteger(n) || n <= 0) {
+      setSecili(null);
+      return;
+    }
+    let iptal = false;
+    setCozuluyor(true);
+    apiVeriStadyumlar({ ids: [n] })
+      .then((liste) => {
+        if (!iptal) setSecili(liste[0] ?? null);
+      })
+      .catch(() => {
+        // Çözülemedi — ekranda ham kimlik kalıyor. Uydurma bir ad basmak,
+        // kimlik göstermekten kötü olurdu.
+        if (!iptal) setSecili(null);
+      })
+      .finally(() => {
+        if (!iptal) setCozuluyor(false);
+      });
+    return () => {
+      iptal = true;
+    };
+  }, [deger]);
+
+  // Arama: 350 ms bekletici. Her tuşta istek atmak motora gereksiz yük,
+  // beklemeden aramak da yazarken ekranı zıplatır.
+  useEffect(() => {
+    if (!acik) return;
+    const ara = q.trim();
+    sonAramaRef.current = ara;
+    if (ara.length < 2) {
+      setSonuc([]);
+      setAraniyor(false);
+      return;
+    }
+    setAraniyor(true);
+    const zaman = setTimeout(() => {
+      apiVeriStadyumlar({ q: ara })
+        .then((liste) => {
+          if (sonAramaRef.current !== ara) return;
+          setSonuc(liste);
+          setHata("");
+        })
+        .catch((e) => {
+          if (sonAramaRef.current !== ara) return;
+          setHata(e instanceof ApiError ? e.message : "Arama başarısız.");
+        })
+        .finally(() => {
+          if (sonAramaRef.current === ara) setAraniyor(false);
+        });
+    }, 350);
+    return () => clearTimeout(zaman);
+  }, [q, acik]);
+
+  function sec(s: VeriStadyumu) {
+    onSec(String(s.id));
+    setSecili(s);
+    setAcik(false);
+    setQ("");
+    setSonuc([]);
+    onYazmayaBasla();
+  }
+
+  if (!acik) {
+    return (
+      <div style={{ display: "grid", gap: 4 }}>
+        <div
+          className="input"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            cursor: "pointer",
+            minHeight: 36,
+          }}
+          onClick={() => setAcik(true)}
+        >
+          <span style={{ minWidth: 0 }}>
+            {secili ? (
+              <>
+                <span className="cell-title">{secili.ad}</span>
+                <span className="cell-sub">{stadyumAltYazi(secili)}</span>
+              </>
+            ) : cozuluyor ? (
+              <span className="muted">çözülüyor…</span>
+            ) : deger.trim() ? (
+              <span className="muted">#{deger} — katalogda bulunamadı</span>
+            ) : (
+              <span className="muted">Stadyum seçilmemiş</span>
+            )}
+          </span>
+          <span className="muted" style={{ fontSize: 11, whiteSpace: "nowrap" }}>
+            değiştir
+          </span>
+        </div>
+        {secili && secili.takimSayisi > 1 && (
+          <div style={{ fontSize: 11, color: "var(--warning)" }}>
+            Bu stadyuma {secili.takimSayisi} takım bakıyor — burada yapılan
+            stadyum düzeltmesi hepsinde görünür.
+          </div>
+        )}
+        {secili?.taslak && (
+          <div style={{ fontSize: 11, color: "var(--warning)" }}>
+            Yer tutucu kayıt — gerçek bir stadyum seçilmeli.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <input
+        className="input"
+        autoFocus
+        value={q}
+        placeholder="Stadyum ara (ad, özgün ad ya da şehir)"
+        onChange={(e) => setQ(e.target.value)}
+      />
+      <div
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          maxHeight: 260,
+          overflowY: "auto",
+        }}
+      >
+        {q.trim().length < 2 ? (
+          <div className="muted" style={{ fontSize: 12, padding: 10 }}>
+            En az iki harf yaz. Türkçe harf şart değil: “mugla” da “Muğla”yı
+            bulur.
+          </div>
+        ) : hata ? (
+          <div style={{ fontSize: 12, padding: 10, color: "var(--danger)" }}>
+            {hata}
+          </div>
+        ) : araniyor ? (
+          <div className="muted" style={{ fontSize: 12, padding: 10 }}>
+            aranıyor…
+          </div>
+        ) : sonuc.length === 0 ? (
+          <div className="muted" style={{ fontSize: 12, padding: 10 }}>
+            Eşleşen stadyum yok.
+          </div>
+        ) : (
+          sonuc.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => sec(s)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                background: "none",
+                border: "none",
+                borderBottom: "1px solid var(--border)",
+                padding: "8px 10px",
+                cursor: "pointer",
+              }}
+            >
+              <span className="cell-title">{s.ad}</span>
+              <span className="cell-sub">{stadyumAltYazi(s)}</span>
+            </button>
+          ))
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost"
+          onClick={() => {
+            setAcik(false);
+            setQ("");
+          }}
+        >
+          Vazgeç
+        </button>
+        {deger.trim() !== "" && (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            title="Takımın stadyumu bilinmiyor olarak işaretlenir"
+            onClick={() => {
+              onSec("");
+              setSecili(null);
+              setAcik(false);
+              setQ("");
+              onYazmayaBasla();
+            }}
+          >
+            Boşalt
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Seçici satırının alt yazısı: şehir · ülke · kapasite · kaç takım. */
+function stadyumAltYazi(s: VeriStadyumu): string {
+  const parcalar: string[] = [];
+  if (s.sehir) parcalar.push(s.sehir);
+  if (s.ulke) parcalar.push(s.ulke);
+  if (s.kapasite) parcalar.push(`${s.kapasite.toLocaleString("tr-TR")} kişi`);
+  if (s.ozgunAd && s.ozgunAd !== s.ad) parcalar.push(`özgün: ${s.ozgunAd}`);
+  parcalar.push(
+    s.takimSayisi === 0 ? "takım bağlı değil" : `${s.takimSayisi} takım`,
+  );
+  parcalar.push(`#${s.id}`);
+  return parcalar.join(" · ");
+}
+
 function AlanSatiri({
   tur,
   id,
@@ -559,6 +819,10 @@ function AlanSatiri({
   // alanda da true döner. Tek yerde hesaplanıyor: iki kullanım yerine
   // kopyalansaydı biri düzeltilirken diğeri unutulurdu.
   const yamaliMi = alan.yama !== null && alan.yama !== undefined;
+  // Seçicisi olan tek referans türü bugün VENUE. `PLAYER.team_id` de
+  // `referans` ama seçicisi yok; orada eski sayı kutusu duruyor ve
+  // "kimlik (sayı)" ipucu hâlâ anlamlı.
+  const stadyumAlani = alan.tip === "referans" && alan.referansTur === "VENUE";
   const [deger, setDeger] = useState(alan.yama ?? alan.deger ?? "");
   const [gerekce, setGerekce] = useState(alan.gerekce ?? "");
   const [durum, setDurum] = useState<Durum>("");
@@ -650,7 +914,7 @@ function AlanSatiri({
             yamalı
           </span>
         )}
-        {alan.tip === "referans" && (
+        {alan.tip === "referans" && !stadyumAlani && (
           <div className="cell-sub">kimlik (sayı)</div>
         )}
         {alan.sapma && (
@@ -661,15 +925,23 @@ function AlanSatiri({
       </div>
 
       <div style={{ display: "grid", gap: 6 }}>
-        <input
-          className="input"
-          value={deger}
-          placeholder={alan.tip === "tarih" ? "YYYY-AA-GG" : ""}
-          onChange={(e) => {
-            setDeger(e.target.value);
-            yazmayaBasla();
-          }}
-        />
+        {stadyumAlani ? (
+          <StadyumSecici
+            deger={deger}
+            onSec={setDeger}
+            onYazmayaBasla={yazmayaBasla}
+          />
+        ) : (
+          <input
+            className="input"
+            value={deger}
+            placeholder={alan.tip === "tarih" ? "YYYY-AA-GG" : ""}
+            onChange={(e) => {
+              setDeger(e.target.value);
+              yazmayaBasla();
+            }}
+          />
+        )}
         <input
           className="input"
           style={{ fontSize: 12 }}

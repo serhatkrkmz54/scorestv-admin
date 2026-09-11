@@ -91,6 +91,7 @@ import type {
   TakimEksigi,
   VeriOyuncusu,
   VeriKaydi,
+  VeriStadyumu,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1480,6 +1481,23 @@ export async function apiVeriOyuncular(takim: number): Promise<VeriOyuncusu[]> {
     cache: "no-store",
   });
   return parse<VeriOyuncusu[]>(res);
+}
+
+/**
+ * Stadyum seçici. `q` ile arar, `ids` ile mevcut değerin adını çözer.
+ * İkisi de boşsa istek ATILMIYOR — cevabı zaten boş liste.
+ */
+export async function apiVeriStadyumlar(
+  arama: { q?: string; ids?: number[] },
+): Promise<VeriStadyumu[]> {
+  const q = (arama.q ?? "").trim();
+  const ids = (arama.ids ?? []).join(",");
+  if (!ids && q.length < 2) return [];
+  const res = await fetch(
+    `/api/teleskor/veri/stadyumlar?q=${encodeURIComponent(q)}&ids=${ids}`,
+    { cache: "no-store" },
+  );
+  return parse<VeriStadyumu[]>(res);
 }
 
 export async function apiVeriKayit(

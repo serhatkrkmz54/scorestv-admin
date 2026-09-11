@@ -1749,6 +1749,27 @@ export interface VeriAlanDurumu {
   sapma: boolean;
 }
 
+/**
+ * Stadyum seçicinin bir satırı.
+ *
+ * `takimSayisi` SEÇMEDEN ÖNCE görünüyor: stadyum paylaşmak olağan, ama
+ * paylaşıldığını bilmeden düzenlemek karışıklık üretiyor (Serhat'ta birebir
+ * yaşandı: Bodrumspor'un stadını düzeltti, Muğlaspor'unki de değişti).
+ */
+export interface VeriStadyumu {
+  id: number;
+  ad: string;
+  /** `real_name` — sponsorluk değişse de sabit kalan ad. */
+  ozgunAd: string | null;
+  sehir: string | null;
+  ulke: string | null;
+  kapasite: number | null;
+  yamali: boolean;
+  /** Yer tutucu satır: aramada çıkmaz, yalnız `ids` ile çözülünce görünür. */
+  taslak: boolean;
+  takimSayisi: number;
+}
+
 export interface VeriKaydi {
   tur: "VENUE" | "TEAM" | "PLAYER";
   id: number;
