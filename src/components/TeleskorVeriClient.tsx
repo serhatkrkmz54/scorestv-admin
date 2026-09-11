@@ -124,26 +124,31 @@ export default function TeleskorVeriClient() {
     }
   }
 
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      {/* ---------- Lig seçimi ---------- */}
       <div className="card card-pad">
-        <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>Veri Düzeltme Masası</h2>
-        <p style={{ margin: "0 0 12px", fontSize: 13, opacity: 0.75 }}>
+        <div className="card-title">Veri Düzeltme Masası</div>
+        <p className="muted" style={{ fontSize: 13, margin: "6px 0 16px" }}>
           Sağlayıcının eksik ya da yanlış gönderdiği alanları elle doldurur.
           Yazdığın değer <b>senkronla ezilmez</b>. Takım/oyuncu/stadyum{" "}
           <b>adları</b> için Çeviri Düzeltme sayfasını kullan.
         </p>
 
-        <label style={{ fontSize: 13, fontWeight: 600 }}>Lig seç</label>
+        <label className="label" htmlFor="veri-lig-ara">
+          Lig seç
+        </label>
         <input
+          id="veri-lig-ara"
           className="input"
           placeholder="Lig ara (en az 2 harf) — örn. 2. Lig"
           value={ligAramasi}
           onChange={(e) => setLigAramasi(e.target.value)}
-          style={{ marginTop: 6 }}
         />
+
         {ligSecenekleri.length > 0 && (
-          <div style={{ marginTop: 8, display: "grid", gap: 4 }}>
+          <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
             {ligSecenekleri.map((l) => (
               <button
                 key={l.ligId}
@@ -152,21 +157,27 @@ export default function TeleskorVeriClient() {
                 onClick={() => ligSec(l.ligId, l.ad ?? `#${l.ligId}`)}
               >
                 {l.ad ?? `#${l.ligId}`}
-                {l.ulke ? (
-                  <span style={{ opacity: 0.6 }}> · {l.ulke}</span>
-                ) : null}
+                {l.ulke ? <span className="muted"> · {l.ulke}</span> : null}
               </button>
             ))}
           </div>
         )}
+
         {lig && (
-          <div style={{ marginTop: 10, fontSize: 14 }}>
-            Seçili lig: <b>{lig.ad}</b>{" "}
-            <button
-              className="btn btn-sm"
-              onClick={() => raporuYukle(lig.id)}
-              style={{ marginLeft: 8 }}
-            >
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <span className="muted" style={{ fontSize: 12.5 }}>
+              Seçili lig
+            </span>
+            <span style={{ fontWeight: 600 }}>{lig.ad}</span>
+            <button className="btn btn-sm" onClick={() => raporuYukle(lig.id)}>
               Yenile
             </button>
           </div>
@@ -174,50 +185,82 @@ export default function TeleskorVeriClient() {
       </div>
 
       {hata && <div className="alert alert-error">{hata}</div>}
-      {yukleniyor && <div className="card card-pad">Yükleniyor…</div>}
+
+      {yukleniyor && (
+        <div className="card card-pad muted" style={{ fontSize: 13 }}>
+          Yükleniyor…
+        </div>
+      )}
 
       {!yukleniyor && lig && eksikler.length === 0 && !hata && (
-        <div className="card card-pad">
+        <div className="card card-pad muted" style={{ fontSize: 13 }}>
           Bu ligde takım bulunamadı. (Kupa ve alt gruplarda takımlar fikstürden
           türetiliyor; fikstür henüz çekilmemiş olabilir.)
         </div>
       )}
 
+      {/* ---------- Eksik raporu ---------- */}
       {eksikler.length > 0 && (
         <div className="card card-pad">
-          <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>
-            Eksik raporu — {eksikler.length} takım
-          </h3>
-          <div style={{ overflowX: "auto" }}>
-            <table className="table" style={{ fontSize: 13 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div className="card-title">Eksik raporu</div>
+            <span className="muted" style={{ fontSize: 12.5 }}>
+              {eksikler.length} takım
+            </span>
+          </div>
+          <p className="muted" style={{ fontSize: 12, margin: "6px 0 14px" }}>
+            Kırmızı sayılar eksik kayıt adedidir; liste en eksik takımdan
+            başlar.
+          </p>
+
+          <div className="table-wrap">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Takım</th>
                   <th>Stadyum</th>
-                  <th>Kapasite</th>
-                  <th>Şehir</th>
-                  <th>Oyuncu</th>
-                  <th>Mevki yok</th>
-                  <th>Doğum yok</th>
-                  <th>Boy yok</th>
-                  <th>Boş kayıt</th>
-                  <th></th>
+                  <th style={{ textAlign: "right" }}>Oyuncu</th>
+                  <th style={{ textAlign: "right" }}>Mevki yok</th>
+                  <th style={{ textAlign: "right" }}>Doğum yok</th>
+                  <th style={{ textAlign: "right" }}>Boy yok</th>
+                  <th style={{ textAlign: "right" }}>Boş kayıt</th>
+                  <th style={{ width: 96 }} />
                 </tr>
               </thead>
               <tbody>
                 {eksikler.map((t) => (
                   <tr key={t.takimId}>
-                    <td>{t.takim}</td>
-                    <td>{t.stadyum ?? <Eksik>yok</Eksik>}</td>
-                    <td>{t.kapasiteVar ? "✓" : <Eksik>—</Eksik>}</td>
-                    <td>{t.sehirVar ? "✓" : <Eksik>—</Eksik>}</td>
-                    <td>{t.oyuncu}</td>
-                    <td>{t.mevkiEksik > 0 ? <Eksik>{t.mevkiEksik}</Eksik> : "0"}</td>
-                    <td>{t.dogumEksik > 0 ? <Eksik>{t.dogumEksik}</Eksik> : "0"}</td>
-                    <td>{t.boyEksik > 0 ? <Eksik>{t.boyEksik}</Eksik> : "0"}</td>
                     <td>
-                      {t.bosOyuncu > 0 ? <Eksik>{t.bosOyuncu}</Eksik> : "0"}
+                      <div className="cell-title" style={{ maxWidth: 240 }}>
+                        {t.takim}
+                      </div>
                     </td>
+                    <td>
+                      {t.stadyum ? (
+                        <div style={{ maxWidth: 260 }}>{t.stadyum}</div>
+                      ) : (
+                        <Eksik>stadyum bağlı değil</Eksik>
+                      )}
+                      {t.stadyum && (!t.kapasiteVar || !t.sehirVar) && (
+                        <div className="cell-sub">
+                          {!t.kapasiteVar && <Eksik>kapasite yok</Eksik>}
+                          {!t.kapasiteVar && !t.sehirVar && " · "}
+                          {!t.sehirVar && <Eksik>şehir yok</Eksik>}
+                        </div>
+                      )}
+                    </td>
+                    <Sayi deger={t.oyuncu} notr />
+                    <Sayi deger={t.mevkiEksik} />
+                    <Sayi deger={t.dogumEksik} />
+                    <Sayi deger={t.boyEksik} />
+                    <Sayi deger={t.bosOyuncu} />
                     <td>
                       <button className="btn btn-sm" onClick={() => takimAc(t)}>
                         Düzenle
@@ -231,12 +274,39 @@ export default function TeleskorVeriClient() {
         </div>
       )}
 
+      {/* ---------- Seçili takım ---------- */}
       {acikTakim && (
         <div className="card card-pad">
-          <h3 style={{ margin: "0 0 10px", fontSize: 15 }}>
-            {acikTakim.takim}
-          </h3>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            <div className="card-title">{acikTakim.takim}</div>
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setAcikTakim(null);
+                setKayit(null);
+              }}
+            >
+              Kapat
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              alignItems: "center",
+              marginBottom: 14,
+            }}
+          >
             <button
               className="btn btn-sm"
               onClick={() => kayitAc("TEAM", acikTakim.takimId)}
@@ -251,7 +321,7 @@ export default function TeleskorVeriClient() {
                 Stadyum bilgileri
               </button>
             ) : (
-              <span style={{ fontSize: 13, opacity: 0.7, alignSelf: "center" }}>
+              <span className="muted" style={{ fontSize: 12.5 }}>
                 Stadyum bağlı değil — önce &quot;Takım bilgileri&quot; içinden
                 stadyum seç.
               </span>
@@ -259,31 +329,39 @@ export default function TeleskorVeriClient() {
           </div>
 
           {oyuncular.length > 0 && (
-            <div style={{ overflowX: "auto", marginBottom: 12 }}>
-              <table className="table" style={{ fontSize: 13 }}>
+            <div className="table-wrap" style={{ marginBottom: 14 }}>
+              <table className="data-table">
                 <thead>
                   <tr>
                     <th>Oyuncu</th>
                     <th>Mevki</th>
                     <th>Doğum</th>
                     <th>Boy</th>
-                    <th>Eksik</th>
-                    <th></th>
+                    <th style={{ textAlign: "right" }}>Eksik</th>
+                    <th style={{ width: 96 }} />
                   </tr>
                 </thead>
                 <tbody>
                   {oyuncular.map((o) => (
                     <tr key={o.id}>
                       <td>
-                        {o.ad}
-                        {o.yamali && (
-                          <span title="Bu kayıtta elle yama var"> ✎</span>
-                        )}
+                        <div className="cell-title" style={{ maxWidth: 260 }}>
+                          {o.ad}
+                          {o.yamali && (
+                            <span
+                              className="badge badge-lang"
+                              style={{ marginLeft: 8 }}
+                              title="Bu kayıtta elle yama var — senkron dokunamıyor"
+                            >
+                              yamalı
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>{o.mevki ?? <Eksik>—</Eksik>}</td>
                       <td>{o.dogum ?? <Eksik>—</Eksik>}</td>
                       <td>{o.boy ?? <Eksik>—</Eksik>}</td>
-                      <td>{o.eksik > 0 ? <Eksik>{o.eksik}</Eksik> : "0"}</td>
+                      <Sayi deger={o.eksik} />
                       <td>
                         <button
                           className="btn btn-sm"
@@ -317,8 +395,35 @@ export default function TeleskorVeriClient() {
   );
 }
 
+/** Eksik/uyarı vurgusu. Renk SABİT HEX DEĞİL: panelde koyu tema var. */
 function Eksik({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: "#e5484d", fontWeight: 600 }}>{children}</span>;
+  return (
+    <span style={{ color: "var(--danger)", fontWeight: 600 }}>{children}</span>
+  );
+}
+
+/**
+ * Sağa yaslı sayı hücresi.
+ *
+ * {@code tabular-nums} olmadan rakamlar farklı genişlikte çiziliyor ve alt
+ * alta gelen sayılar hizalanmıyor — 18 takımlık bir sütunda göz taramayı
+ * bırakıyor. {@code notr} sayının bir EKSİK değil bir toplam olduğunu
+ * söylüyor (kadro mevcudu): orada sıfır da, büyük sayı da olağan.
+ */
+function Sayi({ deger, notr = false }: { deger: number; notr?: boolean }) {
+  const eksik = !notr && deger > 0;
+  return (
+    <td
+      className={!notr && deger === 0 ? "muted" : undefined}
+      style={{
+        textAlign: "right",
+        fontVariantNumeric: "tabular-nums",
+        ...(eksik ? { color: "var(--danger)", fontWeight: 600 } : null),
+      }}
+    >
+      {deger}
+    </td>
+  );
 }
 
 /** Tek kaydın alanları: değer + gerekçe yazılıp kaydediliyor. */
@@ -330,14 +435,14 @@ function KayitDuzenle({
   onDegisti: () => Promise<void>;
 }) {
   return (
-    <div style={{ borderTop: "1px solid var(--border, #333)", paddingTop: 12 }}>
-      <h4 style={{ margin: "0 0 10px", fontSize: 14 }}>
+    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+      <div className="card-title" style={{ fontSize: 14, marginBottom: 12 }}>
         {kayit.ad}{" "}
-        <span style={{ opacity: 0.6, fontWeight: 400 }}>
+        <span className="muted" style={{ fontWeight: 400 }}>
           ({kayit.tur} #{kayit.id})
         </span>
-      </h4>
-      <div style={{ display: "grid", gap: 10 }}>
+      </div>
+      <div style={{ display: "grid", gap: 12 }}>
         {kayit.alanlar.map((a) => (
           <AlanSatiri
             key={a.alan}
@@ -402,26 +507,35 @@ function AlanSatiri({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "minmax(140px,1fr) minmax(140px,1.4fr) auto",
-        gap: 8,
-        alignItems: "center",
+        gridTemplateColumns: "minmax(150px,1fr) minmax(200px,1.6fr) auto",
+        gap: 12,
+        alignItems: "start",
       }}
     >
-      <label style={{ fontSize: 13 }}>
-        {alan.etiket}
+      <div style={{ paddingTop: 8 }}>
+        <span className="label" style={{ marginBottom: 0, display: "inline" }}>
+          {alan.etiket}
+        </span>
         {yamaliMi && (
-          <span title="Elle yamalı — senkron dokunamıyor"> ✎</span>
+          <span
+            className="badge badge-lang"
+            style={{ marginLeft: 8 }}
+            title="Elle yamalı — senkron dokunamıyor"
+          >
+            yamalı
+          </span>
         )}
         {alan.tip === "referans" && (
-          <span style={{ opacity: 0.6, fontSize: 11 }}> (kimlik)</span>
+          <div className="cell-sub">kimlik (sayı)</div>
         )}
         {alan.sapma && (
-          <div style={{ fontSize: 11, color: "#e5a23d", marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>
             Sağlayıcı artık &quot;{alan.saglayiciSonDeger}&quot; gönderiyor.
           </div>
         )}
-      </label>
-      <div style={{ display: "grid", gap: 4 }}>
+      </div>
+
+      <div style={{ display: "grid", gap: 6 }}>
         <input
           className="input"
           value={deger}
@@ -437,17 +551,18 @@ function AlanSatiri({
         />
         {mesaj && (
           <div
+            className={durum === "hata" ? undefined : "muted"}
             style={{
               fontSize: 11,
-              color: durum === "hata" ? "#e5484d" : "inherit",
-              opacity: durum === "hata" ? 1 : 0.7,
+              ...(durum === "hata" ? { color: "var(--danger)" } : null),
             }}
           >
             {mesaj}
           </div>
         )}
       </div>
-      <div style={{ display: "grid", gap: 4 }}>
+
+      <div style={{ display: "grid", gap: 6 }}>
         <button
           className="btn btn-sm"
           disabled={durum === "kaydediliyor"}
