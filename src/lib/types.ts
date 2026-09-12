@@ -1193,9 +1193,43 @@ export interface MotorUcSatiri {
 export interface MotorKullanimi {
   uclar: MotorUcSatiri[];
   toplamIstek: number;
-  toplamOnbellekIsabeti: number;
+  /**
+   * Önbellekten karşılanan istek sayısı.
+   *
+   * ADI SUNUCUNUNKİYLE BİREBİR OLMAK ZORUNDA. Burada bir süre
+   * `toplamOnbellekIsabeti` yazıyordu; sunucu o alanı hiç göndermiyor
+   * (`UsageReport.onbellektenKarsilanan`), yani değer `undefined` kalıyor
+   * ve React onu SESSİZCE hiç çizmiyordu — ekranda "331282 istek ·
+   * önbellekten" yazıyor, aradaki sayı yok. Hiçbir yerde hata patlamıyor.
+   */
+  onbellektenKarsilanan: number;
+  /**
+   * Önbellek isabet oranı (%).
+   *
+   * DÜŞÜK OLMASI TEK BAŞINA ARIZA DEĞİL — bkz. `onbellekCalisiyor`.
+   * Her maç ayrı bir anahtar; yüzlerce maç izlenirken TOPLAM trafik
+   * yükselse de ANAHTAR BAŞINA düşük kalıyor, yani ıska olağan.
+   */
   onbellekIsabetOrani: number;
   olcumSaniye: number;
+  /**
+   * Redis'e ulaşılabiliyor mu — **"önbellek çalışmıyor" demenin tek
+   * geçerli ölçütü.**
+   *
+   * Panel bunu eskiden isabet oranından ÇIKARIYORDU ("trafik yüksek ama
+   * isabet düşükse Redis ölmüş olabilir") ve çıkarım yanlıştı: Redis ölü
+   * olsaydı hiçbir isabet olamazdı, oysa aynı ekranın kendi tablosunda
+   * 773 ve 548 isabet duruyordu.
+   *
+   * Eski sunucu sürümünde gelmiyor → `undefined`. O durumda alarm
+   * ÇALMIYOR (aşağıdaki kullanım yerine bak): bilinmeyen bir durumu
+   * "arızalı" saymak, düzeltmeye çalıştığımız yanlış alarmın aynısı olurdu.
+   */
+  onbellekCalisiyor?: boolean;
+  /** Son Redis hatasının anı (ISO). Hiç hata olmadıysa gelmiyor. */
+  sonHata?: string | null;
+  /** Açılıştan beri kaç Redis hatası — tek tük mü, sürekli mi. */
+  hataSayisi?: number;
 }
 
 export interface DbYukSatiri {
@@ -1718,6 +1752,23 @@ export interface TakimEksigi {
   boyEksik: number;
   /** Mevkisi DE doğumu DE boyu olmayan oyuncu: "içinde hiç veri yok" kayıtlar. */
   bosOyuncu: number;
+  /**
+   * Kullanıcının KADRO SEKMESİNDE göreceği listenin kaynağı.
+   *
+   * - `SAGLAYICI` — sağlayıcının kendi kadrosu (`team_squad`), dokunulmuyor.
+   * - `MAC_KADROLARI` — sağlayıcı bu takımı hiç göndermedi, motor kadroyu
+   *   son 120 günün maç kadrolarından türetti.
+   * - `YOK` — ikisi de yok; **kadro sekmesi bomboş açılıyor**, elle
+   *   doldurulacak takım budur.
+   *
+   * Metin olarak taşınıyor (birlik değil): sunucu yeni bir değer eklerse
+   * eski panel onu tanımaz ama listeyi de düşürmez.
+   */
+  kadroKaynak: "SAGLAYICI" | "MAC_KADROLARI" | "YOK" | string;
+  /** O listenin kaç kişi olduğu. `oyuncu` ile aynı şey DEĞİL — biri katalog bağı. */
+  kadro: number;
+  /** Türetmede kaç maçın kadrosu birleştirildi; türetme yoksa 0. */
+  turetmeMac: number;
 }
 
 export interface VeriOyuncusu {

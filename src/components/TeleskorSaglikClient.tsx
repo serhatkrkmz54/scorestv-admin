@@ -16,10 +16,12 @@ import type { SaglikOzeti, YayinTanisi } from "@/lib/types";
  *   <li><b>Motor durumu:</b> ürün motora ulaşabiliyor mu, devre kesik mi.
  *       Skorlar gelmiyorsa ilk bakılacak yer.</li>
  *   <li><b>Motor kullanımı:</b> önbellek isabet oranı. DÜŞÜK OLMASI TEK
- *       BAŞINA SORUN DEĞİL — canlı kayıt 3 saniye taze, uygulama 8
- *       saniyede bir yokluyor; önbellek ancak aynı maçı aynı anda çok kişi
- *       açtığında devreye giriyor. Anlamlı olan, trafik yüksekken düşük
- *       kalması.</li>
+ *       BAŞINA SORUN DEĞİL — her maç ayrı bir anahtar ve canlı kayıt 3
+ *       saniye taze kalıyor, yani maç detaylarında ıska olağan. "Önbellek
+ *       çalışmıyor" demenin tek ölçütü sunucunun {@code onbellekCalisiyor}
+ *       alanı; oran DEĞİL. (Oranı ölçüt sayan eski kural yanlış alarm
+ *       üretiyordu ve yanlışlığı aynı ekranın kendi tablosunda
+ *       görünüyordu.)</li>
  *   <li><b>Veritabanı yükü:</b> uç başına sorgu sayısı. Yükselen TEKİL
  *       sütunu, araya girmiş bir döngünün (N+1) ilk işareti — toplam
  *       değil: 33 gidiş-dönüşün 32'si toplu yazımsa o satır bir N+1
@@ -35,17 +37,25 @@ import type { SaglikOzeti, YayinTanisi } from "@/lib/types";
  * ("sıfırla, akışı koştur, raporu al") ve panelden yanlışlıkla basılması,
  * o sırada süren bir ölçümü sessizce bozardı. Gerektiğinde Bruno'dan.
  */
-/**
- * Bu eşiğin ALTINDA düşük isabet normal, ÜSTÜNDE sorun işareti.
- *
- * <p>3 saniyelik tazelikte bir maçın kaydı saniyede en fazla 0,33 istek
- * doğuruyor. Saniyede 20 istek, kabaca 60 maçın aynı anda izlendiği
- * demek — o kalabalıkta hâlâ sıfır isabet varsa önbellek çalışmıyordur.
- */
-const YOGUN_ESIK = 20;
-
 function saniyedeIstek(k: { toplamIstek: number; olcumSaniye: number }): number {
   return k.olcumSaniye > 0 ? k.toplamIstek / k.olcumSaniye : 0;
+}
+
+function anMetni(iso?: string | null): string {
+  if (!iso) return "bilinmiyor";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "bilinmiyor";
+  return d.toLocaleString("tr-TR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    // SAAT DİLİMİ SABİT: tarayıcıdan alınsaydı yurt dışından bakan bir
+    // yönetici başka bir saat görürdü ve "arıza kaçta oldu" sorusu iki
+    // kişide iki farklı cevap verirdi.
+    timeZone: "Europe/Istanbul",
+  });
 }
 
 export default function TeleskorSaglikClient() {
@@ -159,41 +169,59 @@ export default function TeleskorSaglikClient() {
         ) : (
           <>
             <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
-              {kullanim.toplamIstek} istek · {kullanim.toplamOnbellekIsabeti}{" "}
+              {kullanim.toplamIstek} istek · {kullanim.onbellektenKarsilanan}{" "}
               önbellekten · <b>%{kullanim.onbellekIsabetOrani}</b> isabet · son{" "}
               {Math.round(kullanim.olcumSaniye / 60)} dakika (
               {saniyedeIstek(kullanim).toFixed(1)} istek/sn)
             </div>
 
-            {/* AÇIKLAMA, UYARI DEĞİL.
-                Önce burada "isabet düşük, süreleri gözden geçir" yazıyordu ve
-                bu YANLIŞ TAVSİYEYDİ: canlı maç önbelleği 3 saniye taze,
-                uygulama 8 saniyede bir yokluyor. Tek izleyicili bir maçta
-                ardışık iki yoklama ASLA aynı 3 saniyeye düşmez — yani düşük
-                isabet, düşük eşzamanlılığın doğal sonucu. Süreyi 8 saniyeye
-                çıkarmak isabeti yükseltirdi ama canlı skoru 8 saniye
-                geciktirirdi; "iyileştirme" ürünün asıl işini bozardı.
-                Uyarı artık yalnız TRAFİK YÜKSEKKEN çıkıyor — orada düşük
-                isabet gerçekten bir sorun işareti. */}
-            {kullanim.onbellekIsabetOrani < 40 &&
-              (saniyedeIstek(kullanim) >= YOGUN_ESIK ? (
-                <div className="alert alert-error" style={{ fontSize: 12.5 }}>
-                  <b>Trafik yüksek ama önbellek isabeti düşük.</b> Saniyede{" "}
-                  {saniyedeIstek(kullanim).toFixed(1)} istek gidiyor ve
-                  neredeyse hiçbiri önbellekten karşılanmıyor. Redis'e
-                  ulaşılamıyor olabilir — motor log'unda{" "}
-                  <i>&quot;Redis&apos;e ulaşılamıyor; motor önbelleği devre
-                  dışı&quot;</i> satırını ara.
+            {/* ALARM ARTIK ÇIKARIM DEĞİL, OLGU.
+                Burada "trafik yüksek ama isabet düşük -> Redis ölmüş
+                olabilir" yazıyordu ve YANLIŞ ALARM üretiyordu: 12 Eylül'de
+                saniyede 25 istekle kırmızı yandı, oysa Redis çalışıyordu ve
+                bunun kanıtı AYNI EKRANIN KENDİ TABLOSUNDAYDI — Redis ölü
+                olsaydı hiçbir isabet olamazdı, oysa liste uçlarında 773 ve
+                548 isabet duruyordu.
+
+                Çıkarımın kendisi geçersizdi: TOPLAM hız, ANAHTAR BAŞINA
+                kalabalığın ölçüsü değil. Her maç ayrı bir anahtar; yüzlerce
+                maç aynı anda izlendiğinde toplam hız yükseliyor ama her
+                anahtar hâlâ tazelik penceresinden seyrek yoklanıyor.
+                Kalabalık yok, ÇEŞİTLİLİK var.
+
+                Sunucu artık gerçeği söylüyor (EngineCache.calisiyor), yani
+                tahmin etmeye gerek kalmadı. */}
+            {kullanim.onbellekCalisiyor === false ? (
+              <div className="alert alert-error" style={{ fontSize: 12.5 }}>
+                <b>Redis&apos;e ulaşılamıyor; motor önbelleği devre dışı.</b>{" "}
+                Son hata: {anMetni(kullanim.sonHata)} · açılıştan beri{" "}
+                {kullanim.hataSayisi ?? 0} hata. Skor istekleri doğrudan motora
+                gidiyor — çalışır ama motora giden istek sayısı kullanıcı
+                sayısıyla birlikte büyür.
+                <div style={{ marginTop: 6 }}>
+                  Bakılacak yer <b>api-1</b> (teleskor-backend) log&apos;u:{" "}
+                  <i>
+                    &quot;Redis&apos;e ulaşılamıyor; motor önbelleği devre
+                    dışı&quot;
+                  </i>{" "}
+                  satırı. Motorun kendi log&apos;u değil — o satırı ürün
+                  backend&apos;i yazıyor.
                 </div>
-              ) : (
+              </div>
+            ) : (
+              kullanim.onbellekIsabetOrani < 40 && (
                 <div className="muted" style={{ fontSize: 12 }}>
-                  Düşük isabet bu trafikte <b>beklenen</b>: canlı maç kaydı 3
-                  saniye taze kalıyor, uygulama 8 saniyede bir yokluyor. Tek
-                  izleyicili bir maçta ardışık iki yoklama aynı 3 saniyeye
-                  düşmüyor. Önbellek kalabalığa karşı çalışıyor — aynı maçı
-                  aynı anda çok kişi açtığında oran kendiliğinden yükselir.
+                  Düşük isabet burada <b>beklenen</b> ve tek başına bir sorun
+                  işareti DEĞİL. Sebep eşzamanlılık değil çeşitlilik: her maç
+                  ayrı bir önbellek anahtarı ve canlı kayıt yalnız 3 saniye
+                  taze kalıyor, yani tek tek maç detayları neredeyse her
+                  seferinde ıskalıyor. Önbelleğin işe yaradığı yer tablodaki
+                  LİSTE uçları (tek anahtarı herkes paylaşıyor) — oradaki
+                  &quot;Önbellek&quot; sütununa bak. Önbellek gerçekten
+                  ölürse burada kırmızı bir uyarı çıkar.
                 </div>
-              ))}
+              )
+            )}
             {kullanim.uclar.length === 0 ? (
               <div className="muted" style={{ fontSize: 13 }}>
                 Henüz istek yok.

@@ -56,6 +56,7 @@ export default function TeleskorVeriClient() {
   const [lig, setLig] = useState<{ id: number; ad: string } | null>(null);
 
   const [eksikler, setEksikler] = useState<TakimEksigi[]>([]);
+  const kadrosuzSayisi = eksikler.filter((e) => e.kadroKaynak === "YOK").length;
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState("");
 
@@ -260,13 +261,27 @@ export default function TeleskorVeriClient() {
             }}
           >
             <div className="card-title">Eksik raporu</div>
+            {/* ÖZET SAYI, LİSTEYİ SAYMAYA GEREK BIRAKMIYOR. Kadrosu olmayan
+                takım sayısı, bu ekranda verilecek tek kararın ("bugün neyi
+                dolduracağım") girdisi; 60 satırlık bir listede onu göz
+                kararı çıkarmak zor. */}
             <span className="muted" style={{ fontSize: 12.5 }}>
+              {kadrosuzSayisi > 0 && (
+                <>
+                  <b style={{ color: "var(--danger)" }}>
+                    {kadrosuzSayisi} takımda kadro yok
+                  </b>
+                  {" · "}
+                </>
+              )}
               {eksikler.length} takım
             </span>
           </div>
           <p className="muted" style={{ fontSize: 12, margin: "6px 0 14px" }}>
             Kırmızı sayılar eksik kayıt adedidir; liste en eksik takımdan
-            başlar.
+            başlar. <b>Kadrosu olmayan takımlar en üstte</b> — kadro sekmesinin
+            bomboş açılması, tek tek alan eksiklerinden daha görünür bir
+            arızadır.
           </p>
 
           <div className="table-wrap">
@@ -274,6 +289,7 @@ export default function TeleskorVeriClient() {
               <thead>
                 <tr>
                   <th>Takım</th>
+                  <th>Kadro</th>
                   <th>Stadyum</th>
                   <th style={{ textAlign: "right" }}>Oyuncu</th>
                   <th style={{ textAlign: "right" }}>Mevki yok</th>
@@ -290,6 +306,9 @@ export default function TeleskorVeriClient() {
                       <div className="cell-title" style={{ maxWidth: 240 }}>
                         {t.takim}
                       </div>
+                    </td>
+                    <td>
+                      <Kadro satir={t} />
                     </td>
                     <td>
                       {t.stadyum ? (
@@ -452,6 +471,51 @@ export default function TeleskorVeriClient() {
 }
 
 /** Eksik/uyarı vurgusu. Renk SABİT HEX DEĞİL: panelde koyu tema var. */
+/**
+ * Kadronun NEREDEN geldiğini söyleyen hücre.
+ *
+ * <p>Üç durum üç ayrı iş demek ve bu yüzden üçü de AYRI gösteriliyor:
+ * <ul>
+ *   <li><b>Sağlayıcı</b> — yapılacak bir şey yok.</li>
+ *   <li><b>Maçlardan</b> — sekme dolu ama liste bizim çıkarımımız; kaç maçtan
+ *       türetildiği yazılı, çünkü iki maçtan çıkan bir kadro on maçtan
+ *       çıkana göre çok daha az güvenilir.</li>
+ *   <li><b>Yok</b> — sekme bomboş açılıyor. <b>Elle doldurulacak liste
+ *       budur.</b></li>
+ * </ul>
+ *
+ * <p>Renk TEK BAŞINA bilgi taşımıyor: her durumun kendi METNİ var. Yalnız
+ * renkle ayrılsaydı renk körü bir kullanıcı üç durumu da aynı görürdü — ve
+ * bu ekranın tek işi zaten o ayrımı göstermek.
+ */
+function Kadro({ satir }: { satir: TakimEksigi }) {
+  if (satir.kadroKaynak === "YOK") {
+    return <Eksik>kadro yok</Eksik>;
+  }
+  if (satir.kadroKaynak === "MAC_KADROLARI") {
+    return (
+      <div style={{ maxWidth: 190 }}>
+        <div style={{ fontVariantNumeric: "tabular-nums" }}>
+          {satir.kadro} kişi
+        </div>
+        <div className="cell-sub" style={{ color: "var(--warning)" }}>
+          maçlardan türetildi ({satir.turetmeMac} maç)
+        </div>
+      </div>
+    );
+  }
+  if (satir.kadroKaynak === "SAGLAYICI") {
+    return (
+      <div style={{ fontVariantNumeric: "tabular-nums" }}>
+        {satir.kadro} kişi
+      </div>
+    );
+  }
+  // TANINMAYAN DEĞER SESSİZCE ATILMIYOR. Sunucu yeni bir kaynak eklerse
+  // panel onu ham hâliyle gösteriyor — "kadro yok" demek yanlış bilgi olurdu.
+  return <span className="muted">{satir.kadroKaynak}</span>;
+}
+
 function Eksik({ children }: { children: React.ReactNode }) {
   return (
     <span style={{ color: "var(--danger)", fontWeight: 600 }}>{children}</span>
