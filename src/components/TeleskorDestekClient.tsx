@@ -37,6 +37,34 @@ import { formatDate } from "@/lib/format";
  * düşer. Rozeti yerel olarak sıfırlamak daha ucuzdu ama ekranla
  * veritabanı ayrışırdı: başka bir yönetici aynı anda cevap yazmış olabilir.
  */
+/** IOS → "iOS", ANDROID → "Android", WEB → "Web"; bilinmiyorsa null. */
+function platformEtiketi(p?: string | null): string | null {
+  switch ((p ?? "").toUpperCase()) {
+    case "IOS":
+      return "iOS";
+    case "ANDROID":
+      return "Android";
+    case "WEB":
+      return "Web";
+    default:
+      return null;
+  }
+}
+
+/** "iOS · 1.0.74 · iPhone 15 Pro" — olan parçalar, aralarında nokta. */
+function cihazMetni(t: {
+  platform?: string | null;
+  uygulamaSurumu?: string | null;
+  cihazAdi?: string | null;
+}): string | null {
+  const parcalar = [
+    platformEtiketi(t.platform),
+    t.uygulamaSurumu ? `v${t.uygulamaSurumu}` : null,
+    t.cihazAdi || null,
+  ].filter((p): p is string => !!p);
+  return parcalar.length ? parcalar.join(" · ") : null;
+}
+
 export default function TeleskorDestekClient() {
   const [talepler, setTalepler] = useState<TeleskorDestekTalebi[]>([]);
   const [secili, setSecili] = useState<TeleskorDestekYazismasi | null>(null);
@@ -224,7 +252,17 @@ export default function TeleskorDestekClient() {
               </div>
               <div className="destek-onizleme">{t.onizleme}</div>
               <div className="destek-alt muted">
-                <span>{t.gorunenAd || t.kullaniciAdi || "—"}</span>
+                <span>
+                  {t.gorunenAd || t.kullaniciAdi || "—"}
+                  {/* PLATFORM ROZETİ (Serhat, 14 Eylül): listeden bakarken
+                      "iOS mu Android mi" tek bakışta. Bilgi yoksa rozet
+                      YOK — "bilinmiyor" rozeti satırı kirletirdi. */}
+                  {platformEtiketi(t.platform) && (
+                    <span className="badge badge-lang" style={{ marginLeft: 6 }}>
+                      {platformEtiketi(t.platform)}
+                    </span>
+                  )}
+                </span>
                 <span>{formatDate(t.sonMesajAn)}</span>
               </div>
             </button>
@@ -243,6 +281,12 @@ export default function TeleskorDestekClient() {
                   <div className="muted" style={{ fontSize: 12 }}>
                     {secili.gorunenAd || secili.kullaniciAdi}
                     {secili.eposta ? ` · ${secili.eposta}` : ""}
+                  </div>
+                  {/* CİHAZ SATIRI: "iOS · 1.0.74 · iPhone 15 Pro". Alan
+                      "talebi açtığı" değil "EN SON yazdığı" cihaz (sunucu
+                      her kullanıcı mesajında tazeliyor). */}
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {cihazMetni(secili) ?? "Cihaz bilinmiyor"}
                   </div>
                 </div>
                 <div className="row">

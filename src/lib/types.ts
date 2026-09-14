@@ -1513,6 +1513,13 @@ export interface TeleskorDestekTalebi {
   kullaniciAdi: string | null;
   gorunenAd: string | null;
   eposta: string | null;
+  /**
+   * Kullanıcının EN SON yazdığı cihaz (V60): IOS / ANDROID / WEB /
+   * UNKNOWN ya da null (eski sunucu / bilgisiz talep). İstemci beyanı.
+   */
+  platform?: string | null;
+  uygulamaSurumu?: string | null;
+  cihazAdi?: string | null;
 }
 
 /**
@@ -1553,6 +1560,10 @@ export interface TeleskorDestekYazismasi {
   kullaniciAdi?: string | null;
   gorunenAd?: string | null;
   eposta?: string | null;
+  /** Cihaz bilgisi — liste satırıyla aynı üç alan (V60). */
+  platform?: string | null;
+  uygulamaSurumu?: string | null;
+  cihazAdi?: string | null;
   mesajlar: TeleskorDestekMesaji[];
 }
 
