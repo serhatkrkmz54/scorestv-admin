@@ -51,17 +51,68 @@ function platformEtiketi(p?: string | null): string | null {
   }
 }
 
-/** "iOS · 1.0.74 · iPhone 15 Pro" — olan parçalar, aralarında nokta. */
+/**
+ * PLATFORM İKONU (Serhat, 14 Eylül: "iOS/Android yazmasın, ikonlarını
+ * kullan"). Marka logoları lucide'da YOK (bilerek çıkarıldı), bu yüzden
+ * iki küçük gömülü SVG: Apple logosu ve Android robotu (Simple Icons
+ * yolları, `currentColor` ile boyanıyor — rozetin rengini alıyor).
+ * Web ve bilinmeyen platformda ikon yok; metin ([platformEtiketi]) kalıyor.
+ */
+function PlatformIkonu({
+  platform,
+  boyut = 12,
+  title,
+}: {
+  platform?: string | null;
+  boyut?: number;
+  title?: string;
+}) {
+  const p = (platform ?? "").toUpperCase();
+  const ortak = {
+    width: boyut,
+    height: boyut,
+    viewBox: "0 0 24 24",
+    fill: "currentColor",
+    "aria-label": title,
+    role: "img" as const,
+    style: { display: "block", flexShrink: 0 },
+  };
+  if (p === "IOS") {
+    return (
+      <svg {...ortak}>
+        {title ? <title>{title}</title> : null}
+        <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+      </svg>
+    );
+  }
+  if (p === "ANDROID") {
+    return (
+      <svg {...ortak}>
+        {title ? <title>{title}</title> : null}
+        <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1367 1.0989L4.841 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3435-4.1021-2.6892-7.5743-6.1185-9.4396" />
+      </svg>
+    );
+  }
+  return <span>{platformEtiketi(platform)}</span>;
+}
+
+/**
+ * "v1.0.74 · iPhone 15 Pro" — olan parçalar, aralarında nokta. Platform
+ * METİN olarak burada değil: ikonu [PlatformIkonu] çiziyor; yalnız
+ * ikonu olmayan platformda (Web) adı buraya giriyor.
+ */
 function cihazMetni(t: {
   platform?: string | null;
   uygulamaSurumu?: string | null;
   cihazAdi?: string | null;
 }): string | null {
+  const p = (t.platform ?? "").toUpperCase();
+  const ikonluPlatform = p === "IOS" || p === "ANDROID";
   const parcalar = [
-    platformEtiketi(t.platform),
+    ikonluPlatform ? null : platformEtiketi(t.platform),
     t.uygulamaSurumu ? `v${t.uygulamaSurumu}` : null,
     t.cihazAdi || null,
-  ].filter((p): p is string => !!p);
+  ].filter((x): x is string => !!x);
   return parcalar.length ? parcalar.join(" · ") : null;
 }
 
@@ -258,8 +309,12 @@ export default function TeleskorDestekClient() {
                       "iOS mu Android mi" tek bakışta. Bilgi yoksa rozet
                       YOK — "bilinmiyor" rozeti satırı kirletirdi. */}
                   {platformEtiketi(t.platform) && (
-                    <span className="badge badge-lang" style={{ marginLeft: 6 }}>
-                      {platformEtiketi(t.platform)}
+                    <span
+                      className="badge badge-lang"
+                      style={{ marginLeft: 6, padding: "3px 7px" }}
+                      title={platformEtiketi(t.platform) ?? undefined}
+                    >
+                      <PlatformIkonu platform={t.platform} />
                     </span>
                   )}
                 </span>
@@ -285,8 +340,23 @@ export default function TeleskorDestekClient() {
                   {/* CİHAZ SATIRI: "iOS · 1.0.74 · iPhone 15 Pro". Alan
                       "talebi açtığı" değil "EN SON yazdığı" cihaz (sunucu
                       her kullanıcı mesajında tazeliyor). */}
-                  <div className="muted" style={{ fontSize: 12 }}>
-                    {cihazMetni(secili) ?? "Cihaz bilinmiyor"}
+                  <div
+                    className="muted"
+                    style={{
+                      fontSize: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
+                    {platformEtiketi(secili.platform) ? (
+                      <PlatformIkonu
+                        platform={secili.platform}
+                        boyut={14}
+                        title={platformEtiketi(secili.platform) ?? undefined}
+                      />
+                    ) : null}
+                    <span>{cihazMetni(secili) ?? "Cihaz bilinmiyor"}</span>
                   </div>
                 </div>
                 <div className="row">
