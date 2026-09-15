@@ -1693,6 +1693,19 @@ export interface TeleskorMacOzeti {
   guncellendi: string;
 }
 
+/** Sunucudaki özet videosu üretiminin durumu (15 Eylül 2026). */
+export interface TeleskorOzetUretim {
+  macId: number;
+  durum: "KUYRUKTA" | "URETILIYOR" | "BITTI" | "HATA";
+  /** üretiliyorken adım: veri / render / yukleme / kayit */
+  asama: string | null;
+  mesaj: string | null;
+  baslangic: string;
+  bitis: string | null;
+  adres: string | null;
+  sureSn: number | null;
+}
+
 export interface OneCikanLigIstegi {
   spor: string;
   ligler: { saglayiciId: string; adNotu?: string | null }[];

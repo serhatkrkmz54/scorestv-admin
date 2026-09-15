@@ -85,6 +85,7 @@ import type {
   ArsivDurumu,
   OneCikanLigYaniti,
   TeleskorMacOzeti,
+  TeleskorOzetUretim,
   OneCikanLigAramaSatiri,
   OneCikanLigIstegi,
   VeriAlani,
@@ -1408,6 +1409,27 @@ export async function apiTeleskorOzetKaydet(
     jsonInit("PUT", { adres, baslik, yayinda }),
   );
   return parse<TeleskorMacOzeti>(res);
+}
+
+/** Özet videosunu sunucuda üretmeye başlar (202; durum için yokla). */
+export async function apiTeleskorOzetUret(
+  macId: number,
+): Promise<TeleskorOzetUretim> {
+  const res = await fetch(`/api/teleskor/mac-ozeti/${macId}/uret`, {
+    method: "POST",
+    headers: { "x-requested-with": "fetch" },
+  });
+  return parse<TeleskorOzetUretim>(res);
+}
+
+/** Üretim durumu; sunucuda iş yoksa null. */
+export async function apiTeleskorOzetUretimDurumu(
+  macId: number,
+): Promise<TeleskorOzetUretim | null> {
+  const res = await fetch(`/api/teleskor/mac-ozeti/${macId}/uretim`, {
+    headers: { "x-requested-with": "fetch" },
+  });
+  return parse<TeleskorOzetUretim | null>(res);
 }
 
 /** Özeti siler (idempotent). */

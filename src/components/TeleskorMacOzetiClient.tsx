@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   apiTeleskorOzetDurumlari,
+  apiTeleskorOzetUret,
+  apiTeleskorOzetUretimDurumu,
   apiTeleskorOzetKaydet,
   apiTeleskorOzetMaclari,
   apiTeleskorOzetSil,
 } from "@/lib/api-client";
-import type { TeleskorMacOzeti } from "@/lib/types";
+import type { TeleskorMacOzeti, TeleskorOzetUretim } from "@/lib/types";
 
 /**
  * MAÇ ÖZETİ — maç sonrası video ekleme ekranı (Teleskor V55).
@@ -115,6 +117,11 @@ export default function TeleskorMacOzetiClient() {
   const [yayinda, setYayinda] = useState(true);
   const [kaydediliyor, setKaydediliyor] = useState(false);
 
+  // SUNUCUDA ÜRETİM (15 Eylül): maç başına durum; sıradaki/üretilen iş
+  // varken 5 sn'de bir yoklanır, bitince özet listesi o maç için tazelenir.
+  const [uretimler, setUretimler] = useState<Record<string, TeleskorOzetUretim>>({});
+  const [uretimHata, setUretimHata] = useState<Record<string, string>>({});
+
   const yukle = useCallback(async () => {
     setYukleniyor(true);
     setHata(null);
@@ -192,6 +199,52 @@ export default function TeleskorMacOzetiClient() {
       setKaydediliyor(false);
     }
   }
+
+  async function uret(macId: number) {
+    setUretimHata((h) => {
+      const y = { ...h };
+      delete y[String(macId)];
+      return y;
+    });
+    try {
+      const is = await apiTeleskorOzetUret(macId);
+      setUretimler((u) => ({ ...u, [String(macId)]: is }));
+    } catch (e) {
+      // Sebep sunucudan: dizin ayarsız, depo kapalı, npm install yok…
+      setUretimHata((h) => ({
+        ...h,
+        [String(macId)]: e instanceof Error ? e.message : "Üretim başlatılamadı.",
+      }));
+    }
+  }
+
+  const bekleyenVar = Object.values(uretimler).some(
+    (u) => u.durum === "KUYRUKTA" || u.durum === "URETILIYOR",
+  );
+  useEffect(() => {
+    if (!bekleyenVar) return;
+    const z = setInterval(() => {
+      void (async () => {
+        const bekleyenler = Object.values(uretimler).filter(
+          (u) => u.durum === "KUYRUKTA" || u.durum === "URETILIYOR",
+        );
+        for (const u of bekleyenler) {
+          try {
+            const yeni = await apiTeleskorOzetUretimDurumu(u.macId);
+            if (!yeni) continue;
+            setUretimler((x) => ({ ...x, [String(u.macId)]: yeni }));
+            if (yeni.durum === "BITTI") {
+              const o = await apiTeleskorOzetDurumlari([u.macId]);
+              setOzetler((x) => ({ ...x, ...o }));
+            }
+          } catch {
+            // Bir yoklama düşerse sonrakine kalır.
+          }
+        }
+      })();
+    }, 5000);
+    return () => clearInterval(z);
+  }, [bekleyenVar, uretimler]);
 
   async function sil(macId: number) {
     if (!confirm("Bu maçın özet videosu silinsin mi?")) return;
@@ -371,6 +424,29 @@ export default function TeleskorMacOzetiClient() {
                     {ozet.yayinda ? "özet var" : "yayında değil"}
                   </span>
                 )}
+                {/* SUNUCUDA ÜRET (15 Eylül): maç bittiyse tek tık;
+                    sıradayken/üretilirken düğme kilitli, durum yanında.
+                    Bitince özet rozeti kendiliğinden belirir. */}
+                {bitti && (() => {
+                  const u = uretimler[String(m.id)];
+                  const surer = u && (u.durum === "KUYRUKTA" || u.durum === "URETILIYOR");
+                  return (
+                    <button
+                      className="btn btn-sm"
+                      disabled={surer}
+                      title="Skor, olaylar, istatistik, kadro ve puanlardan sunucuda video üretir (birkaç dakika)"
+                      onClick={() => void uret(m.id)}
+                    >
+                      {surer
+                        ? u.durum === "KUYRUKTA"
+                          ? "Sırada…"
+                          : `Üretiliyor (${u.asama ?? "…"})`
+                        : u?.durum === "BITTI"
+                          ? "Yeniden üret"
+                          : "Videoyu üret"}
+                    </button>
+                  );
+                })()}
                 <button
                   className={acik ? "btn btn-sm" : "btn btn-sm btn-primary"}
                   onClick={() => (acik ? setAcikMac(null) : ac(m))}
@@ -378,6 +454,19 @@ export default function TeleskorMacOzetiClient() {
                   {acik ? "Kapat" : ozet ? "Düzenle" : "Özet ekle"}
                 </button>
               </div>
+              {(uretimler[String(m.id)]?.durum === "HATA" || uretimHata[String(m.id)]) && (
+                <div className="hint" style={{ color: "var(--danger, #e05252)" }}>
+                  Üretim düştü: {uretimHata[String(m.id)] ?? uretimler[String(m.id)]?.mesaj}
+                </div>
+              )}
+              {uretimler[String(m.id)]?.durum === "BITTI" && (
+                <div className="hint">
+                  Video üretildi ({uretimler[String(m.id)]?.sureSn ?? "?"} sn) ·{" "}
+                  <a href={uretimler[String(m.id)]?.adres ?? "#"} target="_blank" rel="noreferrer" style={{ color: "var(--brand)" }}>
+                    mp4'ü aç
+                  </a>
+                </div>
+              )}
 
               {acik && (
                 <div style={{ display: "grid", gap: 8 }}>
