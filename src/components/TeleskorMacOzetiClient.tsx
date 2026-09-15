@@ -232,11 +232,9 @@ export default function TeleskorMacOzetiClient() {
           try {
             const yeni = await apiTeleskorOzetUretimDurumu(u.macId);
             if (!yeni) continue;
+            // Bitince ÖZET LİSTESİ TAZELENMİYOR (15 Eylül): üretilen video
+            // Taraftar Nabzı kaydına gidiyor (V62), gerçek özet ayrı.
             setUretimler((x) => ({ ...x, [String(u.macId)]: yeni }));
-            if (yeni.durum === "BITTI") {
-              const o = await apiTeleskorOzetDurumlari([u.macId]);
-              setOzetler((x) => ({ ...x, ...o }));
-            }
           } catch {
             // Bir yoklama düşerse sonrakine kalır.
           }
@@ -274,7 +272,10 @@ export default function TeleskorMacOzetiClient() {
           Maç bitince özet videosunu buradan ekle. Uygulamada o maçın
           detayında <b>Özet</b> sekmesi olarak çıkar. YouTube bağlantısını
           ya da &quot;Paylaş → Yerleştir&quot; kutusundaki kodu
-          yapıştırabilirsin — ikisi de kabul ediliyor.
+          yapıştırabilirsin — ikisi de kabul ediliyor. &quot;Nabız videosu
+          üret&quot; ise maç verisinden sunucuda üretilen ayrı videodur;
+          uygulamada <b>Taraftar Nabzı</b> sekmesinin tepesinde çıkar,
+          buradaki gerçek özete dokunmaz.
         </p>
       </div>
 
@@ -434,7 +435,7 @@ export default function TeleskorMacOzetiClient() {
                     <button
                       className="btn btn-sm"
                       disabled={surer}
-                      title="Skor, olaylar, istatistik, kadro ve puanlardan sunucuda video üretir (birkaç dakika)"
+                      title="Skor, olaylar, istatistik, kadro ve puanlardan sunucuda video üretir; uygulamada Taraftar Nabzı sekmesinin tepesinde çıkar (1-2 dk)"
                       onClick={() => void uret(m.id)}
                     >
                       {surer
@@ -442,8 +443,8 @@ export default function TeleskorMacOzetiClient() {
                           ? "Sırada…"
                           : `Üretiliyor (${u.asama ?? "…"})`
                         : u?.durum === "BITTI"
-                          ? "Yeniden üret"
-                          : "Videoyu üret"}
+                          ? "Nabız videosunu yeniden üret"
+                          : "Nabız videosu üret"}
                     </button>
                   );
                 })()}
@@ -461,7 +462,7 @@ export default function TeleskorMacOzetiClient() {
               )}
               {uretimler[String(m.id)]?.durum === "BITTI" && (
                 <div className="hint">
-                  Video üretildi ({uretimler[String(m.id)]?.sureSn ?? "?"} sn) ·{" "}
+                  Nabız videosu üretildi ({uretimler[String(m.id)]?.sureSn ?? "?"} sn), Taraftar Nabzı'nda yayında ·{" "}
                   <a href={uretimler[String(m.id)]?.adres ?? "#"} target="_blank" rel="noreferrer" style={{ color: "var(--brand)" }}>
                     mp4'ü aç
                   </a>
