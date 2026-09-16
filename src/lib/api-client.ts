@@ -85,6 +85,7 @@ import type {
   ArsivDurumu,
   OneCikanLigYaniti,
   TeleskorMacOzeti,
+  TeleskorNabizVideosu,
   TeleskorOzetUretim,
   OneCikanLigAramaSatiri,
   OneCikanLigIstegi,
@@ -1409,6 +1410,18 @@ export async function apiTeleskorOzetKaydet(
     jsonInit("PUT", { adres, baslik, yayinda }),
   );
   return parse<TeleskorMacOzeti>(res);
+}
+
+/** Günün maçlarında hangi nabız videosu var (otomatik/elle) — tek istek. */
+export async function apiTeleskorNabizDurumlari(
+  macIds: number[],
+): Promise<Record<string, TeleskorNabizVideosu>> {
+  if (macIds.length === 0) return {};
+  const res = await fetch(
+    "/api/teleskor/mac-ozeti/nabiz",
+    jsonInit("POST", { ids: macIds.map(String) }),
+  );
+  return parse<Record<string, TeleskorNabizVideosu>>(res);
 }
 
 /** Özet videosunu sunucuda üretmeye başlar (202; durum için yokla). */

@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   apiTeleskorOzetDurumlari,
+  apiTeleskorNabizDurumlari,
   apiTeleskorOzetUret,
   apiTeleskorOzetUretimDurumu,
   apiTeleskorOzetKaydet,
   apiTeleskorOzetMaclari,
   apiTeleskorOzetSil,
 } from "@/lib/api-client";
-import type { TeleskorMacOzeti, TeleskorOzetUretim } from "@/lib/types";
+import type { TeleskorMacOzeti, TeleskorNabizVideosu, TeleskorOzetUretim } from "@/lib/types";
 
 /**
  * MAÇ ÖZETİ — maç sonrası video ekleme ekranı (Teleskor V55).
@@ -121,6 +122,8 @@ export default function TeleskorMacOzetiClient() {
   // varken 5 sn'de bir yoklanır, bitince özet listesi o maç için tazelenir.
   const [uretimler, setUretimler] = useState<Record<string, TeleskorOzetUretim>>({});
   const [uretimHata, setUretimHata] = useState<Record<string, string>>({});
+  // NABIZ VİDEOLARI (V63): hangi maçta var, otomatik mi elle mi.
+  const [nabizlar, setNabizlar] = useState<Record<string, TeleskorNabizVideosu>>({});
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -132,6 +135,12 @@ export default function TeleskorMacOzetiClient() {
       // ÖZET DURUMLARI TEK İSTEKTE: maç başına sorulsaydı 600 maçlık bir
       // cumartesi 600 istek ederdi.
       setOzetler(await apiTeleskorOzetDurumlari(liste.map((m) => m.id)));
+      // Nabız durumu ayrı istek; düşerse özet listesi yine gelir.
+      try {
+        setNabizlar(await apiTeleskorNabizDurumlari(liste.map((m) => m.id)));
+      } catch {
+        setNabizlar({});
+      }
     } catch (e) {
       setHata(e instanceof Error ? e.message : "Maçlar alınamadı.");
       setMaclar([]);
@@ -233,8 +242,13 @@ export default function TeleskorMacOzetiClient() {
             const yeni = await apiTeleskorOzetUretimDurumu(u.macId);
             if (!yeni) continue;
             // Bitince ÖZET LİSTESİ TAZELENMİYOR (15 Eylül): üretilen video
-            // Taraftar Nabzı kaydına gidiyor (V62), gerçek özet ayrı.
+            // Taraftar Nabzı kaydına gidiyor (V62), gerçek özet ayrı —
+            // nabız rozeti o maç için tazeleniyor.
             setUretimler((x) => ({ ...x, [String(u.macId)]: yeni }));
+            if (yeni.durum === "BITTI") {
+              const n = await apiTeleskorNabizDurumlari([u.macId]);
+              setNabizlar((x) => ({ ...x, ...n }));
+            }
           } catch {
             // Bir yoklama düşerse sonrakine kalır.
           }
@@ -412,6 +426,17 @@ export default function TeleskorMacOzetiClient() {
                 {!bitti && (
                   <span className="badge badge-scheduled">maç bitmedi</span>
                 )}
+                {nabizlar[String(m.id)] && (
+                  <a
+                    className="badge badge-lang"
+                    href={nabizlar[String(m.id)].adres}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Taraftar Nabzı videosu (${nabizlar[String(m.id)].kaynak === "OTOMATIK" ? "otomatik" : "elle"}) — aç`}
+                  >
+                    nabız · {nabizlar[String(m.id)].kaynak === "OTOMATIK" ? "otomatik" : "elle"}
+                  </a>
+                )}
                 {ozet && (
                   <span
                     className={
@@ -442,7 +467,7 @@ export default function TeleskorMacOzetiClient() {
                         ? u.durum === "KUYRUKTA"
                           ? "Sırada…"
                           : `Üretiliyor (${u.asama ?? "…"})`
-                        : u?.durum === "BITTI"
+                        : u?.durum === "BITTI" || nabizlar[String(m.id)]
                           ? "Nabız videosunu yeniden üret"
                           : "Nabız videosu üret"}
                     </button>

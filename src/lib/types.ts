@@ -1693,6 +1693,15 @@ export interface TeleskorMacOzeti {
   guncellendi: string;
 }
 
+/** Taraftar Nabzı videosu (V62/V63): üretilen mp4 ve kaynağı. */
+export interface TeleskorNabizVideosu {
+  macId: number;
+  adres: string;
+  baslik: string | null;
+  kaynak: "OTOMATIK" | "ELLE";
+  guncellendi: string;
+}
+
 /** Sunucudaki özet videosu üretiminin durumu (15 Eylül 2026). */
 export interface TeleskorOzetUretim {
   macId: number;
