@@ -84,8 +84,8 @@ import type {
   KimlikSonucu,
   ArsivDurumu,
   OneCikanLigYaniti,
-  CanliTakipAyari,
-  CanliTakipIstegi,
+  UygulamaAyari,
+  UygulamaAyariIstegi,
   TeleskorMacOzeti,
   TeleskorNabizVideosu,
   TeleskorOzetUretim,
@@ -1315,22 +1315,32 @@ export async function apiTeleskorDuyuruGonder(
   return parse<{ id: number }>(res);
 }
 
-/** Canlı takip widget'ı anahtarı (uygulama ayarları). */
-export async function apiTeleskorCanliTakip(): Promise<CanliTakipAyari> {
-  const res = await fetch("/api/teleskor/ayarlar/canli-takip", {
-    cache: "no-store",
-  });
-  return parse<CanliTakipAyari>(res);
+/** Uygulama ayarları kataloğu (V67). */
+export async function apiTeleskorUygulamaAyarlari(): Promise<UygulamaAyari[]> {
+  const res = await fetch("/api/teleskor/ayarlar", { cache: "no-store" });
+  return parse<UygulamaAyari[]>(res);
 }
 
-export async function apiTeleskorCanliTakipKaydet(
-  istek: CanliTakipIstegi,
-): Promise<CanliTakipAyari> {
+export async function apiTeleskorUygulamaAyariKaydet(
+  anahtar: string,
+  istek: UygulamaAyariIstegi,
+): Promise<UygulamaAyari> {
   const res = await fetch(
-    "/api/teleskor/ayarlar/canli-takip",
+    `/api/teleskor/ayarlar/${encodeURIComponent(anahtar)}`,
     jsonInit("PUT", istek),
   );
-  return parse<CanliTakipAyari>(res);
+  return parse<UygulamaAyari>(res);
+}
+
+export async function apiTeleskorUygulamaAyariVarsayilan(
+  anahtar: string,
+  reason: string,
+): Promise<UygulamaAyari> {
+  const res = await fetch(
+    `/api/teleskor/ayarlar/${encodeURIComponent(anahtar)}`,
+    jsonInit("DELETE", { reason }),
+  );
+  return parse<UygulamaAyari>(res);
 }
 
 /** Öne çıkan lig listesi (spor başına ayrı). */

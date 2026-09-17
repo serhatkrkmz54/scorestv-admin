@@ -1719,17 +1719,26 @@ export interface TeleskorOzetUretim {
   sureSn: number | null;
 }
 
-/** Panelden açılıp kapanan ürün anahtarı — canlı takip widget'ı (V67). */
-export interface CanliTakipAyari {
-  acik: boolean;
-  /** Son değişiklik; göçten gelen satırda null. */
+/** Panelden yönetilen bir ürün anahtarı (V67 kataloğu). */
+export interface UygulamaAyari {
+  anahtar: string;
+  tur: "BOOL" | "INT" | "TEXT";
+  grup: string;
+  etiket: string;
+  aciklama: string;
+  /** O anki geçerli değer (metin; tür `tur`). */
+  deger: string;
+  /** Satır yokken geçerli değer — çoğu api-1'in .env'inden. */
+  varsayilan: string;
+  kaynak: "PANEL" | "VARSAYILAN";
   guncellendi: string | null;
-  /** Son değiştiren yöneticinin Teleskor kimliği; göçten gelen satırda null. */
   guncelleyen: number | null;
+  enAz: number | null;
+  enCok: number | null;
 }
 
-export interface CanliTakipIstegi {
-  acik: boolean;
+export interface UygulamaAyariIstegi {
+  deger: string;
   reason: string;
 }
 
