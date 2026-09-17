@@ -1701,6 +1701,8 @@ export interface TeleskorNabizVideosu {
   adres: string;
   baslik: string | null;
   kaynak: "OTOMATIK" | "ELLE";
+  /** Panelden geri çekildiyse false — uygulama görmez (V65). */
+  yayinda: boolean;
   guncellendi: string;
 }
 

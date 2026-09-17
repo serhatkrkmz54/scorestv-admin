@@ -1454,6 +1454,28 @@ export async function apiTeleskorOzetSil(macId: number): Promise<void> {
   if (!res.ok) await parse<unknown>(res);
 }
 
+/** Nabız videosunu düzenler (adres/başlık/yayında) — V65; adres kuralı sunucuda. */
+export async function apiTeleskorNabizKaydet(
+  macId: number,
+  adres: string,
+  baslik: string | null,
+  yayinda: boolean,
+): Promise<TeleskorNabizVideosu> {
+  const res = await fetch(
+    `/api/teleskor/mac-ozeti/${macId}/nabiz`,
+    jsonInit("PUT", { adres, baslik, yayinda }),
+  );
+  return parse<TeleskorNabizVideosu>(res);
+}
+
+export async function apiTeleskorNabizSil(macId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/mac-ozeti/${macId}/nabiz`, {
+    method: "DELETE",
+    headers: { "x-requested-with": "fetch" },
+  });
+  if (!res.ok) await parse<unknown>(res);
+}
+
 // ---- Teleskor: sürüm notları (Gelen Kutusu) ----
 
 /** Sürüm notları — yayınlanmamış (ileri tarihli) olanlar da geliyor. */

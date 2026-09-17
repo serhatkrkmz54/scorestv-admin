@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   apiTeleskorOzetDurumlari,
   apiTeleskorNabizDurumlari,
+  apiTeleskorNabizKaydet,
+  apiTeleskorNabizSil,
   apiTeleskorOzetUret,
   apiTeleskorOzetUretimDurumu,
   apiTeleskorOzetKaydet,
@@ -124,6 +126,15 @@ export default function TeleskorMacOzetiClient() {
   const [uretimHata, setUretimHata] = useState<Record<string, string>>({});
   // NABIZ VİDEOLARI (V63): hangi maçta var, otomatik mi elle mi.
   const [nabizlar, setNabizlar] = useState<Record<string, TeleskorNabizVideosu>>({});
+  // NABIZ DÜZENLEYİCİ (V65, 17 Eylül — Serhat: "otomatik yayınlanıyor ama
+  // düzenlemesini yapamıyoruz, maç özeti gibi"): özet düzenleyicisinin
+  // ikizi, aynı anda tek satır açık; özet düzenleyicisiyle çakışmasın
+  // diye ayrı durum.
+  const [acikNabiz, setAcikNabiz] = useState<number | null>(null);
+  const [nAdres, setNAdres] = useState("");
+  const [nBaslik, setNBaslik] = useState("");
+  const [nYayinda, setNYayinda] = useState(true);
+  const [nKaydediliyor, setNKaydediliyor] = useState(false);
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -257,6 +268,63 @@ export default function TeleskorMacOzetiClient() {
     }, 5000);
     return () => clearInterval(z);
   }, [bekleyenVar, uretimler]);
+
+  function nabizAc(m: Mac) {
+    const mevcut = nabizlar[String(m.id)];
+    setAcikNabiz(m.id);
+    setAcikMac(null);
+    setNAdres(mevcut?.adres ?? "");
+    setNBaslik(mevcut?.baslik ?? "");
+    setNYayinda(mevcut?.yayinda ?? true);
+    setHata(null);
+    setBilgi(null);
+  }
+
+  async function nabizKaydet(macId: number) {
+    setNKaydediliyor(true);
+    setHata(null);
+    setBilgi(null);
+    try {
+      const kayit = await apiTeleskorNabizKaydet(
+        macId,
+        nAdres,
+        nBaslik.trim() || null,
+        nYayinda,
+      );
+      setNabizlar((x) => ({ ...x, [String(macId)]: kayit }));
+      setAcikNabiz(null);
+      setBilgi("Nabız videosu kaydedildi.");
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : "Nabız videosu kaydedilemedi.");
+    } finally {
+      setNKaydediliyor(false);
+    }
+  }
+
+  async function nabizSil(macId: number) {
+    if (!confirm("Bu maçın Taraftar Nabzı videosu silinsin mi? Yeniden üretmek mümkün.")) return;
+    setNKaydediliyor(true);
+    setHata(null);
+    try {
+      await apiTeleskorNabizSil(macId);
+      setNabizlar((x) => {
+        const y = { ...x };
+        delete y[String(macId)];
+        return y;
+      });
+      setUretimler((x) => {
+        const y = { ...x };
+        delete y[String(macId)];
+        return y;
+      });
+      setAcikNabiz(null);
+      setBilgi("Nabız videosu silindi.");
+    } catch (e) {
+      setHata(e instanceof Error ? e.message : "Nabız videosu silinemedi.");
+    } finally {
+      setNKaydediliyor(false);
+    }
+  }
 
   async function sil(macId: number) {
     if (!confirm("Bu maçın özet videosu silinsin mi?")) return;
@@ -402,6 +470,7 @@ export default function TeleskorMacOzetiClient() {
           const ozet = ozetler[String(m.id)];
           const bitti = m.status === "FINISHED";
           const acik = acikMac === m.id;
+          const nabizAcik = acikNabiz === m.id;
           return (
             <div
               key={m.id}
@@ -428,13 +497,18 @@ export default function TeleskorMacOzetiClient() {
                 )}
                 {nabizlar[String(m.id)] && (
                   <a
-                    className="badge badge-lang"
+                    className={
+                      nabizlar[String(m.id)].yayinda === false
+                        ? "badge badge-draft"
+                        : "badge badge-lang"
+                    }
                     href={nabizlar[String(m.id)].adres}
                     target="_blank"
                     rel="noreferrer"
                     title={`Taraftar Nabzı videosu (${nabizlar[String(m.id)].kaynak === "OTOMATIK" ? "otomatik" : "elle"}) — aç`}
                   >
                     nabız · {nabizlar[String(m.id)].kaynak === "OTOMATIK" ? "otomatik" : "elle"}
+                    {nabizlar[String(m.id)].yayinda === false ? " · yayında değil" : ""}
                   </a>
                 )}
                 {ozet && (
@@ -473,9 +547,29 @@ export default function TeleskorMacOzetiClient() {
                     </button>
                   );
                 })()}
+                {/* NABIZ DÜZENLE (V65): kayıt varsa adres/başlık/yayında;
+                    silme de burada. Kayıt yokken düğme yok — video
+                    "üret" ile doğar, elle adres girmek istisna. */}
+                {nabizlar[String(m.id)] && (
+                  <button
+                    className="btn btn-sm"
+                    onClick={() =>
+                      nabizAcik ? setAcikNabiz(null) : nabizAc(m)
+                    }
+                  >
+                    {nabizAcik ? "Kapat" : "Nabızı düzenle"}
+                  </button>
+                )}
                 <button
                   className={acik ? "btn btn-sm" : "btn btn-sm btn-primary"}
-                  onClick={() => (acik ? setAcikMac(null) : ac(m))}
+                  onClick={() => {
+                    if (acik) {
+                      setAcikMac(null);
+                    } else {
+                      setAcikNabiz(null);
+                      ac(m);
+                    }
+                  }}
                 >
                   {acik ? "Kapat" : ozet ? "Düzenle" : "Özet ekle"}
                 </button>
@@ -491,6 +585,114 @@ export default function TeleskorMacOzetiClient() {
                   <a href={uretimler[String(m.id)]?.adres ?? "#"} target="_blank" rel="noreferrer" style={{ color: "var(--brand)" }}>
                     mp4'ü aç
                   </a>
+                </div>
+              )}
+
+              {nabizAcik && (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div>
+                    <span className="label">Taraftar Nabzı videosu adresi</span>
+                    <textarea
+                      className="textarea"
+                      rows={2}
+                      value={nAdres}
+                      placeholder="https://cdn.teleskor.com.tr/ozet/....mp4"
+                      onChange={(e) => setNAdres(e.target.value)}
+                    />
+                    <div className="hint">
+                      Üretilen mp4 adresi burada. Başka bir video vermek
+                      istersen https adresi ya da iframe kodu yapıştır;
+                      izinli kaynak kuralı özetle aynı.
+                    </div>
+                  </div>
+                  <div>
+                    <span className="label">Başlık</span>
+                    <input
+                      className="input"
+                      value={nBaslik}
+                      maxLength={160}
+                      placeholder="Boş bırakırsan uygulama kendi başlığını yazar"
+                      onChange={(e) => setNBaslik(e.target.value)}
+                    />
+                  </div>
+                  <label
+                    className="check-row"
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={nYayinda}
+                      onChange={(e) => setNYayinda(e.target.checked)}
+                    />
+                    <span style={{ fontSize: 13 }}>
+                      Yayında{" "}
+                      <span className="muted">
+                        (kapatırsan uygulamada Taraftar Nabzı&apos;nda video
+                        çıkmaz, kayıt durur; &quot;yeniden üret&quot; tekrar
+                        yayına alır)
+                      </span>
+                    </span>
+                  </label>
+                  {nabizlar[String(m.id)] && (
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <span className="muted" style={{ fontSize: 12 }}>
+                        Kayıtlı video ·{" "}
+                        <a
+                          href={nabizlar[String(m.id)].adres}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: "var(--brand)" }}
+                        >
+                          ayrı sekmede aç
+                        </a>
+                      </span>
+                      {/* Üretilen video dikey mp4: <video>; iframe
+                          kaynağı verilmişse özetteki gibi çerçeve. */}
+                      {/\.(mp4|webm|m4v)(\?|$)/i.test(nabizlar[String(m.id)].adres) ? (
+                        <video
+                          src={nabizlar[String(m.id)].adres}
+                          controls
+                          preload="metadata"
+                          style={{
+                            width: "100%",
+                            maxWidth: 270,
+                            aspectRatio: "9 / 16",
+                            background: "#000",
+                            borderRadius: 8,
+                          }}
+                        />
+                      ) : (
+                        <iframe
+                          src={nabizlar[String(m.id)].adres}
+                          style={{
+                            width: "100%",
+                            maxWidth: 480,
+                            aspectRatio: "16 / 9",
+                            border: 0,
+                            borderRadius: 8,
+                          }}
+                          allowFullScreen
+                          title={`Maç ${m.id} nabız videosu`}
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      className="btn btn-primary"
+                      disabled={nKaydediliyor || !nAdres.trim()}
+                      onClick={() => void nabizKaydet(m.id)}
+                    >
+                      {nKaydediliyor ? "Kaydediliyor…" : "Kaydet"}
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      disabled={nKaydediliyor}
+                      onClick={() => void nabizSil(m.id)}
+                    >
+                      Sil
+                    </button>
+                  </div>
                 </div>
               )}
 
