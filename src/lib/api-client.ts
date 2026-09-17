@@ -84,6 +84,8 @@ import type {
   KimlikSonucu,
   ArsivDurumu,
   OneCikanLigYaniti,
+  CanliTakipAyari,
+  CanliTakipIstegi,
   TeleskorMacOzeti,
   TeleskorNabizVideosu,
   TeleskorOzetUretim,
@@ -1311,6 +1313,24 @@ export async function apiTeleskorDuyuruGonder(
 ): Promise<{ id: number }> {
   const res = await fetch("/api/teleskor/duyuru", jsonInit("POST", istek));
   return parse<{ id: number }>(res);
+}
+
+/** Canlı takip widget'ı anahtarı (uygulama ayarları). */
+export async function apiTeleskorCanliTakip(): Promise<CanliTakipAyari> {
+  const res = await fetch("/api/teleskor/ayarlar/canli-takip", {
+    cache: "no-store",
+  });
+  return parse<CanliTakipAyari>(res);
+}
+
+export async function apiTeleskorCanliTakipKaydet(
+  istek: CanliTakipIstegi,
+): Promise<CanliTakipAyari> {
+  const res = await fetch(
+    "/api/teleskor/ayarlar/canli-takip",
+    jsonInit("PUT", istek),
+  );
+  return parse<CanliTakipAyari>(res);
 }
 
 /** Öne çıkan lig listesi (spor başına ayrı). */

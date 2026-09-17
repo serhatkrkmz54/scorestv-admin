@@ -1719,6 +1719,20 @@ export interface TeleskorOzetUretim {
   sureSn: number | null;
 }
 
+/** Panelden açılıp kapanan ürün anahtarı — canlı takip widget'ı (V67). */
+export interface CanliTakipAyari {
+  acik: boolean;
+  /** Son değişiklik; göçten gelen satırda null. */
+  guncellendi: string | null;
+  /** Son değiştiren yöneticinin Teleskor kimliği; göçten gelen satırda null. */
+  guncelleyen: number | null;
+}
+
+export interface CanliTakipIstegi {
+  acik: boolean;
+  reason: string;
+}
+
 export interface OneCikanLigIstegi {
   spor: string;
   ligler: { saglayiciId: string; adNotu?: string | null }[];

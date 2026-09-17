@@ -34,6 +34,7 @@ import {
   Radio,
   Star,
   Video,
+  SlidersHorizontal,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -201,6 +202,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     "/teleskor/one-cikan-ligler"
   );
   const isTeleskorMacOzeti = pathname.startsWith("/teleskor/mac-ozeti");
+  const isTeleskorAyarlar = pathname.startsWith("/teleskor/ayarlar");
   const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
   const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
   const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
@@ -380,6 +382,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <Star className="icon" size={22} />
               Öne Çıkan Ligler
+            </Link>
+            <Link
+              href="/teleskor/ayarlar"
+              className={`nav-item ${isTeleskorAyarlar ? "active" : ""}`}
+            >
+              <SlidersHorizontal className="icon" size={22} />
+              Uygulama Ayarları
             </Link>
             <Link
               href="/teleskor/mac-ozeti"
