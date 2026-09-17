@@ -234,6 +234,9 @@ export default function TeleskorSaglikClient() {
                     <th style={{ textAlign: "right" }}>İstek</th>
                     <th style={{ textAlign: "right" }}>Önbellek</th>
                     <th style={{ textAlign: "right" }}>Bayat</th>
+                    <th style={{ textAlign: "right" }} title="Motor 404 döndü: bu maçta/sezonda o veri yok (alt lig istatistiği, puan durumsuz sezon). Arıza değil.">
+                      Yok
+                    </th>
                     <th style={{ textAlign: "right" }}>Hata</th>
                     <th style={{ textAlign: "right" }}>Ort. ms</th>
                     <th style={{ textAlign: "right" }}>En yavaş</th>
@@ -246,6 +249,11 @@ export default function TeleskorSaglikClient() {
                       <td style={{ textAlign: "right" }}>{u.calls}</td>
                       <td style={{ textAlign: "right" }}>{u.cacheHits}</td>
                       <td style={{ textAlign: "right" }}>{u.staleServed}</td>
+                      {/* 404 GRİ, hata KIRMIZI: "kayıt yok" bir gün önce
+                          kırmızı çıkıyordu ve arıza sanılıyordu. */}
+                      <td className="muted" style={{ textAlign: "right" }}>
+                        {u.notFound ?? 0}
+                      </td>
                       <td
                         style={{
                           textAlign: "right",

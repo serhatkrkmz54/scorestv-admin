@@ -1183,6 +1183,8 @@ export interface MotorUcSatiri {
   path: string;
   calls: number;
   failures: number;
+  /** 404 "kayıt yok" — arıza değil (api-1, 17 Eylül); eski sunucuda gelmez. */
+  notFound?: number;
   cacheHits: number;
   staleServed: number;
   shortCircuited: number;
