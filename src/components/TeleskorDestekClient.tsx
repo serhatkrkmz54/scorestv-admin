@@ -336,6 +336,9 @@ export default function TeleskorDestekClient() {
                   <div className="muted" style={{ fontSize: 12 }}>
                     {secili.gorunenAd || secili.kullaniciAdi}
                     {secili.eposta ? ` · ${secili.eposta}` : ""}
+                    {/* WEB ZİYARETÇİSİ (V68): üye değil, cevap e-postayla
+                        gidiyor — yönetici bunu cevap yazmadan bilsin. */}
+                    {secili.misafir ? " · Web ziyaretçisi, cevap e-postayla gider" : ""}
                   </div>
                   {/* CİHAZ SATIRI: "iOS · 1.0.74 · iPhone 15 Pro". Alan
                       "talebi açtığı" değil "EN SON yazdığı" cihaz (sunucu

@@ -1516,6 +1516,12 @@ export interface TeleskorDestekTalebi {
   gorunenAd: string | null;
   eposta: string | null;
   /**
+   * WEB ZİYARETÇİSİ (api-1 V68, 22 Eylül): iletişim formundan yazan üye
+   * olmayan kişi. `gorunenAd`/`eposta` formdan, `kullaniciAdi` null,
+   * cevap ona e-postayla gider (uygulaması yok, push gitmez).
+   */
+  misafir?: boolean;
+  /**
    * Kullanıcının EN SON yazdığı cihaz (V60): IOS / ANDROID / WEB /
    * UNKNOWN ya da null (eski sunucu / bilgisiz talep). İstemci beyanı.
    */
@@ -1556,6 +1562,8 @@ export interface TeleskorDestekMesaji {
 }
 
 export interface TeleskorDestekYazismasi {
+  /** Web ziyaretçisi (api-1 V68): cevap e-postayla gider. */
+  misafir?: boolean;
   id: number;
   konu: string;
   durum: string;
