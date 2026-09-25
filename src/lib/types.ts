@@ -1919,3 +1919,108 @@ export interface VeriKaydi {
    */
   paylasanTakimlar?: string[];
 }
+
+// ---------------------------------------------------------------------------
+// KADRO MASASI (motor V105) — takım kadrosunda elle düzeltme
+// ---------------------------------------------------------------------------
+// Motorun yanıtında NULL alanlar HİÇ gönderilmiyor (global NON_NULL) — bu
+// yüzden boş olabilen alanlar opsiyonel.
+
+export interface KadroTakimRef {
+  id: number;
+  ad?: string;
+  logo?: string;
+}
+
+export interface KadroTakimOzeti {
+  takimId: number;
+  ad: string;
+  logo?: string;
+  /** Sağlayıcının listesindeki oyuncu. */
+  listede: number;
+  /** Uygulamada/sitede kadroda görünen. */
+  kalan: number;
+  /** Kuralların listeden düşürdüğü (başka kulüpte oynadı, transfer…). */
+  otomatikCikan: number;
+  /** Listede yokken maç kadrolarından eklenen. */
+  mactanEklenen: number;
+  /** Kadroda görünen ama bu takımda HİÇ maça çıkmamış liste oyuncusu — asıl iş listesi. */
+  hicOynamamis: number;
+  elleEklenen: number;
+  elleCikarilan: number;
+  macSayisi: number;
+  /** Kadro sekmesi dolu mu (listesiz takımda türetme eşiği). */
+  gorunur: boolean;
+}
+
+export type KadroIslem = "CIKAR" | "EKLE";
+
+export interface KadroDuzeltme {
+  id: number;
+  takimId: number;
+  takimAd: string;
+  oyuncuId: number;
+  oyuncuAd: string;
+  islem: KadroIslem;
+  mevki?: string;
+  forma?: string;
+  gerekce: string;
+  olusturan?: string;
+  olusturuldu: string;
+  kapandi?: string;
+  /** SAGLAYICI_YETISTI · GERI_ALINDI · YENISI_YAZILDI · BASKA_TAKIMA_EKLENDI */
+  kapanmaNedeni?: string;
+  kapatan?: string;
+}
+
+export interface KadroAdayi {
+  oyuncuId: number;
+  ad?: string;
+  foto?: string;
+  mevki?: string;
+  forma?: string;
+  /** SAGLAYICI (sağlayıcı listesi) · MAC (maç kadrolarından) · ELLE (Kadro Masası) */
+  geldigi: "SAGLAYICI" | "MAC" | "ELLE";
+  kaldi: boolean;
+  /** Çıktıysa neden(ler)i — motorun kuralından, Türkçe. */
+  nedenler?: string[];
+  /** Kadroda ama bu takımda hiç maça çıkmamış liste oyuncusu. */
+  supheli: boolean;
+  buradaSon?: string;
+  baskaSon?: string;
+  baskaTakim?: KadroTakimRef;
+  transferTarihi?: string;
+  transferHedef?: string;
+  transferBuraya?: boolean;
+  kartTakim?: KadroTakimRef;
+  duzeltme?: KadroDuzeltme;
+}
+
+export interface KadroTakimKadrosu {
+  takimId: number;
+  ad: string;
+  logo?: string;
+  macSayisi: number;
+  adaylar: KadroAdayi[];
+  /** Adayı olmayan oyuncunun açık düzeltmesi (listeden de düşmüş vb.). */
+  digerDuzeltmeler: KadroDuzeltme[];
+}
+
+export interface KadroOyuncuBulgusu {
+  id: number;
+  ad: string;
+  foto?: string;
+  mevki?: string;
+  dogum?: string;
+  kartTakim?: KadroTakimRef;
+  /** Oyuncunun açık EKLE'si olan takım (zaten başka takıma eklenmiş uyarısı). */
+  masaTakim?: KadroTakimRef;
+}
+
+export interface KadroTakimBulgusu {
+  id: number;
+  ad?: string;
+  adEn?: string;
+  logo?: string;
+  ulke?: string;
+}

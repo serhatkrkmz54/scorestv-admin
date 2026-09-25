@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   UserCog,
   ClipboardList,
+  Shirt,
   Languages,
   LifeBuoy,
   ShieldAlert,
@@ -195,6 +196,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorVeri = pathname.startsWith("/teleskor/veri");
+  const isTeleskorKadro = pathname.startsWith("/teleskor/kadro");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
   const isTeleskorSurumNotu = pathname.startsWith("/teleskor/surum-notu");
@@ -445,6 +447,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <ClipboardList className="icon" size={22} />
               Veri Düzeltme
+            </Link>
+            <Link
+              href="/teleskor/kadro"
+              className={`nav-item ${isTeleskorKadro ? "active" : ""}`}
+            >
+              <Shirt className="icon" size={22} />
+              Kadro Masası
             </Link>
             <Link
               href="/teleskor/denetim"

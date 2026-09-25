@@ -97,6 +97,12 @@ import type {
   VeriKaydi,
   VeriStadyumu,
   YeniStadyum,
+  KadroDuzeltme,
+  KadroIslem,
+  KadroOyuncuBulgusu,
+  KadroTakimBulgusu,
+  KadroTakimKadrosu,
+  KadroTakimOzeti,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1625,4 +1631,85 @@ export async function apiVeriYaz(istek: {
 }): Promise<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }> {
   const res = await fetch("/api/teleskor/veri", jsonInit("PUT", istek));
   return parse<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }>(res);
+}
+
+// ---------------------------------------------------------------------------
+// KADRO MASASI (motor V105) — takım kadrosunda elle düzeltme
+// ---------------------------------------------------------------------------
+
+export async function apiKadroTakimlar(lig: number): Promise<KadroTakimOzeti[]> {
+  const res = await fetch(`/api/teleskor/kadro/takimlar?lig=${lig}`, {
+    cache: "no-store",
+  });
+  return parse<KadroTakimOzeti[]>(res);
+}
+
+export async function apiKadroTakim(takim: number): Promise<KadroTakimKadrosu> {
+  const res = await fetch(`/api/teleskor/kadro/takim?takim=${takim}`, {
+    cache: "no-store",
+  });
+  return parse<KadroTakimKadrosu>(res);
+}
+
+export async function apiKadroOyuncuAra(q: string): Promise<KadroOyuncuBulgusu[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(
+    `/api/teleskor/kadro/oyuncu-ara?q=${encodeURIComponent(q.trim())}`,
+    { cache: "no-store" },
+  );
+  return parse<KadroOyuncuBulgusu[]>(res);
+}
+
+export async function apiKadroTakimAra(q: string): Promise<KadroTakimBulgusu[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(
+    `/api/teleskor/kadro/takim-ara?q=${encodeURIComponent(q.trim())}`,
+    { cache: "no-store" },
+  );
+  const r = await parse<{ sonuclar?: KadroTakimBulgusu[] }>(res);
+  return r.sonuclar ?? [];
+}
+
+export async function apiKadroDuzeltmeler(
+  lig: number | null,
+  kapali: boolean,
+): Promise<KadroDuzeltme[]> {
+  const ligParam = lig ? `&lig=${lig}` : "";
+  const res = await fetch(
+    `/api/teleskor/kadro/duzeltmeler?kapali=${kapali}${ligParam}`,
+    { cache: "no-store" },
+  );
+  return parse<KadroDuzeltme[]>(res);
+}
+
+/** `ekTakim`: taşımada eski takım — yalnız önbellek ipucu. */
+export async function apiKadroYaz(
+  istek: {
+    takimId: number;
+    oyuncuId: number;
+    islem: KadroIslem;
+    mevki?: string | null;
+    forma?: string | null;
+    gerekce: string;
+  },
+  ekTakim?: number,
+): Promise<KadroDuzeltme> {
+  const res = await fetch(
+    `/api/teleskor/kadro${ekTakim ? `?ekTakim=${ekTakim}` : ""}`,
+    jsonInit("POST", istek),
+  );
+  return parse<KadroDuzeltme>(res);
+}
+
+export async function apiKadroGeriAl(id: number, ekTakim?: number): Promise<KadroDuzeltme> {
+  const res = await fetch(
+    `/api/teleskor/kadro/${id}${ekTakim ? `?ekTakim=${ekTakim}` : ""}`,
+    { method: "DELETE" },
+  );
+  return parse<KadroDuzeltme>(res);
+}
+
+export async function apiKadroKapatDene(): Promise<{ kapanan: number }> {
+  const res = await fetch("/api/teleskor/kadro/kapat-dene", { method: "POST" });
+  return parse<{ kapanan: number }>(res);
 }
