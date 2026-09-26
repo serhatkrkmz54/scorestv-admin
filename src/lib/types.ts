@@ -1874,6 +1874,18 @@ export interface VeriAlanDurumu {
   saglayiciSonDeger?: string | null;
   /** Yama var ama sağlayıcı artık başka bir şey gönderiyor — karar kullanıcının. */
   sapma: boolean;
+  /**
+   * Kodlu alanın geçerli değerleri (mevki, ayak, uyruk, para birimi). Varsa
+   * alan açılır liste olarak çizilir; motor listenin dışındaki değeri reddeder.
+   * Eski motor göndermez.
+   */
+  secenekler?: { kod: string; ad: string }[] | null;
+  /** Şu anki değerin görünen adı (seçeneğin adı, takım alanında takımın adı). */
+  degerAd?: string | null;
+  /** Alan bu masadan düzenlenmiyor: `KADRO_MASASI` (oyuncunun takımı). */
+  yonlendirme?: string | null;
+  /** Alanın altına yazılacak kısa bilgi. */
+  aciklama?: string | null;
 }
 
 /**

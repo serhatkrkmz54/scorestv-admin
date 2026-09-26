@@ -1085,10 +1085,15 @@ function AlanSatiri({
   // alanda da true döner. Tek yerde hesaplanıyor: iki kullanım yerine
   // kopyalansaydı biri düzeltilirken diğeri unutulurdu.
   const yamaliMi = alan.yama !== null && alan.yama !== undefined;
-  // Seçicisi olan tek referans türü bugün VENUE. `PLAYER.team_id` de
-  // `referans` ama seçicisi yok; orada eski sayı kutusu duruyor ve
-  // "kimlik (sayı)" ipucu hâlâ anlamlı.
+  // Seçicisi olan referans türü VENUE. `PLAYER.team_id` 26 Eylül'den beri
+  // bu masadan düzenlenmiyor (Kadro Masası'na yönlendiriliyor).
   const stadyumAlani = alan.tip === "referans" && alan.referansTur === "VENUE";
+  // Kodlu alan (mevki, ayak, uyruk, para birimi): seçenekleri motor veriyor,
+  // panel kod ezberlemiyor ve motor listenin dışındaki değeri reddediyor.
+  const secenekler = alan.secenekler ?? null;
+  // Oyuncunun takımı bu masadan değil Kadro Masası'ndan değişiyor: buradaki
+  // yama kadroları değiştirmezdi.
+  const kadroMasasina = alan.yonlendirme === "KADRO_MASASI";
   const [deger, setDeger] = useState(alan.yama ?? alan.deger ?? "");
   const [gerekce, setGerekce] = useState(alan.gerekce ?? "");
   const [durum, setDurum] = useState<Durum>("");
@@ -1180,7 +1185,7 @@ function AlanSatiri({
             yamalı
           </span>
         )}
-        {alan.tip === "referans" && !stadyumAlani && (
+        {alan.tip === "referans" && !stadyumAlani && !kadroMasasina && (
           <div className="cell-sub">kimlik (sayı)</div>
         )}
         {alan.sapma && (
@@ -1191,34 +1196,82 @@ function AlanSatiri({
       </div>
 
       <div style={{ display: "grid", gap: 6 }}>
-        {stadyumAlani ? (
+        {kadroMasasina ? (
+          <div style={{ fontSize: 13, paddingTop: 8 }}>
+            <div>
+              Sağlayıcı kartındaki takım:{" "}
+              <b>{alan.degerAd ?? (alan.deger ? `#${alan.deger}` : "yok")}</b>
+            </div>
+            {alan.aciklama && (
+              <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                {alan.aciklama}
+              </div>
+            )}
+            <a
+              href="/teleskor/kadro"
+              className="btn btn-sm"
+              style={{ marginTop: 8, display: "inline-block" }}
+            >
+              Kadro Masası&apos;nı aç
+            </a>
+          </div>
+        ) : stadyumAlani ? (
           <StadyumSecici
             deger={deger}
             takimId={tur === "TEAM" ? id : undefined}
             onSec={setDeger}
             onYazmayaBasla={yazmayaBasla}
           />
+        ) : secenekler ? (
+          <select
+            className="input"
+            value={deger}
+            onChange={(e) => {
+              setDeger(e.target.value);
+              yazmayaBasla();
+            }}
+          >
+            <option value="">Seçiniz</option>
+            {deger !== "" &&
+              !secenekler.some(
+                (s) => s.kod.toLowerCase() === deger.toLowerCase(),
+              ) && <option value={deger}>{deger} (tanınmayan değer)</option>}
+            {secenekler.map((s) => (
+              <option key={s.kod} value={s.kod}>
+                {s.ad}
+              </option>
+            ))}
+          </select>
         ) : (
           <input
             className="input"
+            type={
+              alan.tip === "tarih"
+                ? "date"
+                : alan.tip === "tamsayi"
+                  ? "number"
+                  : "text"
+            }
+            inputMode={alan.tip === "tamsayi" ? "numeric" : undefined}
             value={deger}
-            placeholder={alan.tip === "tarih" ? "YYYY-AA-GG" : ""}
             onChange={(e) => {
               setDeger(e.target.value);
               yazmayaBasla();
             }}
           />
         )}
-        <input
-          className="input"
-          style={{ fontSize: 12 }}
-          value={gerekce}
-          placeholder="Gerekçe (zorunlu): bu değeri nereden aldın?"
-          onChange={(e) => {
-            setGerekce(e.target.value);
-            yazmayaBasla();
-          }}
-        />
+        {!kadroMasasina && (
+          <input
+            className="input"
+            style={{ fontSize: 12 }}
+            value={gerekce}
+            placeholder="Gerekçe (zorunlu): bu değeri nereden aldın?"
+            onChange={(e) => {
+              setGerekce(e.target.value);
+              yazmayaBasla();
+            }}
+          />
+        )}
         {mesaj && (
           <div
             className={durum === "hata" ? undefined : "muted"}
@@ -1233,17 +1286,19 @@ function AlanSatiri({
       </div>
 
       <div style={{ display: "grid", gap: 6 }}>
-        <button
-          className="btn btn-sm"
-          disabled={durum === "kaydediliyor"}
-          onClick={() => kaydet(false)}
-        >
-          {durum === "kaydediliyor"
-            ? "Kaydediliyor…"
-            : durum === "ok"
-              ? "Kaydedildi ✓"
-              : "Kaydet"}
-        </button>
+        {!kadroMasasina && (
+          <button
+            className="btn btn-sm"
+            disabled={durum === "kaydediliyor"}
+            onClick={() => kaydet(false)}
+          >
+            {durum === "kaydediliyor"
+              ? "Kaydediliyor…"
+              : durum === "ok"
+                ? "Kaydedildi ✓"
+                : "Kaydet"}
+          </button>
+        )}
         {yamaliMi && (
           <button
             className="btn btn-sm"
