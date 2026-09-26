@@ -16,6 +16,7 @@ import {
 import type {
   KadroAdayi,
   KadroDuzeltme,
+  KadroIslem,
   KadroOyuncuBulgusu,
   KadroTakimBulgusu,
   KadroTakimKadrosu,
@@ -59,6 +60,9 @@ type Form =
   | { tur: "CIKAR"; aday: KadroAdayi }
   | { tur: "GERI_EKLE"; aday: KadroAdayi }
   | { tur: "TASI"; aday: KadroAdayi }
+  // Yalnız forma/mevki (motor V106). Elle eklenen oyuncuda EKLE yeniden
+  // yazılır (DUZELT onu kapatıp oyuncuyu kadrodan oynatırdı; motor 409 verir).
+  | { tur: "DUZELT"; aday: KadroAdayi }
   | { tur: "EKLE" };
 
 const MEVKILER: { kod: string; ad: string }[] = [
@@ -273,6 +277,11 @@ export default function TeleskorKadroClient() {
   function formAc(f: Form) {
     formuKapat();
     setForm(f);
+    if (f.tur === "DUZELT") {
+      // Mevcut değerlerle açılıyor: yalnız değişeni düzeltmek kolay olsun.
+      setMevki(f.aday.mevki && MEVKILER.some((m) => m.kod === f.aday.mevki) ? f.aday.mevki : "");
+      setForma(f.aday.forma ?? "");
+    }
   }
 
   // MODAL AÇIKKEN: Esc kapatıyor, arka plan kaydırılmıyor (Veri Düzeltme
@@ -320,6 +329,21 @@ export default function TeleskorKadroClient() {
           gerekce: gerekce.trim(),
         });
         await sonrasi(`${form.aday.ad ?? "Oyuncu"} ${acik.ad} kadrosundan çıkarıldı.`);
+      } else if (form.tur === "DUZELT") {
+        if (!mevki && !forma.trim()) {
+          setFormHatasi("Forma numarası ya da mevkiden en az biri gerekli.");
+          return;
+        }
+        const elle = form.aday.duzeltme?.islem === "EKLE";
+        await apiKadroYaz({
+          takimId: acik.id,
+          oyuncuId: form.aday.oyuncuId,
+          islem: elle ? "EKLE" : "DUZELT",
+          mevki: mevki || null,
+          forma: forma.trim() || null,
+          gerekce: gerekce.trim(),
+        });
+        await sonrasi(`${form.aday.ad ?? "Oyuncu"} için forma/mevki düzeltildi.`);
       } else if (form.tur === "GERI_EKLE") {
         await apiKadroYaz({
           takimId: acik.id,
@@ -378,7 +402,7 @@ export default function TeleskorKadroClient() {
   async function geriAl(d: KadroDuzeltme) {
     if (
       !window.confirm(
-        `${d.oyuncuAd} için "${d.islem === "CIKAR" ? "çıkar" : "ekle"}" düzeltmesi geri alınsın mı? ` +
+        `${d.oyuncuAd} için "${d.islem === "CIKAR" ? "çıkar" : d.islem === "DUZELT" ? "forma/mevki" : "ekle"}" düzeltmesi geri alınsın mı? ` +
           "Kadro yeniden kuralın kararına döner.",
       )
     ) {
@@ -861,6 +885,12 @@ function AdaySatiri({
               #{a.oyuncuId}
               {a.mevki ? ` · ${a.mevki}` : ""}
               {a.forma ? ` · ${a.forma} numara` : ""}
+              {a.duzeltme?.islem === "DUZELT" &&
+              (a.hamForma !== a.forma || a.hamMevki !== a.mevki)
+                ? ` (önce: ${[a.hamMevki, a.hamForma ? `${a.hamForma} numara` : null]
+                    .filter(Boolean)
+                    .join(" · ") || "boş"})`
+                : ""}
               {a.kartTakim?.ad ? ` · kaydı: ${a.kartTakim.ad}` : ""}
             </div>
           </div>
@@ -925,11 +955,21 @@ function AdaySatiri({
       <td>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {a.duzeltme ? (
-            <button className="btn btn-sm" onClick={() => geriAl(a.duzeltme!)}>
-              Geri al
-            </button>
+            <>
+              <button className="btn btn-sm" onClick={() => geriAl(a.duzeltme!)}>
+                Geri al
+              </button>
+              {a.kaldi && a.duzeltme.islem !== "CIKAR" && (
+                <button className="btn btn-sm" onClick={() => formAc({ tur: "DUZELT", aday: a })}>
+                  Forma/mevki
+                </button>
+              )}
+            </>
           ) : a.kaldi ? (
             <>
+              <button className="btn btn-sm" onClick={() => formAc({ tur: "DUZELT", aday: a })}>
+                Forma/mevki
+              </button>
               <button className="btn btn-sm" onClick={() => formAc({ tur: "CIKAR", aday: a })}>
                 Çıkar
               </button>
@@ -980,7 +1020,9 @@ function IslemFormu(p: {
         ? `${form.aday.ad ?? "Oyuncu"} — ${p.takimAd} kadrosuna geri ekle`
         : form.tur === "TASI"
           ? `${form.aday.ad ?? "Oyuncu"} — başka takıma taşı`
-          : `${p.takimAd} kadrosuna oyuncu ekle`;
+          : form.tur === "DUZELT"
+            ? `${form.aday.ad ?? "Oyuncu"} — ${p.takimAd} kadrosunda forma ve mevki`
+            : `${p.takimAd} kadrosuna oyuncu ekle`;
   const aciklama =
     form.tur === "CIKAR"
       ? "Oyuncu bu takımın kadrosunda görünmez. Sağlayıcı da onu listeden düşürünce düzeltme kendiliğinden kapanır."
@@ -988,6 +1030,8 @@ function IslemFormu(p: {
         ? "Sistem bu oyuncuyu çıkarmıştı; düzeltme sistemin kararını ezer ve oyuncu kadroda görünür."
         : form.tur === "TASI"
           ? "Oyuncu hedef takımın kadrosunda görünür, başka hiçbir takımın kadrosunda görünmez. Oyuncu sayfasındaki takım da değişir."
+          : form.tur === "DUZELT"
+            ? "Yalnız bu takımdaki forma numarası ve mevki değişir; oyuncunun kadroda görünüp görünmemesine karışmaz. Oyuncu sayfasındaki forma da değişir. Sağlayıcı aynı değeri gönderince düzeltme kendiliğinden kapanır."
           : "Katalogda var olan bir oyuncuyu bu takıma ekler. Oyuncu başka takımların kadrosunda artık görünmez.";
 
   return (
@@ -1103,9 +1147,9 @@ function IslemFormu(p: {
         </div>
       )}
 
-      {(form.tur === "EKLE" || form.tur === "TASI") && (
+      {(form.tur === "EKLE" || form.tur === "TASI" || form.tur === "DUZELT") && (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-          {form.tur === "EKLE" && (
+          {(form.tur === "EKLE" || form.tur === "DUZELT") && (
             <div style={{ minWidth: 200 }}>
               <label className="label" htmlFor="kadro-mevki">
                 Mevki
@@ -1175,7 +1219,9 @@ function IslemFormu(p: {
                 ? "Taşı"
                 : form.tur === "GERI_EKLE"
                   ? "Geri ekle"
-                  : "Kadroya ekle"}
+                  : form.tur === "DUZELT"
+                    ? "Kaydet"
+                    : "Kadroya ekle"}
         </button>
         <button className="btn btn-ghost" onClick={p.vazgec} disabled={p.gonderiliyor}>
           Vazgeç
@@ -1185,13 +1231,13 @@ function IslemFormu(p: {
   );
 }
 
-function IslemRozeti({ islem }: { islem: "CIKAR" | "EKLE" }) {
+function IslemRozeti({ islem }: { islem: KadroIslem }) {
   return (
     <span
-      className={`badge ${islem === "CIKAR" ? "badge-flag" : "badge-lang"}`}
+      className={`badge ${islem === "CIKAR" ? "badge-flag" : islem === "DUZELT" ? "badge-draft" : "badge-lang"}`}
       style={{ whiteSpace: "nowrap" }}
     >
-      {islem === "CIKAR" ? "Elle çıkarıldı" : "Elle eklendi"}
+      {islem === "CIKAR" ? "Elle çıkarıldı" : islem === "DUZELT" ? "Forma/mevki elle" : "Elle eklendi"}
     </span>
   );
 }

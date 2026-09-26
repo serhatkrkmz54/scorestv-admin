@@ -8,6 +8,9 @@ import {
   apiVeriOyuncular,
   apiVeriStadyumAc,
   apiVeriStadyumlar,
+  apiVeriUlkeler,
+  apiVeriVatandaslikYaz,
+  apiVeriGorsel,
   apiVeriYaz,
   apiTeleskorLigAra,
   ApiError,
@@ -18,6 +21,8 @@ import type {
   VeriKaydi,
   VeriOyuncusu,
   VeriStadyumu,
+  VeriUlkesi,
+  VatandaslikDurumu,
 } from "@/lib/types";
 
 /**
@@ -650,6 +655,13 @@ function KayitDuzenle({
           />
         ))}
       </div>
+      {kayit.tur === "PLAYER" && kayit.vatandaslik && (
+        <VatandaslikDuzenle
+          oyuncuId={kayit.id}
+          durum={kayit.vatandaslik}
+          onDegisti={onDegisti}
+        />
+      )}
     </div>
   );
 }
@@ -1101,6 +1113,13 @@ function AlanSatiri({
   // Oyuncunun takımı bu masadan değil Kadro Masası'ndan değişiyor: buradaki
   // yama kadroları değiştirmezdi.
   const kadroMasasina = alan.yonlendirme === "KADRO_MASASI";
+  // Ülke (motor V106): arama kutusu; kimlik ezberlenmiyor.
+  const ulkeAlani = alan.tip === "referans" && alan.referansTur === "COUNTRY";
+  // Görsel (motor V106): dosya yüklenir, motor görsel hattından geçirip
+  // yamayı kendisi yazar. Adres elle yazılamaz.
+  const gorselAlani = alan.tip === "gorsel";
+  const [ulkeAd, setUlkeAd] = useState<string | null>(alan.degerAd ?? null);
+  const [dosya, setDosya] = useState<string | null>(null);
   const [deger, setDeger] = useState(alan.yama ?? alan.deger ?? "");
   const [gerekce, setGerekce] = useState(alan.gerekce ?? "");
   const [durum, setDurum] = useState<Durum>("");
@@ -1109,7 +1128,54 @@ function AlanSatiri({
   useEffect(() => {
     setDeger(alan.yama ?? alan.deger ?? "");
     setGerekce(alan.gerekce ?? "");
-  }, [alan.yama, alan.deger, alan.gerekce]);
+    setUlkeAd(alan.degerAd ?? null);
+    setDosya(null);
+  }, [alan.yama, alan.deger, alan.gerekce, alan.degerAd]);
+
+  function dosyaSec(f: File | undefined) {
+    yazmayaBasla();
+    if (!f) return;
+    if (f.size > AZAMI_GORSEL) {
+      setDurum("hata");
+      setMesaj("Dosya çok büyük: en fazla 4 MB.");
+      return;
+    }
+    const okuyucu = new FileReader();
+    okuyucu.onload = () => setDosya(String(okuyucu.result));
+    okuyucu.onerror = () => {
+      setDurum("hata");
+      setMesaj("Dosya okunamadı.");
+    };
+    okuyucu.readAsDataURL(f);
+  }
+
+  async function gorselYukle() {
+    if (!dosya) {
+      setDurum("hata");
+      setMesaj("Önce bir dosya seç.");
+      return;
+    }
+    setDurum("kaydediliyor");
+    setMesaj("");
+    try {
+      await apiVeriGorsel(takimId, {
+        tur: tur as "PLAYER" | "TEAM",
+        id,
+        dosya,
+        gerekce,
+      });
+      setDurum("ok");
+    } catch (e) {
+      setDurum("hata");
+      setMesaj(e instanceof ApiError ? e.message : "Görsel yüklenemedi.");
+      return;
+    }
+    try {
+      await onDegisti();
+    } catch {
+      setMesaj("Yüklendi. (Liste tazelenemedi — sayfayı yenile.)");
+    }
+  }
 
   async function kaydet(kaldir = false) {
     setDurum("kaydediliyor");
@@ -1192,7 +1258,7 @@ function AlanSatiri({
             yamalı
           </span>
         )}
-        {alan.tip === "referans" && !stadyumAlani && !kadroMasasina && (
+        {alan.tip === "referans" && !stadyumAlani && !kadroMasasina && !ulkeAlani && (
           <div className="cell-sub">kimlik (sayı)</div>
         )}
         {alan.sapma && (
@@ -1222,6 +1288,55 @@ function AlanSatiri({
               Kadro Masası&apos;nı aç
             </a>
           </div>
+        ) : gorselAlani ? (
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                flex: "0 0 64px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: "var(--surface-2, #f4f4f5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {dosya || alan.degerAd ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={dosya ?? alan.degerAd ?? ""}
+                  alt=""
+                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                />
+              ) : (
+                <span className="muted" style={{ fontSize: 11 }}>yok</span>
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => dosyaSec(e.target.files?.[0])}
+                style={{ fontSize: 12 }}
+              />
+              <span className="muted" style={{ fontSize: 11 }}>
+                PNG, JPG, WebP ya da SVG, en fazla 4 MB. Kare görsel önerilir;
+                256 piksele küçültülür.
+              </span>
+            </div>
+          </div>
+        ) : ulkeAlani ? (
+          <UlkeSecici
+            secili={deger ? { id: Number(deger), ad: ulkeAd ?? undefined, taslak: false } : null}
+            onSec={(u) => {
+              setDeger(String(u.id));
+              setUlkeAd(u.ad ?? null);
+              yazmayaBasla();
+            }}
+          />
         ) : stadyumAlani ? (
           <StadyumSecici
             deger={deger}
@@ -1297,7 +1412,7 @@ function AlanSatiri({
           <button
             className="btn btn-sm"
             disabled={durum === "kaydediliyor"}
-            onClick={() => kaydet(false)}
+            onClick={() => (gorselAlani ? gorselYukle() : kaydet(false))}
           >
             {durum === "kaydediliyor"
               ? "Kaydediliyor…"
@@ -1310,9 +1425,307 @@ function AlanSatiri({
           <button
             className="btn btn-sm"
             onClick={() => kaydet(true)}
-            title="Yamayı kaldır — sağlayıcının değeri bir sonraki senkron turunda geri gelir"
+            title="Yamayı kaldır — yamadan önceki değer (ya da sağlayıcının son gönderdiği) geri yazılır"
           >
             Yamayı kaldır
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Görsel yükleme tavanı: ürün backend'inin önündeki nginx 6 MB gövde alıyor, Base64 ~1,33 kat. */
+const AZAMI_GORSEL = 4 * 1024 * 1024;
+
+/**
+ * ÜLKE SEÇİCİ (motor V106) — oyuncunun Ülke alanı ve vatandaşlık listesi.
+ * Ülke tablosu küçük; tek harften aranıyor, Türkçe harf şart değil.
+ */
+function UlkeSecici({
+  secili,
+  onSec,
+  yerTutucu = "Ülke ara",
+}: {
+  secili: VeriUlkesi | null;
+  onSec: (u: VeriUlkesi) => void;
+  yerTutucu?: string;
+}) {
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<VeriUlkesi[]>([]);
+  const [hata, setHata] = useState("");
+  const sonAramaRef = useRef("");
+
+  useEffect(() => {
+    const ara = q.trim();
+    sonAramaRef.current = ara;
+    if (!ara) {
+      setSonuc([]);
+      return;
+    }
+    const zaman = setTimeout(() => {
+      apiVeriUlkeler({ q: ara })
+        .then((liste) => {
+          if (sonAramaRef.current !== ara) return;
+          setSonuc(liste);
+          setHata("");
+        })
+        .catch((e) => {
+          if (sonAramaRef.current !== ara) return;
+          setHata(e instanceof ApiError ? e.message : "Arama başarısız.");
+        });
+    }, 250);
+    return () => clearTimeout(zaman);
+  }, [q]);
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      {secili && (
+        <div style={{ fontSize: 13 }}>
+          Seçili: <b>{secili.ad ?? `#${secili.id}`}</b>
+        </div>
+      )}
+      <input
+        className="input"
+        value={q}
+        placeholder={yerTutucu}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      {q.trim() && (
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            maxHeight: 220,
+            overflowY: "auto",
+          }}
+        >
+          {hata ? (
+            <div style={{ fontSize: 12, padding: 10, color: "var(--danger)" }}>{hata}</div>
+          ) : sonuc.length === 0 ? (
+            <div className="muted" style={{ fontSize: 12, padding: 10 }}>
+              Eşleşen ülke yok.
+            </div>
+          ) : (
+            sonuc.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => {
+                  onSec(u);
+                  setQ("");
+                  setSonuc([]);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  borderBottom: "1px solid var(--border)",
+                  padding: "7px 10px",
+                  cursor: "pointer",
+                }}
+              >
+                {u.bayrak && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={u.bayrak} alt="" width={18} height={18} style={{ objectFit: "contain" }} />
+                )}
+                <span className="cell-title">{u.ad}</span>
+                <span className="cell-sub" style={{ marginLeft: "auto" }}>#{u.id}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * VATANDAŞLIK DÜZELTMESİ (motor V106). Uygulamanın Bilgi kartında
+ * "Vatandaşlık / İkinci vatandaşlık" satırları bu listeden: sıra önemli
+ * (ilki birinci vatandaşlık). Sağlayıcının listesi ayrı tabloda ve her
+ * senkronda baştan yazılıyor — düzeltme ayrı saklanıyor, uygulama onu öne
+ * alıyor. Boş kaydedilirse uygulamada vatandaşlık gösterilmez.
+ */
+function VatandaslikDuzenle({
+  oyuncuId,
+  durum,
+  onDegisti,
+}: {
+  oyuncuId: number;
+  durum: VatandaslikDurumu;
+  onDegisti: () => Promise<void>;
+}) {
+  const [liste, setListe] = useState<VeriUlkesi[]>(durum.duzeltme ?? durum.saglayici);
+  const [gerekce, setGerekce] = useState(durum.gerekce ?? "");
+  const [kayit, setKayit] = useState<Durum>("");
+  const [mesaj, setMesaj] = useState("");
+
+  // Kayıt başka bir alan kaydedilince de yeniden yükleniyor ve `durum` her
+  // seferinde YENİ nesne. Nesneye bağlansaydı kaydedilmemiş seçim silinirdi
+  // (denemede yaşandı: fotoğraf yüklenince seçilen ülke kayboldu, ardından
+  // boş liste kaydedildi). İçerik değişince sıfırlanıyor.
+  const durumAnahtari = JSON.stringify(durum);
+  useEffect(() => {
+    setListe(durum.duzeltme ?? durum.saglayici);
+    setGerekce(durum.gerekce ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durumAnahtari]);
+
+  const adlar = (l: VeriUlkesi[]) =>
+    l.length === 0 ? "yok" : l.map((u) => u.ad ?? `#${u.id}`).join(", ");
+
+  async function yaz(kaldir: boolean) {
+    const ayni = (a: VeriUlkesi[], b: VeriUlkesi[]) =>
+      a.length === b.length && a.every((u, i) => u.id === b[i].id);
+    if (!kaldir && !durum.duzeltme && ayni(liste, durum.saglayici)) {
+      setKayit("hata");
+      setMesaj("Değişiklik yok: liste sağlayıcınınkiyle aynı.");
+      return;
+    }
+    setKayit("kaydediliyor");
+    setMesaj("");
+    try {
+      await apiVeriVatandaslikYaz(
+        kaldir
+          ? { id: oyuncuId, kaldir: true }
+          : { id: oyuncuId, ulkeIdler: liste.map((u) => u.id), gerekce },
+      );
+      setKayit("ok");
+    } catch (e) {
+      setKayit("hata");
+      setMesaj(e instanceof ApiError ? e.message : "Kaydedilemedi.");
+      return;
+    }
+    try {
+      await onDegisti();
+    } catch {
+      setMesaj("Kaydedildi. (Liste tazelenemedi — sayfayı yenile.)");
+    }
+  }
+
+  function degisti(yeni: VeriUlkesi[]) {
+    setListe(yeni);
+    if (kayit !== "") setKayit("");
+    if (mesaj !== "") setMesaj("");
+  }
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        paddingTop: 12,
+        borderTop: "1px dashed var(--border)",
+        display: "grid",
+        gridTemplateColumns: "minmax(150px,1fr) minmax(200px,1.6fr) 140px",
+        gap: 12,
+        alignItems: "start",
+      }}
+    >
+      <div style={{ paddingTop: 4 }}>
+        <span className="label" style={{ marginBottom: 0, display: "inline" }}>
+          Vatandaşlık
+        </span>
+        {durum.duzeltme && (
+          <span className="badge badge-lang" style={{ marginLeft: 8 }}>
+            yamalı
+          </span>
+        )}
+        <div className="cell-sub">Sağlayıcı: {adlar(durum.saglayici)}</div>
+        {durum.sapma && (
+          <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 4 }}>
+            Sağlayıcının listesi düzeltmeden sonra değişti.
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: 6 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {liste.length === 0 && (
+            <span className="muted" style={{ fontSize: 12 }}>
+              Boş — kaydedilirse uygulamada vatandaşlık gösterilmez.
+            </span>
+          )}
+          {liste.map((u, i) => (
+            <span
+              key={u.id}
+              className="badge"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              {i === 0 ? "1." : `${i + 1}.`} {u.ad ?? `#${u.id}`}
+              {i > 0 && (
+                <button
+                  type="button"
+                  title="Öne al"
+                  onClick={() => {
+                    const y = [...liste];
+                    [y[i - 1], y[i]] = [y[i], y[i - 1]];
+                    degisti(y);
+                  }}
+                  style={{ border: "none", background: "none", cursor: "pointer", padding: 0 }}
+                >
+                  ↑
+                </button>
+              )}
+              <button
+                type="button"
+                title="Çıkar"
+                onClick={() => degisti(liste.filter((x) => x.id !== u.id))}
+                style={{ border: "none", background: "none", cursor: "pointer", padding: 0 }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        {liste.length < 4 && (
+          <UlkeSecici
+            secili={null}
+            yerTutucu="Vatandaşlık ekle: ülke ara"
+            onSec={(u) => {
+              if (!liste.some((x) => x.id === u.id)) degisti([...liste, u]);
+            }}
+          />
+        )}
+        <input
+          className="input"
+          style={{ fontSize: 12 }}
+          value={gerekce}
+          placeholder="Gerekçe (zorunlu): bu bilgiyi nereden aldın?"
+          onChange={(e) => {
+            setGerekce(e.target.value);
+            if (kayit !== "") setKayit("");
+          }}
+        />
+        {mesaj && (
+          <div
+            className={kayit === "hata" ? undefined : "muted"}
+            style={{ fontSize: 11, ...(kayit === "hata" ? { color: "var(--danger)" } : null) }}
+          >
+            {mesaj}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: 6 }}>
+        <button
+          className="btn btn-sm"
+          disabled={kayit === "kaydediliyor"}
+          onClick={() => yaz(false)}
+        >
+          {kayit === "kaydediliyor" ? "Kaydediliyor…" : kayit === "ok" ? "Kaydedildi ✓" : "Kaydet"}
+        </button>
+        {durum.duzeltme && (
+          <button
+            className="btn btn-sm"
+            onClick={() => yaz(true)}
+            title="Düzeltmeyi kaldır — uygulama sağlayıcının listesini gösterir"
+          >
+            Düzeltmeyi kaldır
           </button>
         )}
       </div>

@@ -1800,7 +1800,7 @@ export interface VeriAlani {
   tur: "VENUE" | "TEAM" | "PLAYER";
   alan: string;
   etiket: string;
-  tip: "metin" | "tamsayi" | "tarih" | "referans";
+  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel";
   referansTur?: string | null;
   /** Eksik raporunda sayılsın mı (web sitesi olmayan alt lig takımı eksiklik değil). */
   eksikSayilir: boolean;
@@ -1864,7 +1864,7 @@ export interface VeriOyuncusu {
 export interface VeriAlanDurumu {
   alan: string;
   etiket: string;
-  tip: "metin" | "tamsayi" | "tarih" | "referans";
+  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel";
   referansTur?: string | null;
   /** Ana tablodaki şu anki değer (yama varsa yamanın uygulanmış hâli). */
   deger?: string | null;
@@ -1938,6 +1938,30 @@ export interface VeriKaydi {
    * Eski motor sürümünde hiç gelmiyor — bu yüzden opsiyonel.
    */
   paylasanTakimlar?: string[];
+  /** Yalnız oyuncuda (motor V106). */
+  vatandaslik?: VatandaslikDurumu;
+}
+
+/** Ülke seçicinin satırı (motor V106). */
+export interface VeriUlkesi {
+  id: number;
+  ad?: string;
+  bayrak?: string;
+  taslak: boolean;
+}
+
+/**
+ * Oyuncunun vatandaşlıkları (motor V106). `duzeltme` yoksa sağlayıcının
+ * listesi geçerli; boş dizi = "hiç gösterme".
+ */
+export interface VatandaslikDurumu {
+  saglayici: VeriUlkesi[];
+  duzeltme?: VeriUlkesi[];
+  gerekce?: string;
+  guncelleyen?: string;
+  guncellendi?: string;
+  /** Düzeltme yazıldıktan sonra sağlayıcının listesi değişti. */
+  sapma: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -1973,7 +1997,8 @@ export interface KadroTakimOzeti {
   gorunur: boolean;
 }
 
-export type KadroIslem = "CIKAR" | "EKLE";
+/** DUZELT (motor V106): yalnız forma/mevki, kadroda görünmeye karışmaz. */
+export type KadroIslem = "CIKAR" | "EKLE" | "DUZELT";
 
 export interface KadroDuzeltme {
   id: number;
@@ -2014,6 +2039,9 @@ export interface KadroAdayi {
   transferBuraya?: boolean;
   kartTakim?: KadroTakimRef;
   duzeltme?: KadroDuzeltme;
+  /** DUZELT'ten önceki mevki / forma (liste ya da maç kadrosu). Eski motor göndermez. */
+  hamMevki?: string;
+  hamForma?: string;
 }
 
 export interface KadroTakimKadrosu {

@@ -96,6 +96,8 @@ import type {
   VeriOyuncusu,
   VeriKaydi,
   VeriStadyumu,
+  VeriUlkesi,
+  VatandaslikDurumu,
   YeniStadyum,
   KadroDuzeltme,
   KadroIslem,
@@ -1636,6 +1638,47 @@ export async function apiVeriYaz(takimId: number | undefined, istek: {
   const yol = takimId ? `/api/teleskor/veri?takim=${takimId}` : "/api/teleskor/veri";
   const res = await fetch(yol, jsonInit("PUT", istek));
   return parse<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }>(res);
+}
+
+/** Ülke seçici (motor V106). */
+export async function apiVeriUlkeler(
+  arama: { q?: string; ids?: number[] },
+  spor = 1,
+): Promise<VeriUlkesi[]> {
+  const q = (arama.q ?? "").trim();
+  const ids = (arama.ids ?? []).join(",");
+  if (!ids && q.length < 1) return [];
+  const res = await fetch(
+    `/api/teleskor/veri/ulkeler?q=${encodeURIComponent(q)}&ids=${ids}&spor=${spor}`,
+    { cache: "no-store" },
+  );
+  return parse<VeriUlkesi[]>(res);
+}
+
+/** Vatandaşlık düzeltmesi yaz; `kaldir` ise sağlayıcının listesine döner. */
+export async function apiVeriVatandaslikYaz(istek: {
+  id: number;
+  ulkeIdler?: number[];
+  gerekce?: string;
+  kaldir?: boolean;
+}): Promise<VatandaslikDurumu> {
+  const res = await fetch("/api/teleskor/veri/vatandaslik", jsonInit("PUT", istek));
+  return parse<VatandaslikDurumu>(res);
+}
+
+/**
+ * Oyuncu fotoğrafı / takım logosu yükle (motor V106). `dosya` Base64 data URL.
+ * @param takimId panelde açık takım — kadro önbelleği de silinsin
+ */
+export async function apiVeriGorsel(takimId: number | undefined, istek: {
+  tur: "PLAYER" | "TEAM";
+  id: number;
+  dosya: string;
+  gerekce: string;
+}): Promise<{ yazildi: boolean; adres: string }> {
+  const yol = takimId ? `/api/teleskor/veri/gorsel?takim=${takimId}` : "/api/teleskor/veri/gorsel";
+  const res = await fetch(yol, jsonInit("POST", istek));
+  return parse<{ yazildi: boolean; adres: string }>(res);
 }
 
 // ---------------------------------------------------------------------------
