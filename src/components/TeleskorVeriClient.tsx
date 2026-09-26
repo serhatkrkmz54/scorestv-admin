@@ -396,6 +396,21 @@ export default function TeleskorVeriClient() {
                 )}
               </div>
 
+              {oyuncular.length === 0 && acikTakim.kadroKaynak === "YOK" && (
+                <p className="muted" style={{ fontSize: 12.5, margin: "0 0 14px" }}>
+                  Bu takımın kadro sekmesi uygulamada boş. Oyuncu eklemek için{" "}
+                  <a href="/teleskor/kadro">Kadro Masası</a>&apos;nı kullan; eklenen
+                  oyuncular burada da listelenir.
+                </p>
+              )}
+
+              {oyuncular.length > 0 && (
+                <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                  Liste uygulamanın kadro sekmesiyle aynı (Kadro Masası
+                  düzeltmeleri dâhil); en eksik oyuncu en üstte.
+                </p>
+              )}
+
               {oyuncular.length > 0 && (
                 <div className="table-wrap" style={{ marginBottom: 14 }}>
                   <table className="data-table">
@@ -417,7 +432,30 @@ export default function TeleskorVeriClient() {
                               className="cell-title"
                               style={{ maxWidth: 260 }}
                             >
+                              {o.forma && (
+                                <span className="muted" style={{ marginRight: 6 }}>
+                                  {o.forma}
+                                </span>
+                              )}
                               {o.ad}
+                              {o.geldigi === "MAC" && (
+                                <span
+                                  className="badge badge-draft"
+                                  style={{ marginLeft: 8 }}
+                                  title="Sağlayıcının kadro listesinde yok; bu takımda son maçlarda oynadığı için kadroya eklendi"
+                                >
+                                  maçtan
+                                </span>
+                              )}
+                              {o.geldigi === "ELLE" && (
+                                <span
+                                  className="badge badge-scheduled"
+                                  style={{ marginLeft: 8 }}
+                                  title="Kadro Masası'ndan elle eklendi"
+                                >
+                                  Kadro Masası
+                                </span>
+                              )}
                               {o.yamali && (
                                 <span
                                   className="badge badge-lang"

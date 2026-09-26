@@ -1833,7 +1833,7 @@ export interface TakimEksigi {
    * eski panel onu tanımaz ama listeyi de düşürmez.
    */
   kadroKaynak: "SAGLAYICI" | "MAC_KADROLARI" | "YOK" | string;
-  /** O listenin kaç kişi olduğu. `oyuncu` ile aynı şey DEĞİL — biri katalog bağı. */
+  /** O listenin kaç kişi olduğu (26 Eylül'den beri `oyuncu` ile aynı sayı: ikisi de kadro sekmesi). */
   kadro: number;
   /** Türetmede kaç maçın kadrosu birleştirildi; türetme yoksa 0. */
   turetmeMac: number;
@@ -1847,6 +1847,14 @@ export interface VeriOyuncusu {
   boy?: number | null;
   yamali: boolean;
   eksik: number;
+  /**
+   * Uygulamanın kadro sekmesindeki kaynağı (26 Eylül'den beri liste o sekmeyle
+   * birebir): `SAGLAYICI` listede · `MAC` maç kadrolarından eklendi · `ELLE`
+   * Kadro Masası'ndan eklendi. Eski motor göndermez.
+   */
+  geldigi?: "SAGLAYICI" | "MAC" | "ELLE" | string | null;
+  /** Kadro sekmesindeki forma numarası. */
+  forma?: string | null;
 }
 
 // NOT: motorun yanıtında NULL alanlar HİÇ GÖNDERİLMİYOR (global NON_NULL).
