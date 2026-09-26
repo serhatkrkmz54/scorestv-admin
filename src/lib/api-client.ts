@@ -98,6 +98,8 @@ import type {
   VeriStadyumu,
   VeriUlkesi,
   VatandaslikDurumu,
+  VeriTeknikDirektor,
+  VeriTdUyusmazlik,
   YeniStadyum,
   KadroDuzeltme,
   KadroIslem,
@@ -1638,6 +1640,37 @@ export async function apiVeriYaz(takimId: number | undefined, istek: {
   const yol = takimId ? `/api/teleskor/veri?takim=${takimId}` : "/api/teleskor/veri";
   const res = await fetch(yol, jsonInit("PUT", istek));
   return parse<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }>(res);
+}
+
+/** Teknik direktör seçici (motor V107). */
+export async function apiVeriTeknikDirektorler(
+  arama: { q?: string; ids?: number[] },
+): Promise<VeriTeknikDirektor[]> {
+  const q = (arama.q ?? "").trim();
+  const ids = (arama.ids ?? []).join(",");
+  if (!ids && q.length < 2) return [];
+  const res = await fetch(
+    `/api/teleskor/veri/teknik-direktorler?q=${encodeURIComponent(q)}&ids=${ids}`,
+    { cache: "no-store" },
+  );
+  return parse<VeriTeknikDirektor[]>(res);
+}
+
+/** Katalogda olmayan teknik direktörü açar; 409 = aynı adda kayıt var. */
+export async function apiVeriTeknikDirektorAc(istek: {
+  ad: string;
+  takimId?: number;
+  gerekce: string;
+  yineDeAc?: boolean;
+}): Promise<VeriTeknikDirektor> {
+  const res = await fetch("/api/teleskor/veri/teknik-direktorler", jsonInit("POST", istek));
+  return parse<VeriTeknikDirektor>(res);
+}
+
+/** Ligin teknik direktör kontrol listesi (motor V107). */
+export async function apiVeriTdUyusmazlik(lig: number): Promise<VeriTdUyusmazlik[]> {
+  const res = await fetch(`/api/teleskor/veri/td-uyusmazlik?lig=${lig}`, { cache: "no-store" });
+  return parse<VeriTdUyusmazlik[]>(res);
 }
 
 /** Ülke seçici (motor V106). */

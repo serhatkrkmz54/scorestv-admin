@@ -1942,6 +1942,38 @@ export interface VeriKaydi {
   vatandaslik?: VatandaslikDurumu;
 }
 
+/** Teknik direktör seçicinin satırı (motor V107). */
+export interface VeriTeknikDirektor {
+  id: number;
+  ad?: string;
+  foto?: string;
+  ulke?: string;
+  /** TD sayfasında görünen takımı. */
+  takim?: string;
+  /** Son 365 günde kulübesinde oturduğu son takım ve tarih. */
+  sonKulube?: string;
+  sonKulubeTarihi?: string;
+  /** Panelden açıldı. */
+  elle: boolean;
+  taslak: boolean;
+}
+
+/**
+ * Teknik direktör kontrol listesi satırı (motor V107): takım sayfasındaki TD ile
+ * son 3 maçın kulübesi. Kulübedeki kişi her zaman gerçek TD değil — karar
+ * değil kontrol listesi.
+ */
+export interface VeriTdUyusmazlik {
+  takimId: number;
+  takim: string;
+  logo?: string;
+  durum: "AYNI" | "FARKLI" | "TEK_MAC" | "KAYIT_BOS" | "KULUBE_YOK";
+  kayitTdId?: number;
+  kayitTd?: string;
+  yamali: boolean;
+  kulube: { tdId: number; td?: string; tarih: string }[];
+}
+
 /** Ülke seçicinin satırı (motor V106). */
 export interface VeriUlkesi {
   id: number;

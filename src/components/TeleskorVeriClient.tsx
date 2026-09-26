@@ -9,6 +9,9 @@ import {
   apiVeriStadyumAc,
   apiVeriStadyumlar,
   apiVeriUlkeler,
+  apiVeriTeknikDirektorler,
+  apiVeriTeknikDirektorAc,
+  apiVeriTdUyusmazlik,
   apiVeriVatandaslikYaz,
   apiVeriGorsel,
   apiVeriYaz,
@@ -23,6 +26,8 @@ import type {
   VeriStadyumu,
   VeriUlkesi,
   VatandaslikDurumu,
+  VeriTeknikDirektor,
+  VeriTdUyusmazlik,
 } from "@/lib/types";
 
 /**
@@ -61,6 +66,9 @@ export default function TeleskorVeriClient() {
   const [lig, setLig] = useState<{ id: number; ad: string } | null>(null);
 
   const [eksikler, setEksikler] = useState<TakimEksigi[]>([]);
+  // Teknik direktör kontrol listesi (motor V107). Ayrı yükleniyor: gelmezse
+  // eksik raporu yine çalışır.
+  const [tdListe, setTdListe] = useState<VeriTdUyusmazlik[] | null>(null);
   const kadrosuzSayisi = eksikler.filter((e) => e.kadroKaynak === "YOK").length;
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState("");
@@ -103,7 +111,14 @@ export default function TeleskorVeriClient() {
     } finally {
       setYukleniyor(false);
     }
+    tdListesiniYukle(ligId);
   }, []);
+
+  function tdListesiniYukle(ligId: number) {
+    apiVeriTdUyusmazlik(ligId)
+      .then(setTdListe)
+      .catch(() => setTdListe(null));
+  }
 
   async function ligSec(ligId: number, ad: string) {
     setLig({ id: ligId, ad });
@@ -116,6 +131,8 @@ export default function TeleskorVeriClient() {
   const kayitRef = useRef<HTMLDivElement | null>(null);
 
   function kapat() {
+    // Modalda TD değiştirilmiş olabilir: kontrol listesi tazelenir.
+    if (acikTakim && lig) tdListesiniYukle(lig.id);
     setAcikTakim(null);
     setKayit(null);
     setOyuncular([]);
@@ -345,6 +362,18 @@ export default function TeleskorVeriClient() {
             </table>
           </div>
         </div>
+      )}
+
+      {tdListe && tdListe.length > 0 && (
+        <TdKontrolKarti
+          liste={tdListe}
+          duzelt={async (takimId) => {
+            const t = eksikler.find((e) => e.takimId === takimId);
+            if (!t) return;
+            await takimAc(t);
+            await kayitAc("TEAM", takimId);
+          }}
+        />
       )}
 
       {/* ---------- Seçili takım: MODAL ----------
@@ -1115,6 +1144,8 @@ function AlanSatiri({
   const kadroMasasina = alan.yonlendirme === "KADRO_MASASI";
   // Ülke (motor V106): arama kutusu; kimlik ezberlenmiyor.
   const ulkeAlani = alan.tip === "referans" && alan.referansTur === "COUNTRY";
+  // Teknik direktör (motor V107): arama + katalogda yoksa elle açma.
+  const tdAlani = alan.tip === "referans" && alan.referansTur === "COACH";
   // Görsel (motor V106): dosya yüklenir, motor görsel hattından geçirip
   // yamayı kendisi yazar. Adres elle yazılamaz.
   const gorselAlani = alan.tip === "gorsel";
@@ -1258,7 +1289,7 @@ function AlanSatiri({
             yamalı
           </span>
         )}
-        {alan.tip === "referans" && !stadyumAlani && !kadroMasasina && !ulkeAlani && (
+        {alan.tip === "referans" && !stadyumAlani && !kadroMasasina && !ulkeAlani && !tdAlani && (
           <div className="cell-sub">kimlik (sayı)</div>
         )}
         {alan.sapma && (
@@ -1328,6 +1359,19 @@ function AlanSatiri({
               </span>
             </div>
           </div>
+        ) : tdAlani ? (
+          <TeknikDirektorSecici
+            // Kayıt sonrası yeniden kurulur: seçilenin "sayfasında" takımı
+            // artık bu takım; eski künye ekranda kalmasın.
+            key={`${alan.yama ?? ""}|${alan.deger ?? ""}`}
+            deger={deger}
+            degerAd={deger === (alan.yama ?? alan.deger ?? "") ? alan.degerAd ?? null : null}
+            takimId={tur === "TEAM" ? id : undefined}
+            onSec={(tdId) => {
+              setDeger(String(tdId));
+              yazmayaBasla();
+            }}
+          />
         ) : ulkeAlani ? (
           <UlkeSecici
             secili={deger ? { id: Number(deger), ad: ulkeAd ?? undefined, taslak: false } : null}
@@ -1729,6 +1773,357 @@ function VatandaslikDuzenle({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+function tarihKisa(s?: string): string {
+  if (!s) return "";
+  const d = new Date(s);
+  return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/**
+ * TEKNİK DİREKTÖR SEÇİCİ (motor V107). Arama taslak kayıtları göstermez (adı
+ * takım sayfasında görünmez). Aranan kişi katalogda yoksa elle açılır;
+ * açılan kayıt seçilir, alanın "Kaydet"i onu takıma bağlar.
+ */
+function TeknikDirektorSecici({
+  deger,
+  degerAd,
+  takimId,
+  onSec,
+}: {
+  deger: string;
+  degerAd: string | null;
+  takimId?: number;
+  onSec: (id: number) => void;
+}) {
+  const [secili, setSecili] = useState<VeriTeknikDirektor | null>(null);
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<VeriTeknikDirektor[]>([]);
+  const [araniyor, setAraniyor] = useState(false);
+  const [hata, setHata] = useState("");
+  const sonAramaRef = useRef("");
+  const [ekleAcik, setEkleAcik] = useState(false);
+  const [yeniAd, setYeniAd] = useState("");
+  const [yeniGerekce, setYeniGerekce] = useState("");
+  const [ekleHata, setEkleHata] = useState("");
+  const [cakisma, setCakisma] = useState(false);
+  const [ekleniyor, setEkleniyor] = useState(false);
+
+  // Mevcut değerin künyesi (TD sayfasındaki takımı, son kulübesi).
+  useEffect(() => {
+    const n = Number(deger);
+    if (!deger.trim() || !Number.isInteger(n) || n <= 0) {
+      setSecili(null);
+      return;
+    }
+    let iptal = false;
+    apiVeriTeknikDirektorler({ ids: [n] })
+      .then((l) => {
+        if (!iptal) setSecili(l[0] ?? null);
+      })
+      .catch(() => {
+        if (!iptal) setSecili(null);
+      });
+    return () => {
+      iptal = true;
+    };
+  }, [deger]);
+
+  useEffect(() => {
+    const ara = q.trim();
+    sonAramaRef.current = ara;
+    if (ara.length < 2) {
+      setSonuc([]);
+      setAraniyor(false);
+      return;
+    }
+    setAraniyor(true);
+    const zaman = setTimeout(() => {
+      apiVeriTeknikDirektorler({ q: ara })
+        .then((l) => {
+          if (sonAramaRef.current !== ara) return;
+          setSonuc(l);
+          setHata("");
+        })
+        .catch((e) => {
+          if (sonAramaRef.current !== ara) return;
+          setHata(e instanceof ApiError ? e.message : "Arama başarısız.");
+        })
+        .finally(() => {
+          if (sonAramaRef.current === ara) setAraniyor(false);
+        });
+    }, 300);
+    return () => clearTimeout(zaman);
+  }, [q]);
+
+  function sec(t: VeriTeknikDirektor) {
+    setSecili(t);
+    onSec(t.id);
+    setQ("");
+    setSonuc([]);
+    setEkleAcik(false);
+  }
+
+  async function ekle(yineDeAc: boolean) {
+    const ad = yeniAd.trim();
+    if (ad.length < 3) {
+      setEkleHata("Ad en az 3 harf olmalı.");
+      return;
+    }
+    if (yeniGerekce.trim().length < 3) {
+      setEkleHata("Gerekçe zorunlu: bu teknik direktörü nereden öğrendin?");
+      return;
+    }
+    setEkleniyor(true);
+    setEkleHata("");
+    try {
+      const td = await apiVeriTeknikDirektorAc({
+        ad,
+        takimId,
+        gerekce: yeniGerekce.trim(),
+        yineDeAc,
+      });
+      sec(td);
+      setYeniGerekce("");
+    } catch (e) {
+      setCakisma(e instanceof ApiError && e.status === 409);
+      setEkleHata(e instanceof ApiError ? e.message : "Teknik direktör açılamadı.");
+    } finally {
+      setEkleniyor(false);
+    }
+  }
+
+  const altYazi = (t: VeriTeknikDirektor) =>
+    [
+      t.takim ? `sayfasında: ${t.takim}` : "sayfasında takım yok",
+      t.sonKulube ? `son kulübe: ${t.sonKulube} (${tarihKisa(t.sonKulubeTarihi)})` : null,
+      t.ulke,
+      t.elle ? "elle eklendi" : null,
+      `#${t.id}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ fontSize: 13 }}>
+        {secili ? (
+          <>
+            <b>{secili.ad ?? `#${secili.id}`}</b>
+            <div className="cell-sub">{altYazi(secili)}</div>
+          </>
+        ) : deger ? (
+          <b>{degerAd ?? `#${deger}`}</b>
+        ) : (
+          <span className="muted">Teknik direktör yok</span>
+        )}
+      </div>
+      <input
+        className="input"
+        value={q}
+        placeholder="Teknik direktör ara (en az 2 harf)"
+        onChange={(e) => setQ(e.target.value)}
+      />
+      {q.trim().length >= 2 && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, maxHeight: 260, overflowY: "auto" }}>
+          {hata ? (
+            <div style={{ fontSize: 12, padding: 10, color: "var(--danger)" }}>{hata}</div>
+          ) : araniyor ? (
+            <div className="muted" style={{ fontSize: 12, padding: 10 }}>aranıyor…</div>
+          ) : (
+            <>
+              {sonuc.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => sec(t)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    background: "none",
+                    border: "none",
+                    borderBottom: "1px solid var(--border)",
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span className="cell-title">{t.ad}</span>
+                  <span className="cell-sub">{altYazi(t)}</span>
+                </button>
+              ))}
+              <div style={{ padding: 10, display: "grid", gap: 6 }}>
+                {sonuc.length === 0 && (
+                  <div className="muted" style={{ fontSize: 12 }}>Eşleşen teknik direktör yok.</div>
+                )}
+                {!ekleAcik && (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => {
+                      setYeniAd(q.trim());
+                      setEkleAcik(true);
+                      setEkleHata("");
+                      setCakisma(false);
+                    }}
+                  >
+                    Listede yok: “{q.trim()}” adıyla yeni teknik direktör ekle
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {ekleAcik && (
+        <div className="card-pad" style={{ border: "1px solid var(--border)", borderRadius: 8, display: "grid", gap: 6 }}>
+          <div className="card-title" style={{ marginBottom: 0 }}>Yeni teknik direktör</div>
+          <input
+            className="input"
+            value={yeniAd}
+            placeholder="Ad soyad (zorunlu)"
+            onChange={(e) => setYeniAd(e.target.value)}
+          />
+          <input
+            className="input"
+            value={yeniGerekce}
+            placeholder="Gerekçe (zorunlu): bu bilgiyi nereden aldın?"
+            onChange={(e) => setYeniGerekce(e.target.value)}
+          />
+          {ekleHata && <div style={{ fontSize: 12, color: "var(--danger)" }}>{ekleHata}</div>}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button className="btn btn-sm btn-primary" disabled={ekleniyor} onClick={() => ekle(false)}>
+              {ekleniyor ? "Ekleniyor…" : "Ekle ve seç"}
+            </button>
+            {cakisma && (
+              <button className="btn btn-sm" disabled={ekleniyor} onClick={() => ekle(true)}>
+                Yine de ekle
+              </button>
+            )}
+            <button className="btn btn-sm btn-ghost" onClick={() => setEkleAcik(false)}>
+              Vazgeç
+            </button>
+          </div>
+          <div className="muted" style={{ fontSize: 11 }}>
+            Eklenen kayıt seçilir; takıma bağlamak için alanın Kaydet düğmesine bas.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const TD_DURUM: Record<VeriTdUyusmazlik["durum"], { ad: string; renk: string }> = {
+  AYNI: { ad: "Aynı", renk: "var(--success)" },
+  FARKLI: { ad: "Kulübede başkası", renk: "var(--danger)" },
+  TEK_MAC: { ad: "Son maçta başkası", renk: "var(--warning)" },
+  KAYIT_BOS: { ad: "Sayfada yok", renk: "var(--warning)" },
+  KULUBE_YOK: { ad: "Kulübe bilgisi yok", renk: "var(--text-muted, #888)" },
+};
+
+/**
+ * TEKNİK DİREKTÖR KONTROLÜ (motor V107): takım sayfasındaki TD ile son 3 maçın
+ * kulübesi farklı olan takımlar. KARAR DEĞİL, KONTROL LİSTESİ: kulübedeki kişi
+ * her zaman gerçek TD değil (ceza, lisans, yeni atama — Çorum FK ve İnegölspor
+ * ölçümde böyle çıktı). Doğrusunu biliyorsan "Düzelt" takım kaydını açar.
+ */
+function TdKontrolKarti({
+  liste,
+  duzelt,
+}: {
+  liste: VeriTdUyusmazlik[];
+  duzelt: (takimId: number) => void;
+}) {
+  const [hepsi, setHepsi] = useState(false);
+  // Elle seçilmiş takımda karar verildi: sayılara ve "kontrol edilecekler"e girmez.
+  const dikkat = liste.filter(
+    (r) => !r.yamali && (r.durum === "FARKLI" || r.durum === "TEK_MAC" || r.durum === "KAYIT_BOS"),
+  );
+  const gorunen = hepsi ? liste : dikkat;
+  const say = (d: VeriTdUyusmazlik["durum"]) => liste.filter((r) => !r.yamali && r.durum === d).length;
+  const elle = liste.filter((r) => r.yamali).length;
+
+  return (
+    <div className="card card-pad">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div className="card-title">Teknik direktör kontrolü</div>
+        <span className="muted" style={{ fontSize: 12.5 }}>
+          {say("FARKLI") > 0 && <b style={{ color: "var(--danger)" }}>{say("FARKLI")} takımda kulübede başkası · </b>}
+          {say("TEK_MAC") + say("KAYIT_BOS") > 0 && <>{say("TEK_MAC") + say("KAYIT_BOS")} kontrol edilmeli · </>}
+          {say("AYNI")} aynı · {say("KULUBE_YOK")} takımda kulübe bilgisi yok
+          {elle > 0 && <> · {elle} elle seçildi</>}
+        </span>
+      </div>
+      <p className="muted" style={{ fontSize: 12, margin: "6px 0 12px" }}>
+        Takım sayfasında görünen teknik direktör ile son maçlarda kulübede oturan kişi yan yana.
+        Kulübedeki kişi her zaman gerçek teknik direktör değildir (ceza, lisans, yeni atama);
+        bu liste kontrol içindir. Doğrusunu biliyorsan <b>Düzelt</b> ile takım kaydından seç.
+      </p>
+      {gorunen.length === 0 ? (
+        <div className="muted" style={{ fontSize: 13 }}>Bu ligde kontrol edilecek takım yok.</div>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Takım</th>
+                <th>Durum</th>
+                <th>Sayfada görünen</th>
+                <th>Son maçlarda kulübede</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {gorunen.map((r) => (
+                <tr key={r.takimId}>
+                  <td>{r.takim}</td>
+                  <td>
+                    {r.yamali ? (
+                      <span className="muted" style={{ fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap" }}>
+                        Elle seçildi
+                      </span>
+                    ) : (
+                      <span style={{ color: TD_DURUM[r.durum].renk, fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap" }}>
+                        {TD_DURUM[r.durum].ad}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {r.kayitTd ?? <span className="muted">yok</span>}
+                    {r.yamali && (
+                      <span className="badge badge-lang" style={{ marginLeft: 6 }} title="Veri Düzeltme ile seçildi">
+                        elle
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: 12.5 }}>
+                    {r.kulube.length === 0 ? (
+                      <span className="muted">bilgi yok</span>
+                    ) : (
+                      r.kulube.map((k, i) => (
+                        <div key={i}>
+                          {k.td ?? `#${k.tdId}`} <span className="muted">{tarihKisa(k.tarih)}</span>
+                        </div>
+                      ))
+                    )}
+                  </td>
+                  <td>
+                    <button className="btn btn-sm" onClick={() => duzelt(r.takimId)}>
+                      Düzelt
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setHepsi(!hepsi)}>
+        {hepsi ? "Yalnız kontrol edilecekleri göster" : `Bütün takımları göster (${liste.length})`}
+      </button>
     </div>
   );
 }
