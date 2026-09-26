@@ -1621,7 +1621,11 @@ export async function apiVeriKayit(
 }
 
 /** `deger` null ise alan boşaltılır; `kaldir` ise yama silinir. */
-export async function apiVeriYaz(istek: {
+/**
+ * @param takimId panelde açık takım (varsa) — ürün backend'i yamadan sonra o
+ *   takımın kadro ve künye önbelleğini de siler; yamalanan kaydınkini zaten siler.
+ */
+export async function apiVeriYaz(takimId: number | undefined, istek: {
   tur: string;
   id: number;
   alan: string;
@@ -1629,7 +1633,8 @@ export async function apiVeriYaz(istek: {
   gerekce?: string;
   kaldir?: boolean;
 }): Promise<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }> {
-  const res = await fetch("/api/teleskor/veri", jsonInit("PUT", istek));
+  const yol = takimId ? `/api/teleskor/veri?takim=${takimId}` : "/api/teleskor/veri";
+  const res = await fetch(yol, jsonInit("PUT", istek));
   return parse<{ yazildi?: boolean; kaldirildi?: boolean; not?: string }>(res);
 }
 

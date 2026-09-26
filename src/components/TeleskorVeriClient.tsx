@@ -490,6 +490,7 @@ export default function TeleskorVeriClient() {
                 <div ref={kayitRef}>
                   <KayitDuzenle
                     kayit={kayit}
+                    takimId={acikTakim?.takimId}
                     onDegisti={async () => {
                       setKayit(await apiVeriKayit(kayit.tur, kayit.id));
                       if (acikTakim) {
@@ -587,9 +588,12 @@ function Sayi({ deger, notr = false }: { deger: number; notr?: boolean }) {
 /** Tek kaydın alanları: değer + gerekçe yazılıp kaydediliyor. */
 function KayitDuzenle({
   kayit,
+  takimId,
   onDegisti,
 }: {
   kayit: VeriKaydi;
+  /** Açık takım — yamadan sonra o takımın kadro ve künye önbelleği de silinsin. */
+  takimId?: number;
   onDegisti: () => Promise<void>;
 }) {
   // Eski motor sürümünde alan hiç gelmiyor; boş liste "paylaşım yok" DEĞİL
@@ -640,6 +644,7 @@ function KayitDuzenle({
             key={a.alan}
             tur={kayit.tur}
             id={kayit.id}
+            takimId={takimId}
             alan={a}
             onDegisti={onDegisti}
           />
@@ -1073,11 +1078,13 @@ function stadyumAltYazi(s: VeriStadyumu): string {
 function AlanSatiri({
   tur,
   id,
+  takimId,
   alan,
   onDegisti,
 }: {
   tur: string;
   id: number;
+  takimId?: number;
   alan: VeriAlanDurumu;
   onDegisti: () => Promise<void>;
 }) {
@@ -1110,7 +1117,7 @@ function AlanSatiri({
 
     let yazildi = false;
     try {
-      const r = await apiVeriYaz({
+      const r = await apiVeriYaz(takimId, {
         tur,
         id,
         alan: alan.alan,

@@ -25,7 +25,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ message: "Geçersiz istek." }, { status: 400 });
   }
 
-  const r = await teleskorJson("/api/v1/admin/engine/veri", {
+  // Açık takım (yalnız sayı): ürün backend'i o takımın önbelleğini de siler.
+  const takim = req.nextUrl.searchParams.get("takim");
+  const ek = takim && /^\d{1,12}$/.test(takim) ? `?takim=${takim}` : "";
+  const r = await teleskorJson(`/api/v1/admin/engine/veri${ek}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
