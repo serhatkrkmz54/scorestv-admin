@@ -34,7 +34,9 @@ import {
   SlidersHorizontal,
   LogOut,
   ChevronDown,
+  X,
 } from "lucide-react";
+import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout, apiContactUnreadCount } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
 
@@ -124,6 +126,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const [busy, setBusy] = useState(false);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState<Record<SectionId, boolean>>(DEFAULT_OPEN);
+  const menu = useMobilMenu();
 
   // Kayıtlı akordiyon durumunu yükle (bir kez, mount'ta).
   useEffect(() => {
@@ -220,7 +223,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
   }
 
   return (
-    <aside className="sidebar">
+    <aside
+      className="sidebar"
+      onClick={(e) => {
+        // Dar ekranda çekmece: bir bağlantıya dokununca kapanır (aynı sayfa dahil).
+        if ((e.target as HTMLElement).closest("a")) menu.kapat();
+      }}
+    >
       <div className="sidebar-brand">
         <div className="logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -232,6 +241,9 @@ export default function Sidebar({ user }: { user: AppUser }) {
           </div>
           <small>Editör Paneli</small>
         </div>
+        <button className="menu-kapat" onClick={menu.kapat} aria-label="Menüyü kapat" title="Kapat">
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="sidebar-nav">

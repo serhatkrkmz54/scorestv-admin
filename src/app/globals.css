@@ -3659,3 +3659,198 @@ table.data-table {
     min-width: 108px;
   }
 }
+
+/* ==========================================================================
+   MOBİL (27 Eylül 2026) — panel telefonda da kullanılabilsin.
+   ≤ 900 px: kenar çubuğu soldan açılan çekmece (MobilMenu.tsx), üst çubukta
+   menü düğmesi, saat gizli. ≤ 640 px: kullanıcı adı gizli, iç boşluklar dar.
+   Sayfa içi kurallar (tablo kaydırma, satır kırma) aşağıda; her biri 390 px
+   genişlikte bütün sayfalar gezilerek ölçüldü.
+   ========================================================================== */
+.menu-dugmesi,
+.menu-kapat,
+.menu-perde {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --topbar-h: 60px;
+  }
+
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100dvh;
+    width: min(290px, 86vw);
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    overscroll-behavior: contain;
+  }
+
+  .app-shell.menu-acik .sidebar {
+    transform: none;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .menu-perde {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(7, 20, 45, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .app-shell.menu-acik .menu-perde {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .menu-dugmesi {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .menu-kapat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 0;
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text);
+    cursor: pointer;
+  }
+
+  .topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .topbar-clock {
+    display: none;
+  }
+
+  .topbar-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 16px;
+  }
+
+  .page-content {
+    padding: 18px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar-user .user-meta {
+    display: none;
+  }
+
+  .topbar-user .user-chip {
+    padding: 0;
+  }
+
+  .page-content {
+    padding: 14px 10px;
+  }
+}
+
+/* Sayfa içi (telefon). Satır düzenleri kırılır, tablolar kendi kutusunda
+   yatay kayar (.table-wrap), satır içi ızgaralar .mobil-tek-sutun ile tek
+   sütuna iner (satır içi stili ezmek için !important şart). Satır içi
+   `display: flex` kutuların kırılması: satır içinde flexWrap AÇIKÇA
+   yazılmışsa o kazanır (satır içi stil her zaman önde). Sunucu çizimi
+   stili boşluksuz yazar (`display:flex`), istemci boşluklu: ikisi de. */
+@media (max-width: 640px) {
+  .spread,
+  .row,
+  .page-content [style*="display:flex"],
+  .page-content [style*="display: flex"] {
+    flex-wrap: wrap;
+  }
+
+  .mobil-tek-sutun {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Izgara öğesi varsayılan olarak içeriğinden dar olamaz (min-width: auto):
+     içindeki geniş tablo bütün sütunu, dolayısıyla sayfayı taşırıyordu
+     (Veri Düzeltme eksik raporu, 745 px). */
+  .page-content [style*="display:grid"] > *,
+  .page-content [style*="display: grid"] > *,
+  .form-grid > *,
+  .stat-grid > * {
+    min-width: 0;
+  }
+
+  .page-content input,
+  .page-content select,
+  .page-content textarea {
+    max-width: 100%;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 10px;
+  }
+
+  .data-table th {
+    white-space: nowrap;
+  }
+
+  /* Sütunlar harf harf kırılmasın: tablo en az 640 px, kutusu yatay kayar. */
+  .table-wrap > table.data-table {
+    min-width: 640px;
+  }
+
+  .cal-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .cal-cell {
+    min-height: 48px;
+    padding: 4px;
+  }
+
+  .card-pad {
+    padding: 14px;
+  }
+
+  .modal-overlay {
+    padding: 8px;
+  }
+
+  .modal {
+    max-height: 94dvh;
+  }
+
+  .modal-header {
+    padding: 12px 14px;
+  }
+}

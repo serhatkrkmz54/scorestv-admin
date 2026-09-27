@@ -227,47 +227,49 @@ export default function TeleskorSaglikClient() {
                 Henüz istek yok.
               </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Uç</th>
-                    <th style={{ textAlign: "right" }}>İstek</th>
-                    <th style={{ textAlign: "right" }}>Önbellek</th>
-                    <th style={{ textAlign: "right" }}>Bayat</th>
-                    <th style={{ textAlign: "right" }} title="Motor 404 döndü: bu maçta/sezonda o veri yok (alt lig istatistiği, puan durumsuz sezon). Arıza değil.">
-                      Yok
-                    </th>
-                    <th style={{ textAlign: "right" }}>Hata</th>
-                    <th style={{ textAlign: "right" }}>Ort. ms</th>
-                    <th style={{ textAlign: "right" }}>En yavaş</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {kullanim.uclar.map((u) => (
-                    <tr key={u.path}>
-                      <td style={{ fontSize: 12.5 }}>{u.path}</td>
-                      <td style={{ textAlign: "right" }}>{u.calls}</td>
-                      <td style={{ textAlign: "right" }}>{u.cacheHits}</td>
-                      <td style={{ textAlign: "right" }}>{u.staleServed}</td>
-                      {/* 404 GRİ, hata KIRMIZI: "kayıt yok" bir gün önce
-                          kırmızı çıkıyordu ve arıza sanılıyordu. */}
-                      <td className="muted" style={{ textAlign: "right" }}>
-                        {u.notFound ?? 0}
-                      </td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          color: u.failures > 0 ? "var(--danger, #dc2626)" : undefined,
-                        }}
-                      >
-                        {u.failures}
-                      </td>
-                      <td style={{ textAlign: "right" }}>{u.avgMillis}</td>
-                      <td style={{ textAlign: "right" }}>{u.maxMillis}</td>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Uç</th>
+                      <th style={{ textAlign: "right" }}>İstek</th>
+                      <th style={{ textAlign: "right" }}>Önbellek</th>
+                      <th style={{ textAlign: "right" }}>Bayat</th>
+                      <th style={{ textAlign: "right" }} title="Motor 404 döndü: bu maçta/sezonda o veri yok (alt lig istatistiği, puan durumsuz sezon). Arıza değil.">
+                        Yok
+                      </th>
+                      <th style={{ textAlign: "right" }}>Hata</th>
+                      <th style={{ textAlign: "right" }}>Ort. ms</th>
+                      <th style={{ textAlign: "right" }}>En yavaş</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {kullanim.uclar.map((u) => (
+                      <tr key={u.path}>
+                        <td style={{ fontSize: 12.5 }}>{u.path}</td>
+                        <td style={{ textAlign: "right" }}>{u.calls}</td>
+                        <td style={{ textAlign: "right" }}>{u.cacheHits}</td>
+                        <td style={{ textAlign: "right" }}>{u.staleServed}</td>
+                        {/* 404 GRİ, hata KIRMIZI: "kayıt yok" bir gün önce
+                            kırmızı çıkıyordu ve arıza sanılıyordu. */}
+                        <td className="muted" style={{ textAlign: "right" }}>
+                          {u.notFound ?? 0}
+                        </td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            color: u.failures > 0 ? "var(--danger, #dc2626)" : undefined,
+                          }}
+                        >
+                          {u.failures}
+                        </td>
+                        <td style={{ textAlign: "right" }}>{u.avgMillis}</td>
+                        <td style={{ textAlign: "right" }}>{u.maxMillis}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </>
         )}
@@ -294,73 +296,75 @@ export default function TeleskorSaglikClient() {
                 Henüz ölçüm yok.
               </div>
             ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>İşlem</th>
-                    <th style={{ width: 90 }}>Kaynak</th>
-                    <th style={{ textAlign: "right" }}>Çalışma</th>
-                    <th style={{ textAlign: "right" }}>Ortalama</th>
-                    <th
-                      style={{ textAlign: "right" }}
-                      title="Bunun kadarı TOPLU yazım (batch). Alarm yalnız kalan tekil gidiş-dönüşlere bakar."
-                    >
-                      Toplu
-                    </th>
-                    <th style={{ textAlign: "right" }}>Tekil</th>
-                    <th style={{ textAlign: "right" }}>En az</th>
-                    <th style={{ textAlign: "right" }}>En çok</th>
-                    <th style={{ textAlign: "right" }}>Ort. ms</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {db.operations.map((o) => {
-                    // TEKİL = toplam − toplu. Alarmın baktığı sayı bu.
-                    // Eski sunucu `averageBatches` göndermiyor; o zaman
-                    // tekil = toplam olur ve davranış eskisiyle aynı kalır.
-                    const toplu = o.averageBatches ?? 0;
-                    const tekil = o.averageQueries - toplu;
-                    const alarm = tekil > 25;
-                    return (
-                      <tr key={`${o.source}:${o.operation}`}>
-                        <td style={{ fontSize: 12.5 }}>{o.operation}</td>
-                        <td style={{ fontSize: 12 }}>{o.source}</td>
-                        <td style={{ textAlign: "right" }}>{o.executions}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {o.averageQueries.toFixed(1)}
-                        </td>
-                        <td
-                          style={{ textAlign: "right" }}
-                          className={toplu > 0 ? undefined : "muted"}
-                        >
-                          {o.averageBatches === undefined
-                            ? "—"
-                            : toplu.toFixed(1)}
-                        </td>
-                        <td
-                          style={{
-                            textAlign: "right",
-                            fontWeight: alarm ? 700 : 400,
-                            color: alarm ? "var(--danger, #dc2626)" : undefined,
-                          }}
-                          title={
-                            alarm
-                              ? "Tekil gidiş-dönüş eşiği (25) aşıldı — araya bir döngü girmiş olabilir."
-                              : undefined
-                          }
-                        >
-                          {tekil.toFixed(1)}
-                        </td>
-                        <td style={{ textAlign: "right" }}>{o.minQueries}</td>
-                        <td style={{ textAlign: "right" }}>{o.maxQueries}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {o.averageMillis.toFixed(0)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>İşlem</th>
+                      <th style={{ width: 90 }}>Kaynak</th>
+                      <th style={{ textAlign: "right" }}>Çalışma</th>
+                      <th style={{ textAlign: "right" }}>Ortalama</th>
+                      <th
+                        style={{ textAlign: "right" }}
+                        title="Bunun kadarı TOPLU yazım (batch). Alarm yalnız kalan tekil gidiş-dönüşlere bakar."
+                      >
+                        Toplu
+                      </th>
+                      <th style={{ textAlign: "right" }}>Tekil</th>
+                      <th style={{ textAlign: "right" }}>En az</th>
+                      <th style={{ textAlign: "right" }}>En çok</th>
+                      <th style={{ textAlign: "right" }}>Ort. ms</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {db.operations.map((o) => {
+                      // TEKİL = toplam − toplu. Alarmın baktığı sayı bu.
+                      // Eski sunucu `averageBatches` göndermiyor; o zaman
+                      // tekil = toplam olur ve davranış eskisiyle aynı kalır.
+                      const toplu = o.averageBatches ?? 0;
+                      const tekil = o.averageQueries - toplu;
+                      const alarm = tekil > 25;
+                      return (
+                        <tr key={`${o.source}:${o.operation}`}>
+                          <td style={{ fontSize: 12.5 }}>{o.operation}</td>
+                          <td style={{ fontSize: 12 }}>{o.source}</td>
+                          <td style={{ textAlign: "right" }}>{o.executions}</td>
+                          <td style={{ textAlign: "right" }}>
+                            {o.averageQueries.toFixed(1)}
+                          </td>
+                          <td
+                            style={{ textAlign: "right" }}
+                            className={toplu > 0 ? undefined : "muted"}
+                          >
+                            {o.averageBatches === undefined
+                              ? "—"
+                              : toplu.toFixed(1)}
+                          </td>
+                          <td
+                            style={{
+                              textAlign: "right",
+                              fontWeight: alarm ? 700 : 400,
+                              color: alarm ? "var(--danger, #dc2626)" : undefined,
+                            }}
+                            title={
+                              alarm
+                                ? "Tekil gidiş-dönüş eşiği (25) aşıldı — araya bir döngü girmiş olabilir."
+                                : undefined
+                            }
+                          >
+                            {tekil.toFixed(1)}
+                          </td>
+                          <td style={{ textAlign: "right" }}>{o.minQueries}</td>
+                          <td style={{ textAlign: "right" }}>{o.maxQueries}</td>
+                          <td style={{ textAlign: "right" }}>
+                            {o.averageMillis.toFixed(0)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </>
         )}

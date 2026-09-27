@@ -1258,6 +1258,7 @@ function AlanSatiri({
 
   return (
     <div
+      className="mobil-tek-sutun"
       style={{
         display: "grid",
         // ÜÇÜNCÜ SÜTUN SABİT — `auto` DEĞİL. İçeriğe göre ölçülseydi (ve
@@ -1660,6 +1661,7 @@ function VatandaslikDuzenle({
 
   return (
     <div
+      className="mobil-tek-sutun"
       style={{
         marginTop: 16,
         paddingTop: 12,

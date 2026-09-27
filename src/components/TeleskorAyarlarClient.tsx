@@ -142,6 +142,7 @@ export default function TeleskorAyarlarClient() {
                   return (
                     <div
                       key={a.anahtar}
+                      className="mobil-tek-sutun"
                       style={{
                         display: "grid",
                         gridTemplateColumns: "minmax(220px, 1.2fr) minmax(200px, 1fr) auto",

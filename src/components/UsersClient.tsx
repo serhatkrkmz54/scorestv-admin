@@ -312,7 +312,7 @@ export default function UsersClient({ meId }: { meId: number }) {
       {/* Filtre çubuğu */}
       <div className="card card-pad">
         <div
-          className="form-grid"
+          className="form-grid mobil-tek-sutun"
           style={{ gridTemplateColumns: "1fr 150px 150px 150px", gap: 12, margin: 0 }}
         >
           <div className="field" style={{ position: "relative", margin: 0 }}>

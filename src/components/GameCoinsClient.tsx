@@ -139,7 +139,7 @@ export default function GameCoinsClient() {
                 </div>
               </div>
             </div>
-            <div className="form-grid" style={{ marginTop: 12, gridTemplateColumns: "120px 1fr auto" }}>
+            <div className="form-grid mobil-tek-sutun" style={{ marginTop: 12, gridTemplateColumns: "120px 1fr auto" }}>
               <div className="field" style={{ margin: 0 }}>
                 <label>Miktar</label>
                 <input

@@ -321,69 +321,71 @@ export default function TeleskorMarketClient() {
             Henüz ürün yok. Sağ üstteki <b>Yeni Ürün</b> ile başla.
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Ürün</th>
-                <th>Fiyat</th>
-                <th>Stok</th>
-                <th>Limit</th>
-                <th>Satış</th>
-                <th>Durum</th>
-                <th style={{ textAlign: "right" }}>İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{u.ad}</div>
-                    {u.aciklama && (
-                      <div className="muted" style={{ fontSize: 12 }}>
-                        {u.aciklama.length > 70
-                          ? u.aciklama.slice(0, 70) + "…"
-                          : u.aciklama}
-                      </div>
-                    )}
-                  </td>
-                  <td>{u.fiyat} TP</td>
-                  <td>
-                    {u.stok === 0 ? (
-                      <span className="badge">tükendi</span>
-                    ) : (
-                      u.stok
-                    )}
-                  </td>
-                  <td>{u.kisi_basi_limit ?? "—"}</td>
-                  <td>{u.satis ?? 0}</td>
-                  <td>
-                    {u.aktif ? (
-                      <span className="badge badge-published">vitrinde</span>
-                    ) : (
-                      <span className="badge badge-archived">pasif</span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => duzenlemeAc(u)}
-                    >
-                      Düzenle
-                    </button>
-                    {u.aktif && (
-                      <button
-                        className="btn btn-sm btn-danger"
-                        style={{ marginLeft: 6 }}
-                        onClick={() => pasiflestir(u)}
-                      >
-                        Kaldır
-                      </button>
-                    )}
-                  </td>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Ürün</th>
+                  <th>Fiyat</th>
+                  <th>Stok</th>
+                  <th>Limit</th>
+                  <th>Satış</th>
+                  <th>Durum</th>
+                  <th style={{ textAlign: "right" }}>İşlemler</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((u) => (
+                  <tr key={u.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{u.ad}</div>
+                      {u.aciklama && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {u.aciklama.length > 70
+                            ? u.aciklama.slice(0, 70) + "…"
+                            : u.aciklama}
+                        </div>
+                      )}
+                    </td>
+                    <td>{u.fiyat} TP</td>
+                    <td>
+                      {u.stok === 0 ? (
+                        <span className="badge">tükendi</span>
+                      ) : (
+                        u.stok
+                      )}
+                    </td>
+                    <td>{u.kisi_basi_limit ?? "—"}</td>
+                    <td>{u.satis ?? 0}</td>
+                    <td>
+                      {u.aktif ? (
+                        <span className="badge badge-published">vitrinde</span>
+                      ) : (
+                        <span className="badge badge-archived">pasif</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => duzenlemeAc(u)}
+                      >
+                        Düzenle
+                      </button>
+                      {u.aktif && (
+                        <button
+                          className="btn btn-sm btn-danger"
+                          style={{ marginLeft: 6 }}
+                          onClick={() => pasiflestir(u)}
+                        >
+                          Kaldır
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

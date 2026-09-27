@@ -141,82 +141,84 @@ export default function TeleskorOrdersClient() {
             Kayıt yok.
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Üye</th>
-                <th>Ürün</th>
-                <th>Puan</th>
-                <th>Teslimat bilgisi</th>
-                <th>Tarih</th>
-                <th>Durum</th>
-                <th style={{ textAlign: "right" }}>İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{s.username ?? "—"}</div>
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      {s.email ?? `#${s.user_id}`}
-                    </div>
-                  </td>
-                  <td>{s.urun_adi}</td>
-                  <td>{s.odenen_puan} TP</td>
-                  <td style={{ maxWidth: 240 }}>
-                    {/* KİŞİSEL VERİ: hesap anonimleştirilince Teleskor
-                        tarafında bu alan siliniyor, sipariş satırı kalıyor. */}
-                    <div style={{ fontSize: 12.5, whiteSpace: "pre-wrap" }}>
-                      {s.teslimat_notu ?? "—"}
-                    </div>
-                    {s.yonetici_notu && (
-                      <div className="muted" style={{ fontSize: 12 }}>
-                        ↳ {s.yonetici_notu}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>
-                    {formatDate(s.created_at)}
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        s.durum === "TESLIM_EDILDI"
-                          ? "badge-published"
-                          : s.durum === "IPTAL"
-                            ? "badge-archived"
-                            : "badge-scheduled"
-                      }`}
-                    >
-                      {DURUM_TR[s.durum]}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    {s.durum !== "TESLIM_EDILDI" && (
-                      <button
-                        className="btn btn-sm btn-success"
-                        disabled={islemdeki === s.id}
-                        onClick={() => setDurumModal({ siparis: s, yeni: "TESLIM_EDILDI" })}
-                      >
-                        Teslim
-                      </button>
-                    )}
-                    {s.durum !== "IPTAL" && (
-                      <button
-                        className="btn btn-sm btn-danger"
-                        style={{ marginLeft: 6 }}
-                        disabled={islemdeki === s.id}
-                        onClick={() => setDurumModal({ siparis: s, yeni: "IPTAL" })}
-                      >
-                        İptal + iade
-                      </button>
-                    )}
-                  </td>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Üye</th>
+                  <th>Ürün</th>
+                  <th>Puan</th>
+                  <th>Teslimat bilgisi</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th style={{ textAlign: "right" }}>İşlemler</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{s.username ?? "—"}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {s.email ?? `#${s.user_id}`}
+                      </div>
+                    </td>
+                    <td>{s.urun_adi}</td>
+                    <td>{s.odenen_puan} TP</td>
+                    <td style={{ maxWidth: 240 }}>
+                      {/* KİŞİSEL VERİ: hesap anonimleştirilince Teleskor
+                          tarafında bu alan siliniyor, sipariş satırı kalıyor. */}
+                      <div style={{ fontSize: 12.5, whiteSpace: "pre-wrap" }}>
+                        {s.teslimat_notu ?? "—"}
+                      </div>
+                      {s.yonetici_notu && (
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          ↳ {s.yonetici_notu}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ fontSize: 12.5 }}>
+                      {formatDate(s.created_at)}
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          s.durum === "TESLIM_EDILDI"
+                            ? "badge-published"
+                            : s.durum === "IPTAL"
+                              ? "badge-archived"
+                              : "badge-scheduled"
+                        }`}
+                      >
+                        {DURUM_TR[s.durum]}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      {s.durum !== "TESLIM_EDILDI" && (
+                        <button
+                          className="btn btn-sm btn-success"
+                          disabled={islemdeki === s.id}
+                          onClick={() => setDurumModal({ siparis: s, yeni: "TESLIM_EDILDI" })}
+                        >
+                          Teslim
+                        </button>
+                      )}
+                      {s.durum !== "IPTAL" && (
+                        <button
+                          className="btn btn-sm btn-danger"
+                          style={{ marginLeft: 6 }}
+                          disabled={islemdeki === s.id}
+                          onClick={() => setDurumModal({ siparis: s, yeni: "IPTAL" })}
+                        >
+                          İptal + iade
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

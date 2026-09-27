@@ -241,47 +241,49 @@ export default function TeleskorSozlesmeClient() {
             yükümlülüğü karşılanmamış olur.
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Metin</th>
-                <th style={{ width: 90 }}>Sürüm</th>
-                <th style={{ width: 100 }}>Zorunlu</th>
-                <th style={{ width: 160 }}>Yürürlük</th>
-                <th>Adres</th>
-              </tr>
-            </thead>
-            <tbody>
-              {metinler.map((m) => (
-                <tr key={`${m.type}:${m.version}`}>
-                  <td style={{ fontWeight: 600 }}>{m.displayName}</td>
-                  <td>{m.version}</td>
-                  <td>
-                    {m.mandatory ? (
-                      <span className="badge badge-published">zorunlu</span>
-                    ) : (
-                      <span className="badge">isteğe bağlı</span>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>
-                    {formatDate(m.effectiveFrom)}
-                  </td>
-                  <td style={{ fontSize: 12.5, wordBreak: "break-all" }}>
-                    {/* Yeni sekmede: panelden çıkıp geri gelmek, açık bir
-                        formu kaybettirirdi. */}
-                    <a
-                      href={m.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "var(--accent, #2563eb)" }}
-                    >
-                      {m.url}
-                    </a>
-                  </td>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Metin</th>
+                  <th style={{ width: 90 }}>Sürüm</th>
+                  <th style={{ width: 100 }}>Zorunlu</th>
+                  <th style={{ width: 160 }}>Yürürlük</th>
+                  <th>Adres</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {metinler.map((m) => (
+                  <tr key={`${m.type}:${m.version}`}>
+                    <td style={{ fontWeight: 600 }}>{m.displayName}</td>
+                    <td>{m.version}</td>
+                    <td>
+                      {m.mandatory ? (
+                        <span className="badge badge-published">zorunlu</span>
+                      ) : (
+                        <span className="badge">isteğe bağlı</span>
+                      )}
+                    </td>
+                    <td style={{ fontSize: 12.5 }}>
+                      {formatDate(m.effectiveFrom)}
+                    </td>
+                    <td style={{ fontSize: 12.5, wordBreak: "break-all" }}>
+                      {/* Yeni sekmede: panelden çıkıp geri gelmek, açık bir
+                          formu kaybettirirdi. */}
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "var(--accent, #2563eb)" }}
+                      >
+                        {m.url}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

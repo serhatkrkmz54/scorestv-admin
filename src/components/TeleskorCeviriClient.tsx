@@ -340,42 +340,44 @@ function AdTablosu({
     );
   }
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th style={{ width: "26%" }}>İngilizce</th>
-          <th style={{ width: "22%" }}>Sağlayıcı çevirisi</th>
-          <th style={{ width: "28%" }}>Benim düzeltmem</th>
-          <th style={{ width: "20%" }}>Görünen</th>
-          <th style={{ width: 30 }} />
-        </tr>
-      </thead>
-      <tbody>
-        {satirlar.map((s) => (
-          <tr key={s.id}>
-            <td>
-              {s.ingilizce}
-              {!s.saglayici && !s.duzeltme && (
-                <span className="badge badge-archived" style={{ marginLeft: 6 }}>
-                  çevrilmemiş
-                </span>
-              )}
-            </td>
-            <td className="muted">{s.saglayici ?? "—"}</td>
-            <td>
-              <DuzeltmeKutusu
-                baslangic={s.duzeltme ?? ""}
-                onKaydet={(deger) => onKaydet(s, deger)}
-              />
-            </td>
-            <td style={{ fontWeight: 600 }}>{s.gorunen ?? "—"}</td>
-            <td>
-              <DurumIsareti durum={durumlar[`${anahtarOnEki}:${s.id}`] ?? ""} />
-            </td>
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th style={{ width: "26%" }}>İngilizce</th>
+            <th style={{ width: "22%" }}>Sağlayıcı çevirisi</th>
+            <th style={{ width: "28%" }}>Benim düzeltmem</th>
+            <th style={{ width: "20%" }}>Görünen</th>
+            <th style={{ width: 30 }} />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {satirlar.map((s) => (
+            <tr key={s.id}>
+              <td>
+                {s.ingilizce}
+                {!s.saglayici && !s.duzeltme && (
+                  <span className="badge badge-archived" style={{ marginLeft: 6 }}>
+                    çevrilmemiş
+                  </span>
+                )}
+              </td>
+              <td className="muted">{s.saglayici ?? "—"}</td>
+              <td>
+                <DuzeltmeKutusu
+                  baslangic={s.duzeltme ?? ""}
+                  onKaydet={(deger) => onKaydet(s, deger)}
+                />
+              </td>
+              <td style={{ fontWeight: 600 }}>{s.gorunen ?? "—"}</td>
+              <td>
+                <DurumIsareti durum={durumlar[`${anahtarOnEki}:${s.id}`] ?? ""} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -398,45 +400,47 @@ function SozlukTablosu({
     );
   }
   return (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th style={{ width: "45%" }}>İngilizce</th>
-          <th style={{ width: "45%" }}>Türkçesi</th>
-          <th style={{ width: 30 }} />
-        </tr>
-      </thead>
-      <tbody>
-        {satirlar.map((s) => (
-          <tr key={s.adEn}>
-            <td>
-              {s.adEn}
-              {!s.adTr && (
-                <span className="badge badge-archived" style={{ marginLeft: 6 }}>
-                  çevrilmemiş
-                </span>
-              )}
-              {/* Veride artık geçmeyen satır: silinebilir ama otomatik
-                  silinmiyor — sağlayıcı o adı yarın geri gönderebilir. */}
-              {!s.kullaniliyor && (
-                <span className="muted" style={{ marginLeft: 6, fontSize: 11.5 }}>
-                  · veride geçmiyor
-                </span>
-              )}
-            </td>
-            <td>
-              <DuzeltmeKutusu
-                baslangic={s.adTr ?? ""}
-                onKaydet={(deger) => onKaydet(s, deger)}
-              />
-            </td>
-            <td>
-              <DurumIsareti durum={durumlar[`${anahtarOnEki}:${s.adEn}`] ?? ""} />
-            </td>
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th style={{ width: "45%" }}>İngilizce</th>
+            <th style={{ width: "45%" }}>Türkçesi</th>
+            <th style={{ width: 30 }} />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {satirlar.map((s) => (
+            <tr key={s.adEn}>
+              <td>
+                {s.adEn}
+                {!s.adTr && (
+                  <span className="badge badge-archived" style={{ marginLeft: 6 }}>
+                    çevrilmemiş
+                  </span>
+                )}
+                {/* Veride artık geçmeyen satır: silinebilir ama otomatik
+                    silinmiyor — sağlayıcı o adı yarın geri gönderebilir. */}
+                {!s.kullaniliyor && (
+                  <span className="muted" style={{ marginLeft: 6, fontSize: 11.5 }}>
+                    · veride geçmiyor
+                  </span>
+                )}
+              </td>
+              <td>
+                <DuzeltmeKutusu
+                  baslangic={s.adTr ?? ""}
+                  onKaydet={(deger) => onKaydet(s, deger)}
+                />
+              </td>
+              <td>
+                <DurumIsareti durum={durumlar[`${anahtarOnEki}:${s.adEn}`] ?? ""} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

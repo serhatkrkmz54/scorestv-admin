@@ -250,24 +250,26 @@ export default function Dashboard() {
           {editors.length === 0 ? (
             <div className="muted" style={{ padding: "8px 0" }}>Henüz veri yok.</div>
           ) : (
-            <table className="mini-table">
-              <thead>
-                <tr>
-                  <th>Editör</th>
-                  <th style={{ textAlign: "right" }}>Yayında</th>
-                  <th style={{ textAlign: "right" }}>Toplam</th>
-                </tr>
-              </thead>
-              <tbody>
-                {editors.map((e) => (
-                  <tr key={e.authorId}>
-                    <td>{e.name}</td>
-                    <td style={{ textAlign: "right" }}>{formatCount(e.published)}</td>
-                    <td style={{ textAlign: "right" }}>{formatCount(e.total)}</td>
+            <div className="table-wrap">
+              <table className="mini-table">
+                <thead>
+                  <tr>
+                    <th>Editör</th>
+                    <th style={{ textAlign: "right" }}>Yayında</th>
+                    <th style={{ textAlign: "right" }}>Toplam</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {editors.map((e) => (
+                    <tr key={e.authorId}>
+                      <td>{e.name}</td>
+                      <td style={{ textAlign: "right" }}>{formatCount(e.published)}</td>
+                      <td style={{ textAlign: "right" }}>{formatCount(e.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

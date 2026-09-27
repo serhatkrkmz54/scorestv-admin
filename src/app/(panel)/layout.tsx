@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { resolveUser, isEditorOrAdmin } from "@/lib/auth-server";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
+import { MobilMenuKabugu } from "@/components/MobilMenu";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +22,12 @@ export default async function PanelLayout({
   }
 
   return (
-    <div className="app-shell">
+    <MobilMenuKabugu>
       <Sidebar user={user!} />
       <div className="main-area">
         <Topbar user={user!} />
         <div className="page-content">{children}</div>
       </div>
-    </div>
+    </MobilMenuKabugu>
   );
 }

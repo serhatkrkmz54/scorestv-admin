@@ -792,50 +792,52 @@ export default function TeleskorUsersClient() {
           </div>
         ) : (
           <>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Üye</th>
-                  <th>Rol</th>
-                  <th>Durum</th>
-                  <th>Son giriş</th>
-                  <th style={{ textAlign: "right" }} />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((u) => (
-                  <tr key={u.id}>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{u.username}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>
-                        {u.email}
-                        {!u.emailVerified && " · doğrulanmamış"}
-                      </div>
-                    </td>
-                    <td>{ROL_TR[u.role] ?? u.role}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          u.status === "ACTIVE"
-                            ? "badge-published"
-                            : "badge-archived"
-                        }`}
-                      >
-                        {DURUM_TR[u.status] ?? u.status}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>
-                      {formatDate(u.lastLoginAt)}
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className="btn btn-sm" onClick={() => detayAc(u)}>
-                        Aç
-                      </button>
-                    </td>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Üye</th>
+                    <th>Rol</th>
+                    <th>Durum</th>
+                    <th>Son giriş</th>
+                    <th style={{ textAlign: "right" }} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((u) => (
+                    <tr key={u.id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{u.username}</div>
+                        <div className="muted" style={{ fontSize: 12 }}>
+                          {u.email}
+                          {!u.emailVerified && " · doğrulanmamış"}
+                        </div>
+                      </td>
+                      <td>{ROL_TR[u.role] ?? u.role}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            u.status === "ACTIVE"
+                              ? "badge-published"
+                              : "badge-archived"
+                          }`}
+                        >
+                          {DURUM_TR[u.status] ?? u.status}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>
+                        {formatDate(u.lastLoginAt)}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button className="btn btn-sm" onClick={() => detayAc(u)}>
+                          Aç
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <div
               style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}
@@ -1386,38 +1388,40 @@ export default function TeleskorUsersClient() {
               <div className="card-title" style={{ marginTop: 18, fontSize: 13 }}>
                 Son Telepuan hareketleri
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Tarih</th>
-                    <th>Tür</th>
-                    <th>Açıklama</th>
-                    <th style={{ textAlign: "right" }}>Miktar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {puanlar.islemler.slice(0, 25).map((i, idx) => (
-                    <tr key={idx}>
-                      <td style={{ fontSize: 12.5 }}>{formatDate(i.tarih)}</td>
-                      <td style={{ fontSize: 12.5 }}>
-                        {TUR_TR[i.tur] ?? i.tur}
-                      </td>
-                      <td style={{ fontSize: 12.5 }}>{i.aciklama ?? "—"}</td>
-                      <td
-                        style={{
-                          textAlign: "right",
-                          fontWeight: 700,
-                          color:
-                            i.miktar >= 0 ? "var(--ok, #16a34a)" : "var(--danger, #dc2626)",
-                        }}
-                      >
-                        {i.miktar > 0 ? "+" : ""}
-                        {i.miktar}
-                      </td>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Tür</th>
+                      <th>Açıklama</th>
+                      <th style={{ textAlign: "right" }}>Miktar</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {puanlar.islemler.slice(0, 25).map((i, idx) => (
+                      <tr key={idx}>
+                        <td style={{ fontSize: 12.5 }}>{formatDate(i.tarih)}</td>
+                        <td style={{ fontSize: 12.5 }}>
+                          {TUR_TR[i.tur] ?? i.tur}
+                        </td>
+                        <td style={{ fontSize: 12.5 }}>{i.aciklama ?? "—"}</td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 700,
+                            color:
+                              i.miktar >= 0 ? "var(--ok, #16a34a)" : "var(--danger, #dc2626)",
+                          }}
+                        >
+                          {i.miktar > 0 ? "+" : ""}
+                          {i.miktar}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </>
           )}
             </div>

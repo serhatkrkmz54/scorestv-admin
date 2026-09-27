@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ExternalLink, LogOut } from "lucide-react";
+import { ExternalLink, LogOut, Menu } from "lucide-react";
+import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout } from "@/lib/api-client";
 import type { AppUser } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export default function Topbar({ user }: { user: AppUser }) {
   const router = useRouter();
   const pathname = usePathname();
   const [busy, setBusy] = useState(false);
+  const menu = useMobilMenu();
 
   // Canlı tarih & saat (topbar ortası). SSR/hydration uyuşmazlığı olmasın diye
   // başlangıçta null; mount sonrası saniyede bir güncellenir.
@@ -65,6 +67,10 @@ export default function Topbar({ user }: { user: AppUser }) {
 
   return (
     <header className="topbar">
+      {/* Yalnız dar ekranda görünür (CSS): kenar çubuğu çekmecesini açar. */}
+      <button className="menu-dugmesi" onClick={menu.ac} aria-label="Menüyü aç" title="Menü">
+        <Menu size={20} />
+      </button>
       <div className="topbar-title">{title}</div>
 
       {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol).

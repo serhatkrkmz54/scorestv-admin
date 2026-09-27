@@ -282,80 +282,82 @@ export default function TeleskorDuyuruClient() {
             {loading ? "Yükleniyor…" : "Henüz duyuru gönderilmedi."}
           </div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th style={{ width: 150 }}>Tarih</th>
-                <th style={{ width: 110 }}>Tür</th>
-                <th>Başlık</th>
-                <th style={{ width: 120 }}>Durum</th>
-                <th style={{ textAlign: "right", width: 90 }}>Hedef</th>
-                <th style={{ textAlign: "right", width: 80 }}>Ulaşan</th>
-              </tr>
-            </thead>
-            <tbody>
-              {kayitlar.map((d) => (
-                <tr key={d.id}>
-                  <td style={{ fontSize: 12 }}>{formatDate(d.an)}</td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        d.tur === "KAMPANYA" ? "badge-scheduled" : "badge-lang"
-                      }`}
-                    >
-                      {d.tur === "KAMPANYA" ? "Ticari" : "Hizmet"}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>
-                      {d.baslik}
-                    </div>
-                    <div className="muted" style={{ fontSize: 11.5 }}>
-                      {d.metin}
-                    </div>
-                    {d.hata && (
-                      <div
-                        style={{ fontSize: 11.5, color: "var(--danger, #dc2626)" }}
-                      >
-                        {d.hata}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        d.durum === "TAMAM"
-                          ? "badge-published"
-                          : d.durum === "HATA"
-                            ? "badge-archived"
-                            : "badge-scheduled"
-                      }`}
-                    >
-                      {d.durum === "GONDERILIYOR" ? "Gönderiliyor" : d.durum}
-                    </span>
-                  </td>
-                  {/* KONU YAYININDA HEDEF SAYISI YOK ve uydurulmuyor:
-                      FCM konuya kaç cihazın abone olduğunu söylemiyor. */}
-                  <td style={{ textAlign: "right" }}>
-                    {d.hedefSayisi == null ? (
-                      <span className="muted" title="Konu yayını — FCM abone sayısını vermiyor">
-                        —
-                      </span>
-                    ) : (
-                      d.hedefSayisi
-                    )}
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    {d.hedefSayisi == null
-                      ? d.basarili > 0
-                        ? "gönderildi"
-                        : "—"
-                      : d.basarili}
-                  </td>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 150 }}>Tarih</th>
+                  <th style={{ width: 110 }}>Tür</th>
+                  <th>Başlık</th>
+                  <th style={{ width: 120 }}>Durum</th>
+                  <th style={{ textAlign: "right", width: 90 }}>Hedef</th>
+                  <th style={{ textAlign: "right", width: 80 }}>Ulaşan</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {kayitlar.map((d) => (
+                  <tr key={d.id}>
+                    <td style={{ fontSize: 12 }}>{formatDate(d.an)}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          d.tur === "KAMPANYA" ? "badge-scheduled" : "badge-lang"
+                        }`}
+                      >
+                        {d.tur === "KAMPANYA" ? "Ticari" : "Hizmet"}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>
+                        {d.baslik}
+                      </div>
+                      <div className="muted" style={{ fontSize: 11.5 }}>
+                        {d.metin}
+                      </div>
+                      {d.hata && (
+                        <div
+                          style={{ fontSize: 11.5, color: "var(--danger, #dc2626)" }}
+                        >
+                          {d.hata}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          d.durum === "TAMAM"
+                            ? "badge-published"
+                            : d.durum === "HATA"
+                              ? "badge-archived"
+                              : "badge-scheduled"
+                        }`}
+                      >
+                        {d.durum === "GONDERILIYOR" ? "Gönderiliyor" : d.durum}
+                      </span>
+                    </td>
+                    {/* KONU YAYININDA HEDEF SAYISI YOK ve uydurulmuyor:
+                        FCM konuya kaç cihazın abone olduğunu söylemiyor. */}
+                    <td style={{ textAlign: "right" }}>
+                      {d.hedefSayisi == null ? (
+                        <span className="muted" title="Konu yayını — FCM abone sayısını vermiyor">
+                          —
+                        </span>
+                      ) : (
+                        d.hedefSayisi
+                      )}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {d.hedefSayisi == null
+                        ? d.basarili > 0
+                          ? "gönderildi"
+                          : "—"
+                        : d.basarili}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

@@ -309,59 +309,61 @@ export default function TeleskorDenetimClient() {
           </div>
         ) : (
           <>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 150 }}>Zaman</th>
-                  <th>Olay</th>
-                  <th style={{ width: 110 }}>Kullanıcı</th>
-                  <th style={{ width: 110 }}>Yapan</th>
-                  <th>Ayrıntı</th>
-                  <th style={{ width: 120 }}>IP</th>
-                </tr>
-              </thead>
-              <tbody>
-                {satirlar.map((s) => (
-                  <tr key={s.id}>
-                    <td style={{ fontSize: 12.5 }}>{formatDate(s.occurredAt)}</td>
-                    <td style={{ fontSize: 12.5 }}>
-                      <div style={{ fontWeight: 600 }}>
-                        {OLAY_TR[s.event] ?? s.event}
-                      </div>
-                      {s.outcome !== "SUCCESS" && (
-                        <span className="badge badge-archived">{s.outcome}</span>
-                      )}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>
-                      {s.userId ?? "—"}
-                      {s.subject && (
-                        <div className="muted" style={{ fontSize: 11.5 }}>
-                          {s.subject}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{s.actorUserId ?? "—"}</td>
-                    <td
-                      style={{
-                        fontSize: 12.5,
-                        maxWidth: 320,
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {s.detail ?? "—"}
-                    </td>
-                    <td style={{ fontSize: 12 }}>
-                      {s.ipAddress ?? "—"}
-                      {s.country && (
-                        <div className="muted" style={{ fontSize: 11.5 }}>
-                          {s.country}
-                        </div>
-                      )}
-                    </td>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 150 }}>Zaman</th>
+                    <th>Olay</th>
+                    <th style={{ width: 110 }}>Kullanıcı</th>
+                    <th style={{ width: 110 }}>Yapan</th>
+                    <th>Ayrıntı</th>
+                    <th style={{ width: 120 }}>IP</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {satirlar.map((s) => (
+                    <tr key={s.id}>
+                      <td style={{ fontSize: 12.5 }}>{formatDate(s.occurredAt)}</td>
+                      <td style={{ fontSize: 12.5 }}>
+                        <div style={{ fontWeight: 600 }}>
+                          {OLAY_TR[s.event] ?? s.event}
+                        </div>
+                        {s.outcome !== "SUCCESS" && (
+                          <span className="badge badge-archived">{s.outcome}</span>
+                        )}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>
+                        {s.userId ?? "—"}
+                        {s.subject && (
+                          <div className="muted" style={{ fontSize: 11.5 }}>
+                            {s.subject}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>{s.actorUserId ?? "—"}</td>
+                      <td
+                        style={{
+                          fontSize: 12.5,
+                          maxWidth: 320,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {s.detail ?? "—"}
+                      </td>
+                      <td style={{ fontSize: 12 }}>
+                        {s.ipAddress ?? "—"}
+                        {s.country && (
+                          <div className="muted" style={{ fontSize: 11.5 }}>
+                            {s.country}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <div
               style={{
