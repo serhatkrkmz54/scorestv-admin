@@ -4,9 +4,7 @@
 // gider (backend'e ASLA doğrudan değil). Çerezler otomatik iletilir.
 
 import type {
-  TeleskorHaberAktarimDurumu,
   TeleskorHaberDetayi,
-  TeleskorHaberEslesmeyen,
   TeleskorHaberIstegi,
   TeleskorHaberListesi,
   TeleskorHaberVarlik,
@@ -1854,38 +1852,6 @@ export async function apiTeleskorHaberVarlikAra(
   const p = new URLSearchParams({ tur, q, spor: spor ?? "FOOTBALL" });
   const res = await fetch(`/api/teleskor/haber/varlik-ara?${p.toString()}`, { method: "GET" });
   return parse<TeleskorHaberVarlik[]>(res);
-}
-
-export async function apiTeleskorHaberEslesmeyen(): Promise<TeleskorHaberEslesmeyen[]> {
-  const res = await fetch(`/api/teleskor/haber/eslesmeyen`, { method: "GET" });
-  return parse<TeleskorHaberEslesmeyen[]>(res);
-}
-
-export async function apiTeleskorHaberEslesmeyenKaldir(
-  haberId: number,
-  tur: string,
-  eskiId: number,
-): Promise<void> {
-  const res = await fetch(
-    `/api/teleskor/haber/${haberId}/eslesmeyen?tur=${tur}&eskiId=${eskiId}`,
-    { method: "DELETE" },
-  );
-  await parse<unknown>(res);
-}
-
-export async function apiTeleskorHaberAktarimDurumu(): Promise<TeleskorHaberAktarimDurumu> {
-  const res = await fetch(`/api/teleskor/haber/aktarim`, { method: "GET" });
-  return parse<TeleskorHaberAktarimDurumu>(res);
-}
-
-export async function apiTeleskorHaberAktar(
-  dosya: File,
-  dene: boolean,
-): Promise<TeleskorHaberAktarimDurumu> {
-  const form = new FormData();
-  form.append("file", dosya);
-  const res = await fetch(`/api/teleskor/haber/aktarim?dene=${dene}`, { method: "POST", body: form });
-  return parse<TeleskorHaberAktarimDurumu>(res);
 }
 
 /**

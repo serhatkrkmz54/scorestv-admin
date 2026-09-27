@@ -2182,34 +2182,3 @@ export interface TeleskorHaberIstegi {
   bildirim: TeleskorHaberBildirim;
   varliklar: TeleskorHaberVarlik[];
 }
-
-export interface TeleskorHaberEslesmeyen {
-  haber_id: number;
-  slug: string;
-  baslik: string;
-  tur: TeleskorVarlikTur;
-  eski_id: number;
-  ad: string | null;
-  ulke: string | null;
-}
-
-export interface TeleskorHaberAktarimDurumu {
-  asama: "BOS" | "CALISIYOR" | "BITTI" | "HATA";
-  deneme: boolean;
-  basladi: string | null;
-  bitti: string | null;
-  islenen: number;
-  toplam: number;
-  hata: string | null;
-  rapor: {
-    aktarilacak?: number;
-    aktarilan?: number;
-    atlanan: Record<string, number>;
-    eslesenBaglanti: Record<string, number>;
-    eslesmeyenBaglanti: Record<string, number>;
-    eslesmeyenler: Record<string, string[]>;
-    gorsel: { kapak: number; metinIci: number; kapakTasinan?: number; metinIciTasinan?: number };
-    notlar: string[];
-    hatalar: string[];
-  } | null;
-}
