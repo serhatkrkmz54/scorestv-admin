@@ -6,17 +6,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
   Newspaper,
-  PlusCircle,
   Bell,
   BellRing,
   Megaphone,
   Sparkles,
-  Image as ImageIcon,
   Settings,
   MessageSquare,
   ScrollText,
-  LayoutTemplate,
-  CalendarClock,
   Mail,
   Gamepad2,
   ShoppingBag,
@@ -175,15 +171,10 @@ export default function Sidebar({ user }: { user: AppUser }) {
   }, [user.role]);
 
   const isDashboard = pathname === "/";
-  const isNews = pathname.startsWith("/news") && !pathname.endsWith("/new");
-  const isNew = pathname === "/news/new";
   const isNotifications = pathname === "/notifications";
   const isDeliveries = pathname.startsWith("/notifications/deliveries");
-  const isMedia = pathname.startsWith("/media");
   const isSettings = pathname.startsWith("/settings");
   const isComments = pathname.startsWith("/comments");
-  const isSlider = pathname.startsWith("/slider");
-  const isCalendar = pathname.startsWith("/calendar");
   const isAudit = pathname.startsWith("/audit");
   const isMessages = pathname.startsWith("/messages");
   const isGame = pathname.startsWith("/game");
@@ -251,29 +242,9 @@ export default function Sidebar({ user }: { user: AppUser }) {
           </Link>
         </NavSection>
 
-        <NavSection id="icerik" title="İçerik" open={open.icerik} onToggle={toggle}>
-          <Link href="/news" className={`nav-item ${isNews ? "active" : ""}`}>
-            <Newspaper className="icon" size={22} />
-            Haberler
-          </Link>
-          <Link href="/news/new" className={`nav-item ${isNew ? "active" : ""}`}>
-            <PlusCircle className="icon" size={22} />
-            Yeni Haber
-          </Link>
-          <Link href="/calendar" className={`nav-item ${isCalendar ? "active" : ""}`}>
-            <CalendarClock className="icon" size={22} />
-            Takvim
-          </Link>
-          <Link href="/slider" className={`nav-item ${isSlider ? "active" : ""}`}>
-            <LayoutTemplate className="icon" size={22} />
-            Slider
-          </Link>
-          <Link href="/media" className={`nav-item ${isMedia ? "active" : ""}`}>
-            <ImageIcon className="icon" size={22} />
-            Medya
-          </Link>
-        </NavSection>
-
+        {/* İÇERİK (ScoresTV haberleri: Haberler, Yeni Haber, Takvim, Slider, Medya)
+            27 Eylül'de GİZLENDİ — ScoresTV'ye artık haber yazılmıyor, haberler
+            Teleskor → Haberler bölümünde. Sayfalar silinmedi (adresle açılır). */}
         <NavSection id="topluluk" title="Topluluk" open={open.topluluk} onToggle={toggle}>
           {user.role === "ADMIN" && (
             <Link href="/users" className={`nav-item ${isUsers ? "active" : ""}`}>

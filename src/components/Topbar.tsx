@@ -8,10 +8,12 @@ import type { AppUser } from "@/lib/types";
 
 /** Rota → sayfa başlığı. Liste dışı rotalar için basit eşleme. */
 function pageTitle(pathname: string): string {
+  if (pathname === "/teleskor/haber/yeni") return "Yeni Haber";
+  if (pathname.startsWith("/teleskor/haber")) return "Teleskor Haberleri";
   if (pathname === "/news/new") return "Yeni Haber";
   if (pathname.endsWith("/edit")) return "Haberi Düzenle";
   if (pathname.endsWith("/preview")) return "Önizleme";
-  return "Haberler";
+  return "Editör Paneli";
 }
 
 export default function Topbar({ user }: { user: AppUser }) {
@@ -65,10 +67,11 @@ export default function Topbar({ user }: { user: AppUser }) {
     <header className="topbar">
       <div className="topbar-title">{title}</div>
 
-      {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol). */}
+      {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol).
+          27 Eylül: haberler Teleskor'da yayınlanıyor (ScoresTV'ye yazılmıyor). */}
       <nav className="topbar-quick" aria-label="Hızlı erişim">
         <a
-          href="https://scorestv.com/haberler"
+          href="https://www.teleskor.com.tr/haber"
           target="_blank"
           rel="noopener noreferrer"
           className="topbar-quick-link"

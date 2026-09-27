@@ -169,7 +169,7 @@ export default function Dashboard() {
             <RefreshCw size={16} className={refreshing ? "spin" : ""} />
             Yenile
           </button>
-          <Link href="/news/new" className="btn btn-primary">
+          <Link href="/teleskor/haber/yeni" className="btn btn-primary">
             <Plus size={16} /> Yeni Haber
           </Link>
         </div>
