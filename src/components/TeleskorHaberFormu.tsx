@@ -115,47 +115,61 @@ function BaglantiSecici({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: 8 }}>
         <select className="select" style={{ maxWidth: 130 }} value={tur}
           onChange={(e) => setTur(e.target.value as TeleskorVarlikTur)}>
           <option value="TAKIM">Takım</option>
           <option value="LIG">Lig</option>
           <option value="OYUNCU">Oyuncu</option>
         </select>
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder={`${TUR_ADI[tur]} ara (en az 2 harf)`} />
+        {/* ScoresTV formunun bağlantı seçicisiyle aynı sınıflar (linker/chip):
+            açık zeminde okunur; nav-item koyu kenar çubuğunun beyaz yazısıydı. */}
+        <div className="linker" style={{ flex: 1 }}>
+          <input className="input" value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder={`${TUR_ADI[tur]} ara (en az 2 harf)`} />
+          {q.trim().length >= 2 && (sonuclar.length > 0 || hata) && (
+            <div className="linker-results">
+              <div className="linker-group-title">{TUR_ADI[tur]}</div>
+              {hata && <div className="linker-opt muted">{hata}</div>}
+              {sonuclar.map((s) => (
+                <div key={`${s.tur}-${s.id}`} className="linker-opt" role="button" tabIndex={0}
+                  onClick={() => ekle(s)}
+                  onKeyDown={(e) => { if (e.key === "Enter") ekle(s); }}>
+                  {s.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="linker-logo" src={s.logo} alt="" />
+                  ) : (
+                    <span className="linker-logo" />
+                  )}
+                  <span>{s.ad ?? `#${s.id}`}</span>
+                  {s.alt && <span className="muted">— {s.alt}</span>}
+                  <span className="muted" style={{ marginLeft: "auto", fontSize: 11 }}>#{s.id}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      {hata && <div className="field-error">{hata}</div>}
-      {sonuclar.length > 0 && (
-        <div className="card" style={{ maxHeight: 260, overflowY: "auto", marginBottom: 8 }}>
-          {sonuclar.map((s) => (
-            <button key={`${s.tur}-${s.id}`} type="button" className="nav-item"
-              style={{ width: "100%", textAlign: "left", display: "flex", gap: 8, alignItems: "center" }}
-              onClick={() => ekle(s)}>
-              {s.logo ? <img src={s.logo} alt="" width={20} height={20} style={{ objectFit: "contain" }} /> : null}
-              <span>{s.ad ?? `#${s.id}`}</span>
-              {s.alt ? <span className="muted" style={{ fontSize: 12 }}>{s.alt}</span> : null}
-              <span className="muted" style={{ fontSize: 11, marginLeft: "auto" }}>#{s.id}</span>
-            </button>
+      {deger.length === 0 ? (
+        <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>Bağlantı yok.</div>
+      ) : (
+        <div className="chips">
+          {deger.map((v) => (
+            <span key={`${v.tur}-${v.id}`} className="chip">
+              {v.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={v.logo} alt="" />
+              ) : null}
+              <span className="kind">{TUR_ADI[v.tur]}</span>
+              <span>{v.ad ?? `#${v.id}`}</span>
+              <button type="button" className="chip-x" aria-label="Kaldır"
+                onClick={() => degisti(deger.filter((x) => !(x.tur === v.tur && x.id === v.id)))}>
+                ×
+              </button>
+            </span>
           ))}
         </div>
       )}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {deger.length === 0 && <span className="muted" style={{ fontSize: 13 }}>Bağlantı yok.</span>}
-        {deger.map((v) => (
-          <span key={`${v.tur}-${v.id}`} className="badge"
-            style={{ display: "inline-flex", gap: 6, alignItems: "center", padding: "4px 8px" }}>
-            {v.logo ? <img src={v.logo} alt="" width={16} height={16} style={{ objectFit: "contain" }} /> : null}
-            <span className="muted" style={{ fontSize: 11 }}>{TUR_ADI[v.tur]}</span>
-            {v.ad ?? `#${v.id}`}
-            <button type="button" aria-label="Kaldır" className="btn btn-sm"
-              style={{ padding: "0 6px" }}
-              onClick={() => degisti(deger.filter((x) => !(x.tur === v.tur && x.id === v.id)))}>
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
