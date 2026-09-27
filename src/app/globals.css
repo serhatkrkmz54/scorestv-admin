@@ -3277,6 +3277,21 @@ table.data-table {
    yazıldığı için okuyanın ayrımı yapmasının tek yolu bu çizgi.
    Renk sidebar zemini üzerinde çalışsın diye beyazdan türetiliyor:
    --border açık temaya göre ayarlı ve koyu kenar çubuğunda kayboluyor. */
+/* Teleskor bölümünün alt başlıkları (27 Eylül): bölüm başlığından küçük ve
+   silik, ilki üstte boşluksuz. Tıklanmaz, yalnız gruplar. */
+.nav-altbaslik {
+  padding: 12px 10px 4px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sidebar-muted);
+  opacity: 0.75;
+  font-weight: 600;
+}
+.nav-group-inner > .nav-altbaslik:first-child {
+  padding-top: 2px;
+}
+
 .nav-urun-ayraci {
   height: 1px;
   margin: 14px 4px 12px;

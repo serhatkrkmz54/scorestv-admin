@@ -319,7 +319,9 @@ export default function Sidebar({ user }: { user: AppUser }) {
             buradaki market Teleskor'un Telepuan sistemi. İkisi
             birbirinin karşılığı DEĞİL.
             Yalnız ADMIN görüyor: yetkinin tek kapısı bu panel
-            (Teleskor tarafında tek hizmet hesabıyla konuşuluyor). */}
+            (Teleskor tarafında tek hizmet hesabıyla konuşuluyor).
+            27 Eylül: 20 bağlantı işe göre beş alt başlıkta (İçerik, Spor
+            verisi, Üyeler ve topluluk, Tele Puan, Sistem). */}
         {user.role === "ADMIN" && (
           <NavSection
             id="teleskor"
@@ -327,49 +329,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             open={open.teleskor}
             onToggle={toggle}
           >
+            <div className="nav-altbaslik">İçerik</div>
             <Link
-              href="/teleskor/market"
-              className={`nav-item ${isTeleskorMarket ? "active" : ""}`}
+              href="/teleskor/haber"
+              className={`nav-item ${isTeleskorHaber ? "active" : ""}`}
             >
-              <ShoppingBag className="icon" size={22} />
-              Telepuan Marketi
-            </Link>
-            <Link
-              href="/teleskor/market/siparisler"
-              className={`nav-item ${isTeleskorOrders ? "active" : ""}`}
-            >
-              <PackageCheck className="icon" size={22} />
-              Market Siparişleri
-            </Link>
-            <Link
-              href="/teleskor/uyeler"
-              className={`nav-item ${isTeleskorUsers ? "active" : ""}`}
-            >
-              <UserCog className="icon" size={22} />
-              Üyeler
-            </Link>
-            <Link
-              href="/teleskor/one-cikan-ligler"
-              className={`nav-item ${
-                isTeleskorOneCikanLigler ? "active" : ""
-              }`}
-            >
-              <Star className="icon" size={22} />
-              Öne Çıkan Ligler
-            </Link>
-            <Link
-              href="/teleskor/ayarlar"
-              className={`nav-item ${isTeleskorAyarlar ? "active" : ""}`}
-            >
-              <SlidersHorizontal className="icon" size={22} />
-              Uygulama Ayarları
-            </Link>
-            <Link
-              href="/teleskor/mac-ozeti"
-              className={`nav-item ${isTeleskorMacOzeti ? "active" : ""}`}
-            >
-              <Video className="icon" size={22} />
-              Maç Özeti
+              <Newspaper className="icon" size={22} />
+              Haberler
             </Link>
             <Link
               href="/teleskor/duyuru"
@@ -384,6 +350,59 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <Sparkles className="icon" size={22} />
               Sürüm Notları
+            </Link>
+            <Link
+              href="/teleskor/mac-ozeti"
+              className={`nav-item ${isTeleskorMacOzeti ? "active" : ""}`}
+            >
+              <Video className="icon" size={22} />
+              Maç Özeti
+            </Link>
+            <div className="nav-altbaslik">Spor verisi</div>
+            <Link
+              href="/teleskor/one-cikan-ligler"
+              className={`nav-item ${
+                isTeleskorOneCikanLigler ? "active" : ""
+              }`}
+            >
+              <Star className="icon" size={22} />
+              Öne Çıkan Ligler
+            </Link>
+            <Link
+              href="/teleskor/kadro"
+              className={`nav-item ${isTeleskorKadro ? "active" : ""}`}
+            >
+              <Shirt className="icon" size={22} />
+              Kadro Masası
+            </Link>
+            <Link
+              href="/teleskor/veri"
+              className={`nav-item ${isTeleskorVeri ? "active" : ""}`}
+            >
+              <ClipboardList className="icon" size={22} />
+              Veri Düzeltme
+            </Link>
+            <Link
+              href="/teleskor/ceviri"
+              className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
+            >
+              <Languages className="icon" size={22} />
+              Çeviri Düzeltme
+            </Link>
+            <div className="nav-altbaslik">Üyeler ve topluluk</div>
+            <Link
+              href="/teleskor/uyeler"
+              className={`nav-item ${isTeleskorUsers ? "active" : ""}`}
+            >
+              <UserCog className="icon" size={22} />
+              Üyeler
+            </Link>
+            <Link
+              href="/teleskor/kitle"
+              className={`nav-item ${isTeleskorKitle ? "active" : ""}`}
+            >
+              <Users className="icon" size={22} />
+              Kitle
             </Link>
             <Link
               href="/teleskor/destek"
@@ -406,33 +425,35 @@ export default function Sidebar({ user }: { user: AppUser }) {
               <MessagesSquare className="icon" size={22} />
               Akış Şikayetleri
             </Link>
+            <div className="nav-altbaslik">Tele Puan</div>
             <Link
-              href="/teleskor/haber"
-              className={`nav-item ${isTeleskorHaber ? "active" : ""}`}
+              href="/teleskor/market"
+              className={`nav-item ${isTeleskorMarket ? "active" : ""}`}
             >
-              <Newspaper className="icon" size={22} />
-              Haberler
+              <ShoppingBag className="icon" size={22} />
+              Telepuan Marketi
             </Link>
             <Link
-              href="/teleskor/ceviri"
-              className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
+              href="/teleskor/market/siparisler"
+              className={`nav-item ${isTeleskorOrders ? "active" : ""}`}
             >
-              <Languages className="icon" size={22} />
-              Çeviri Düzeltme
+              <PackageCheck className="icon" size={22} />
+              Market Siparişleri
+            </Link>
+            <div className="nav-altbaslik">Sistem</div>
+            <Link
+              href="/teleskor/ayarlar"
+              className={`nav-item ${isTeleskorAyarlar ? "active" : ""}`}
+            >
+              <SlidersHorizontal className="icon" size={22} />
+              Uygulama Ayarları
             </Link>
             <Link
-              href="/teleskor/veri"
-              className={`nav-item ${isTeleskorVeri ? "active" : ""}`}
+              href="/teleskor/sozlesme"
+              className={`nav-item ${isTeleskorSozlesme ? "active" : ""}`}
             >
-              <ClipboardList className="icon" size={22} />
-              Veri Düzeltme
-            </Link>
-            <Link
-              href="/teleskor/kadro"
-              className={`nav-item ${isTeleskorKadro ? "active" : ""}`}
-            >
-              <Shirt className="icon" size={22} />
-              Kadro Masası
+              <FileSignature className="icon" size={22} />
+              Sözleşmeler
             </Link>
             <Link
               href="/teleskor/denetim"
@@ -442,25 +463,11 @@ export default function Sidebar({ user }: { user: AppUser }) {
               Denetim Kaydı
             </Link>
             <Link
-              href="/teleskor/kitle"
-              className={`nav-item ${isTeleskorKitle ? "active" : ""}`}
-            >
-              <Users className="icon" size={22} />
-              Kitle
-            </Link>
-            <Link
               href="/teleskor/saglik"
               className={`nav-item ${isTeleskorSaglik ? "active" : ""}`}
             >
               <Activity className="icon" size={22} />
               Sistem Sağlığı
-            </Link>
-            <Link
-              href="/teleskor/sozlesme"
-              className={`nav-item ${isTeleskorSozlesme ? "active" : ""}`}
-            >
-              <FileSignature className="icon" size={22} />
-              Sözleşmeler
             </Link>
             <Link
               href="/teleskor/motor"
