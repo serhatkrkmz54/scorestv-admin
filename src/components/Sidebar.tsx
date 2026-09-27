@@ -197,6 +197,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
   const isTeleskorVeri = pathname.startsWith("/teleskor/veri");
   const isTeleskorKadro = pathname.startsWith("/teleskor/kadro");
+  const isTeleskorHaber = pathname.startsWith("/teleskor/haber");
   const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
   const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
   const isTeleskorSurumNotu = pathname.startsWith("/teleskor/surum-notu");
@@ -433,6 +434,13 @@ export default function Sidebar({ user }: { user: AppUser }) {
             >
               <MessagesSquare className="icon" size={22} />
               Akış Şikayetleri
+            </Link>
+            <Link
+              href="/teleskor/haber"
+              className={`nav-item ${isTeleskorHaber ? "active" : ""}`}
+            >
+              <Newspaper className="icon" size={22} />
+              Haberler
             </Link>
             <Link
               href="/teleskor/ceviri"

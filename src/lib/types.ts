@@ -2104,3 +2104,112 @@ export interface KadroTakimBulgusu {
   logo?: string;
   ulke?: string;
 }
+
+// ---------------------------------------------------------------------------
+// TELESKOR HABERLERİ (teleskor-backend V69, /api/v1/admin/haber)
+// ---------------------------------------------------------------------------
+
+export type TeleskorHaberDurum = "TASLAK" | "ZAMANLI" | "YAYINDA" | "ARSIV";
+export type TeleskorHaberBildirim = "YOK" | "FAVORILER" | "HERKES";
+export type TeleskorVarlikTur = "TAKIM" | "LIG" | "OYUNCU";
+
+/** Habere bağlı takım / lig / oyuncu — motorun kimliği + kart. */
+export interface TeleskorHaberVarlik {
+  tur: TeleskorVarlikTur;
+  id: number;
+  ad?: string | null;
+  logo?: string | null;
+  alt?: string | null;
+  spor?: string | null;
+}
+
+export interface TeleskorHaberOzeti {
+  id: number;
+  slug: string;
+  baslik: string;
+  ozet: string | null;
+  kapakAnahtar: string | null;
+  kapakAdres: string | null;
+  durum: TeleskorHaberDurum;
+  kategori: string;
+  spor: "FOOTBALL" | "BASKETBALL" | null;
+  sonDakika: boolean;
+  oneCikan: boolean;
+  slider: boolean;
+  sliderSira: number;
+  yayinAni: string | null;
+  ilkYayinAni: string | null;
+  okumaDakika: number | null;
+  goruntulenme: number;
+  bildirim: TeleskorHaberBildirim;
+  bildirimAni: string | null;
+  eskiKaynak: string | null;
+  eskiId: number | null;
+  guncelleme: string | null;
+  guncelleyen: string | null;
+  adres: string;
+}
+
+export interface TeleskorHaberDetayi extends TeleskorHaberOzeti {
+  govde: string;
+  kaynak: string | null;
+  kaynakUrl: string | null;
+  varliklar: TeleskorHaberVarlik[];
+  denetim: { kim: string | null; islem: string; notu: string | null; zaman: string }[];
+}
+
+export interface TeleskorHaberListesi {
+  satirlar: TeleskorHaberOzeti[];
+  toplam: number;
+}
+
+/** Panelin gönderdiği haber (HaberYonetimServisi.Istek). */
+export interface TeleskorHaberIstegi {
+  baslik: string;
+  ozet: string | null;
+  govde: string;
+  kapakAnahtar: string | null;
+  durum: TeleskorHaberDurum;
+  yayinAni: string | null;
+  kategori: string;
+  spor: "FOOTBALL" | "BASKETBALL" | null;
+  sonDakika: boolean;
+  oneCikan: boolean;
+  slider: boolean;
+  sliderSira: number;
+  kaynak: string | null;
+  kaynakUrl: string | null;
+  bildirim: TeleskorHaberBildirim;
+  varliklar: TeleskorHaberVarlik[];
+}
+
+export interface TeleskorHaberEslesmeyen {
+  haber_id: number;
+  slug: string;
+  baslik: string;
+  tur: TeleskorVarlikTur;
+  eski_id: number;
+  ad: string | null;
+  ulke: string | null;
+}
+
+export interface TeleskorHaberAktarimDurumu {
+  asama: "BOS" | "CALISIYOR" | "BITTI" | "HATA";
+  deneme: boolean;
+  basladi: string | null;
+  bitti: string | null;
+  islenen: number;
+  toplam: number;
+  hata: string | null;
+  rapor: {
+    aktarilacak?: number;
+    aktarilan?: number;
+    atlanan: Record<string, number>;
+    eslesenBaglanti: Record<string, number>;
+    eslesmeyenBaglanti: Record<string, number>;
+    eslesmeyenler: Record<string, string[]>;
+    gorsel: { kapak: number; metinIci: number; kapakTasinan?: number; metinIciTasinan?: number };
+    notlar: string[];
+    hatalar: string[];
+  } | null;
+}

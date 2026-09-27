@@ -224,10 +224,16 @@ export default function RichEditor({
   value,
   onChange,
   placeholder = "Haber içeriğini buraya yazın...",
+  yukleyici = apiUploadImageIlerlemeli,
 }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /**
+   * Görselin yükleneceği yer. Varsayılan ScoresTV (/api/news/images);
+   * Teleskor haber formu kendi deposunu (cdn.teleskor.com.tr) veriyor.
+   */
+  yukleyici?: (dosya: File, onIlerleme?: (yuzde: number) => void) => Promise<{ url: string }>;
 }) {
   const [kuyruk, setKuyruk] = useState<YuklemeSatiri[]>([]);
   const [uyari, setUyari] = useState<string | null>(null);
@@ -355,7 +361,7 @@ export default function RichEditor({
                 ? `${baytMetni(k.oncekiBayt)} → ${baytMetni(k.sonrakiBayt)}`
                 : undefined,
             });
-            const sonuc = await apiUploadImageIlerlemeli(k.dosya, (y) =>
+            const sonuc = await yukleyici(k.dosya, (y) =>
               satirGuncelle(satir.id, { yuzde: y }),
             );
             satirGuncelle(satir.id, { durum: "bitti", yuzde: 100 });
@@ -387,7 +393,7 @@ export default function RichEditor({
         );
       }, 1500);
     },
-    [editor, satirGuncelle],
+    [editor, satirGuncelle, yukleyici],
   );
 
   /**

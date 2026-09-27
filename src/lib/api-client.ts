@@ -4,6 +4,13 @@
 // gider (backend'e ASLA doğrudan değil). Çerezler otomatik iletilir.
 
 import type {
+  TeleskorHaberAktarimDurumu,
+  TeleskorHaberDetayi,
+  TeleskorHaberEslesmeyen,
+  TeleskorHaberIstegi,
+  TeleskorHaberListesi,
+  TeleskorHaberVarlik,
+  TeleskorVarlikTur,
   AdminUserView,
   AppUser,
   SurumNotu,
@@ -1793,4 +1800,124 @@ export async function apiKadroGeriAl(id: number, ekTakim?: number): Promise<Kadr
 export async function apiKadroKapatDene(): Promise<{ kapanan: number }> {
   const res = await fetch("/api/teleskor/kadro/kapat-dene", { method: "POST" });
   return parse<{ kapanan: number }>(res);
+}
+
+// ---------------------------------------------------------------------------
+// TELESKOR HABERLERİ (V69) — /api/teleskor/haber
+// ---------------------------------------------------------------------------
+
+export async function apiTeleskorHaberler(
+  durum: string,
+  q: string,
+  sayfa: number,
+): Promise<TeleskorHaberListesi> {
+  const p = new URLSearchParams();
+  if (durum) p.set("durum", durum);
+  if (q.trim()) p.set("q", q.trim());
+  p.set("sayfa", String(sayfa));
+  const res = await fetch(`/api/teleskor/haber?${p.toString()}`, { method: "GET" });
+  return parse<TeleskorHaberListesi>(res);
+}
+
+export async function apiTeleskorHaber(id: number): Promise<TeleskorHaberDetayi> {
+  const res = await fetch(`/api/teleskor/haber/${id}`, { method: "GET" });
+  return parse<TeleskorHaberDetayi>(res);
+}
+
+export async function apiTeleskorHaberKaydet(
+  id: number | null,
+  istek: TeleskorHaberIstegi,
+): Promise<TeleskorHaberDetayi> {
+  const res = await fetch(id ? `/api/teleskor/haber/${id}` : `/api/teleskor/haber`, {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(istek),
+  });
+  return parse<TeleskorHaberDetayi>(res);
+}
+
+export async function apiTeleskorHaberSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/haber/${id}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorHaberIndexNow(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/haber/${id}/indexnow`, { method: "POST" });
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorHaberVarlikAra(
+  tur: TeleskorVarlikTur,
+  q: string,
+  spor: string | null,
+): Promise<TeleskorHaberVarlik[]> {
+  const p = new URLSearchParams({ tur, q, spor: spor ?? "FOOTBALL" });
+  const res = await fetch(`/api/teleskor/haber/varlik-ara?${p.toString()}`, { method: "GET" });
+  return parse<TeleskorHaberVarlik[]>(res);
+}
+
+export async function apiTeleskorHaberEslesmeyen(): Promise<TeleskorHaberEslesmeyen[]> {
+  const res = await fetch(`/api/teleskor/haber/eslesmeyen`, { method: "GET" });
+  return parse<TeleskorHaberEslesmeyen[]>(res);
+}
+
+export async function apiTeleskorHaberEslesmeyenKaldir(
+  haberId: number,
+  tur: string,
+  eskiId: number,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/haber/${haberId}/eslesmeyen?tur=${tur}&eskiId=${eskiId}`,
+    { method: "DELETE" },
+  );
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorHaberAktarimDurumu(): Promise<TeleskorHaberAktarimDurumu> {
+  const res = await fetch(`/api/teleskor/haber/aktarim`, { method: "GET" });
+  return parse<TeleskorHaberAktarimDurumu>(res);
+}
+
+export async function apiTeleskorHaberAktar(
+  dosya: File,
+  dene: boolean,
+): Promise<TeleskorHaberAktarimDurumu> {
+  const form = new FormData();
+  form.append("file", dosya);
+  const res = await fetch(`/api/teleskor/haber/aktarim?dene=${dene}`, { method: "POST", body: form });
+  return parse<TeleskorHaberAktarimDurumu>(res);
+}
+
+/**
+ * Teleskor haber görseli — ilerlemeli (RichEditor ve kapak). Yanıtı
+ * editörün beklediği `{ url }` biçimine çeviriyor; kapak için `anahtar` da var.
+ */
+export function apiTeleskorHaberGorsel(
+  dosya: File,
+  onIlerleme?: (yuzde: number) => void,
+): Promise<{ url: string; anahtar: string }> {
+  return new Promise((cevap, hata) => {
+    const form = new FormData();
+    form.append("file", dosya);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/teleskor/haber/gorsel");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onIlerleme) onIlerleme(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      let govde: { anahtar?: string; adres?: string; message?: string } = {};
+      try {
+        govde = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+      } catch {
+        govde = { message: xhr.responseText };
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && govde.adres && govde.anahtar) {
+        cevap({ url: govde.adres, anahtar: govde.anahtar });
+        return;
+      }
+      hata(new ApiError(xhr.status, govde.message ?? "Görsel yüklenemedi."));
+    };
+    xhr.onerror = () => hata(new ApiError(0, "Sunucuya ulaşılamadı."));
+    xhr.send(form);
+  });
 }
