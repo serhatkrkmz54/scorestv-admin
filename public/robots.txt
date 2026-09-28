@@ -1,3 +1,2 @@
-# Yönetim paneli — arama motorları taramasın.
 User-agent: *
-Disallow: /
+Allow: /
