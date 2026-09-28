@@ -7,10 +7,8 @@ export const dynamic = "force-dynamic";
 /**
  * Teleskor Telepuan Marketi — ürünler. YALNIZ ADMIN.
  *
- * <p>Rol kontrolü burada ŞART: Teleskor tarafındaki hizmet hesabı her zaman
- * ADMIN olduğu için o servis "isteği kim attı" diye soramıyor. ScoresTV'nin
- * kendi sayfalarında bu risk yok (orada backend rolü kendisi kontrol
- * ediyor); burada yetkinin tek kapısı panelin kendisi.
+ * <p>Asıl yetki Teleskor'da (yöneticinin kendi oturumu, `hasRole('ADMIN')`);
+ * buradaki kontrol yalnız anlaşılır bir mesaj için.
  */
 export default async function TeleskorMarketPage() {
   const user = await resolveUser();
@@ -30,9 +28,7 @@ export default async function TeleskorMarketPage() {
           <b>Teleskor bağlantısı kurulu değil.</b>
           <div style={{ marginTop: 6, fontSize: 13 }}>
             Sunucuda şu üç değişken tanımlanmalı:{" "}
-            <code>TELESKOR_BACKEND_URL</code>,{" "}
-            <code>TELESKOR_ADMIN_USER</code>,{" "}
-            <code>TELESKOR_ADMIN_PASSWORD</code>. Kullanıcı, Teleskor
+            <code>TELESKOR_BACKEND_URL</code> tanımlanmalı.. Kullanıcı, Teleskor
             tarafında <b>ADMIN</b> rolüne yükseltilmiş bir hesap olmalı.
           </div>
         </div>

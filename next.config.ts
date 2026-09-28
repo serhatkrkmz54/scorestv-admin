@@ -6,12 +6,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "cdn.scorestv.com" },
-      { protocol: "https", hostname: "media.api-sports.io" },
+      { protocol: "https", hostname: "cdn.teleskor.com.tr" },
     ],
   },
-  // Güvenlik başlıkları — admin paneli için sıkı. Panelin dışarıya gömülmesini
-  // engelle (X-Frame-Options DENY), sniffing'i kapat.
+  // Güvenlik başlıkları — yönetim paneli için sıkı. Başka sitenin çerçevesine
+  // girmez (X-Frame-Options DENY), arama motoruna kapalı, adres dışarı
+  // sızmaz. TEK kaynak burası: api-1 nginx'i (panel bloğu) bunları yazmıyor,
+  // yazsaydı her başlık iki kez giderdi.
   async headers() {
     return [
       {
@@ -19,8 +20,8 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
           {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",

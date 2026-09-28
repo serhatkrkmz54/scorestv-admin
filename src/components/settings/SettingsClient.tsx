@@ -3,24 +3,19 @@
 import { useState } from "react";
 import type { AppUser } from "@/lib/types";
 import ProfileSection from "./ProfileSection";
-import EditorsSection from "./EditorsSection";
-import NotificationDefaultsSection from "./NotificationDefaultsSection";
 import ThemeSection from "./ThemeSection";
 
-type TabKey = "profile" | "editors" | "notify" | "theme";
+type TabKey = "profile" | "theme";
 
 /**
- * Ayarlar ekranı — sekmeli düzen. ADMIN'e özel "Editör Yönetimi" sekmesi
- * yalnızca user.role === "ADMIN" iken görünür/erişilebilir.
+ * Ayarlar ekranı — hesabın (Teleskor hesabı) ve panelin görünümü. Yönetici
+ * eklemek/çıkarmak Üyeler ekranından (rol değiştir).
  */
 export default function SettingsClient({ user }: { user: AppUser }) {
-  const isAdmin = user.role === "ADMIN";
   const [tab, setTab] = useState<TabKey>("profile");
 
-  const tabs: { key: TabKey; label: string; adminOnly?: boolean }[] = [
-    { key: "profile", label: "Profil" },
-    { key: "editors", label: "Editör Yönetimi", adminOnly: true },
-    { key: "notify", label: "Bildirim Varsayılanları" },
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: "profile", label: "Hesap" },
     { key: "theme", label: "Panel Teması" },
   ];
 
@@ -29,14 +24,12 @@ export default function SettingsClient({ user }: { user: AppUser }) {
       <div>
         <h2 className="page-title">Ayarlar</h2>
         <div className="muted" style={{ fontSize: 13 }}>
-          Profil, tercih ve panel yönetim ayarları.
+          Hesabın ve panelin görünümü.
         </div>
       </div>
 
       <div className="tabs">
-        {tabs
-          .filter((t) => !t.adminOnly || isAdmin)
-          .map((t) => (
+        {tabs.map((t) => (
             <button
               key={t.key}
               className={`tab ${tab === t.key ? "active" : ""}`}
@@ -53,17 +46,7 @@ export default function SettingsClient({ user }: { user: AppUser }) {
         </div>
       )}
 
-      {tab === "editors" && isAdmin && (
-        <div className="stack">
-          <EditorsSection currentUserId={user.id} />
-        </div>
-      )}
 
-      {tab === "notify" && (
-        <div className="stack">
-          <NotificationDefaultsSection />
-        </div>
-      )}
 
       {tab === "theme" && (
         <div className="stack">

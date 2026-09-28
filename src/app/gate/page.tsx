@@ -21,8 +21,8 @@ export default async function GatePage({
       <aside className="login-aside">
         <div className="login-aside-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-light.png" alt="Scores TV" />
-          <p className="login-aside-tag">Editör Paneli</p>
+          <img src="/images/logo-light.png" alt="TELE SKOR" />
+          <p className="login-aside-tag">Yönetim Paneli</p>
         </div>
       </aside>
       <main className="login-main">

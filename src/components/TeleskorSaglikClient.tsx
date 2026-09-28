@@ -109,7 +109,7 @@ export default function TeleskorSaglikClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Sistem Sağlığı</h1>
+          <h1 className="page-title">Sistem Sağlığı</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Salt okunur. Sayaçlar burada sıfırlanmıyor — sıfırlama bir ölçüm
             adımı ve yanlışlıkla basılması süren bir ölçümü bozardı.

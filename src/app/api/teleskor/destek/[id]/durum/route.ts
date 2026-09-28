@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { checkSameOrigin } from "@/lib/origin-check";
 import { teleskorJson } from "@/lib/teleskor";
 import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
 
@@ -7,6 +8,8 @@ export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
+  const bad = checkSameOrigin(req);
+  if (bad) return bad;
   const izin = await teleskorAdmin();
   if ("error" in izin) return izin.error;
 

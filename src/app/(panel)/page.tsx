@@ -1,8 +1,6 @@
-import Dashboard from "@/components/Dashboard";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-/** Panel ana sayfası — özet dashboard (istatistikler, trend, aktivite). */
+/** Panelin açılış sayfası: Sistem Sağlığı (menüde "Genel"). */
 export default function HomePage() {
-  return <Dashboard />;
+  redirect("/teleskor/saglik");
 }

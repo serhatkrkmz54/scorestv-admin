@@ -32,9 +32,7 @@ export default async function TeleskorVeriPage() {
         <div className="alert alert-error">
           <b>Teleskor bağlantısı kurulu değil.</b>
           <div style={{ marginTop: 6, fontSize: 13 }}>
-            Sunucuda <code>TELESKOR_BACKEND_URL</code>,{" "}
-            <code>TELESKOR_ADMIN_USER</code> ve{" "}
-            <code>TELESKOR_ADMIN_PASSWORD</code> tanımlanmalı.
+            Sunucuda <code>TELESKOR_BACKEND_URL</code> tanımlanmalı.
           </div>
         </div>
       </div>

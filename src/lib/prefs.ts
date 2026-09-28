@@ -1,41 +1,13 @@
 "use client";
 
-// İstemci tarafı (localStorage) kullanıcı tercihleri — backend YOK.
-// İki tercih burada toplanır:
-//   1) Yeni haberler için varsayılan bildirim modu (Ayarlar → Bildirim
-//      Varsayılanları; NewsForm yeni haberde bunu okur).
-//   2) Panel teması (Ayarlar → Panel Teması; <html data-theme> ile uygulanır).
-// Tüm okumalar SSR güvenlidir (window yoksa varsayılan döner).
-
-// ---- Bildirim varsayılanı ----
-export type NotifyDefault = "none" | "favorites" | "all";
-const NOTIFY_KEY = "stv.notifyDefault";
-const NOTIFY_VALUES: NotifyDefault[] = ["none", "favorites", "all"];
-
-export function getNotifyDefault(): NotifyDefault {
-  if (typeof window === "undefined") return "none";
-  try {
-    const v = window.localStorage.getItem(NOTIFY_KEY);
-    if (v && (NOTIFY_VALUES as string[]).includes(v)) return v as NotifyDefault;
-  } catch {
-    // localStorage erişilemez (gizli mod vb.) — varsayılana düş.
-  }
-  return "none";
-}
-
-export function setNotifyDefault(v: NotifyDefault): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(NOTIFY_KEY, v);
-  } catch {
-    // sessizce geç
-  }
-}
+// İstemci tarafı (localStorage) kullanıcı tercihi — backend YOK: panel
+// teması (Ayarlar → Panel Teması; <html data-theme> ile uygulanır). Okumalar
+// SSR güvenlidir (window yoksa varsayılan döner).
 
 // ---- Panel teması ----
 export type ThemePref = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
-const THEME_KEY = "stv.theme";
+const THEME_KEY = "tsk.theme";
 const THEME_VALUES: ThemePref[] = ["dark", "light", "system"];
 
 // Hiçbir şey kayıtlı değilse panelin MEVCUT görünümü (açık tema) korunur.

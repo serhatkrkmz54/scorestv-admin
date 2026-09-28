@@ -180,7 +180,7 @@ export default function TeleskorCeviriClient() {
   return (
     <div className="stack">
       <div>
-        <h1 className="page-title">Teleskor — Çeviri Düzeltme</h1>
+        <h1 className="page-title">Çeviri Düzeltme</h1>
         <div className="muted" style={{ fontSize: 13 }}>
           Yazdığın ad <b>senkronla ezilmez</b>. Görünen ad şu sırayla seçilir:
           senin düzeltmen → sağlayıcının çevirisi → İngilizce.

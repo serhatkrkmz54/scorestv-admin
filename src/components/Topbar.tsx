@@ -5,16 +5,37 @@ import { usePathname, useRouter } from "next/navigation";
 import { ExternalLink, LogOut, Menu } from "lucide-react";
 import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout } from "@/lib/api-client";
-import type { AppUser } from "@/lib/types";
+import { gorunenAd, type AppUser } from "@/lib/types";
 
-/** Rota → sayfa başlığı. Liste dışı rotalar için basit eşleme. */
+/** Rota → sayfa başlığı (menüdeki adlar). */
+const BASLIKLAR: [string, string][] = [
+  ["/teleskor/haber/yeni", "Yeni Haber"],
+  ["/teleskor/haber", "Haberler"],
+  ["/teleskor/duyuru", "Duyurular"],
+  ["/teleskor/surum-notu", "Sürüm Notları"],
+  ["/teleskor/mac-ozeti", "Maç Özeti"],
+  ["/teleskor/one-cikan-ligler", "Öne Çıkan Ligler"],
+  ["/teleskor/kadro", "Kadro Masası"],
+  ["/teleskor/veri", "Veri Düzeltme"],
+  ["/teleskor/ceviri", "Çeviri Düzeltme"],
+  ["/teleskor/uyeler", "Üyeler"],
+  ["/teleskor/kitle", "Kitle"],
+  ["/teleskor/destek", "Destek"],
+  ["/teleskor/sohbet", "Sohbet Şikayetleri"],
+  ["/teleskor/akis", "Akış Şikayetleri"],
+  ["/teleskor/market/siparisler", "Market Siparişleri"],
+  ["/teleskor/market", "Telepuan Marketi"],
+  ["/teleskor/ayarlar", "Uygulama Ayarları"],
+  ["/teleskor/sozlesme", "Sözleşmeler"],
+  ["/teleskor/denetim", "Denetim Kaydı"],
+  ["/teleskor/saglik", "Sistem Sağlığı"],
+  ["/teleskor/motor", "Motor"],
+  ["/settings", "Panel Ayarları"],
+];
+
 function pageTitle(pathname: string): string {
-  if (pathname === "/teleskor/haber/yeni") return "Yeni Haber";
-  if (pathname.startsWith("/teleskor/haber")) return "Teleskor Haberleri";
-  if (pathname === "/news/new") return "Yeni Haber";
-  if (pathname.endsWith("/edit")) return "Haberi Düzenle";
-  if (pathname.endsWith("/preview")) return "Önizleme";
-  return "Editör Paneli";
+  const bulunan = BASLIKLAR.find(([onek]) => pathname === onek || pathname.startsWith(onek + "/"));
+  return bulunan ? bulunan[1] : "Yönetim Paneli";
 }
 
 export default function Topbar({ user }: { user: AppUser }) {
@@ -33,9 +54,9 @@ export default function Topbar({ user }: { user: AppUser }) {
   }, []);
 
   const title = pageTitle(pathname);
-  const roleBadge = user.role === "ADMIN" ? "Süper Admin" : "Editör";
+  const roleBadge = user.role === "ADMIN" ? "Yönetici" : user.role;
 
-  const initials = (user.displayName || user.email)
+  const initials = gorunenAd(user)
     .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
@@ -73,8 +94,7 @@ export default function Topbar({ user }: { user: AppUser }) {
       </button>
       <div className="topbar-title">{title}</div>
 
-      {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol).
-          27 Eylül: haberler Teleskor'da yayınlanıyor (ScoresTV'ye yazılmıyor). */}
+      {/* Hızlı erişim — canlı sitedeki haberler sayfası (yayın sonrası kontrol). */}
       <nav className="topbar-quick" aria-label="Hızlı erişim">
         <a
           href="https://www.teleskor.com.tr/haber"
@@ -96,7 +116,7 @@ export default function Topbar({ user }: { user: AppUser }) {
         <div className="user-chip">
           <div className="user-avatar">{initials}</div>
           <div className="user-meta">
-            <div className="name">{user.displayName || user.email}</div>
+            <div className="name">{gorunenAd(user)}</div>
             <span className="user-role-badge">{roleBadge}</span>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { resolveUser, isEditorOrAdmin } from "@/lib/auth-server";
+import { resolveUser, panelYetkili } from "@/lib/auth-server";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { MobilMenuKabugu } from "@/components/MobilMenu";
@@ -7,9 +7,9 @@ import { MobilMenuKabugu } from "@/components/MobilMenu";
 export const dynamic = "force-dynamic";
 
 /**
- * Panel layout — SUNUCU TARAFI ROL KAPISI. /api/v1/auth/me üzerinden çözülen
- * kullanıcı EDITOR veya ADMIN değilse (ya da oturum yoksa) /login'e yönlendirir.
- * middleware yalnızca çerez varlığını kontrol eder; asıl rol doğrulaması burada.
+ * Panel layout — SUNUCU TARAFI ROL KAPISI. Teleskor `/api/v1/auth/me` ile
+ * çözülen kullanıcı ADMIN değilse (ya da oturum yoksa) /login'e yönlendirir.
+ * middleware yalnız çerez varlığına bakar; rol burada, asıl yetki Teleskor'da.
  */
 export default async function PanelLayout({
   children,
@@ -17,7 +17,7 @@ export default async function PanelLayout({
   children: React.ReactNode;
 }) {
   const user = await resolveUser();
-  if (!isEditorOrAdmin(user)) {
+  if (!panelYetkili(user)) {
     redirect("/login");
   }
 

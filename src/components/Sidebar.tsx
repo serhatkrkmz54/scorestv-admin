@@ -4,17 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  LayoutDashboard,
   Newspaper,
-  Bell,
-  BellRing,
   Megaphone,
   Sparkles,
   Settings,
-  MessageSquare,
   ScrollText,
-  Mail,
-  Gamepad2,
   ShoppingBag,
   UserCog,
   ClipboardList,
@@ -28,63 +22,124 @@ import {
   Cpu,
   PackageCheck,
   Users,
-  Radio,
   Star,
   Video,
   SlidersHorizontal,
   LogOut,
   ChevronDown,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useMobilMenu } from "@/components/MobilMenu";
-import { apiLogout, apiContactUnreadCount } from "@/lib/api-client";
-import type { AppUser } from "@/lib/types";
+import { apiLogout } from "@/lib/api-client";
+import { gorunenAd, type AppUser } from "@/lib/types";
 
 const ROLE_TR: Record<string, string> = {
-  ADMIN: "Süper Admin",
+  ADMIN: "Yönetici",
   EDITOR: "Editör",
   USER: "Kullanıcı",
 };
 
-type SectionId = "genel" | "icerik" | "topluluk" | "teleskor" | "sistem";
+type SectionId = "genel" | "icerik" | "spor" | "uyeler" | "telepuan" | "sistem";
 
 /** Akordiyon açık/kapalı durumunun localStorage anahtarı.
- * v2: varsayılan "yalnız Genel + İçerik açık" oldu — eski kayıtlar geçersiz.
- * v3: Teleskor bölümü eklendi; eski kayıtlar onu hiç bilmediği için anahtar
- *     yeniden yükseltildi (yoksa bölüm kapalı görünüp "menüde yok" sanılırdı). */
-const NAV_OPEN_KEY = "stv-admin-nav-open-v3";
+ * v4 (28 Eylül): panel yalnız Teleskor'un; bölümler baştan kuruldu. */
+const NAV_OPEN_KEY = "tsk-panel-nav-open-v4";
 
 const DEFAULT_OPEN: Record<SectionId, boolean> = {
   genel: true,
   icerik: true,
-  topluluk: false,
-  teleskor: false,
+  spor: true,
+  uyeler: false,
+  telepuan: false,
   sistem: false,
 };
 
+interface Baglanti {
+  href: string;
+  ad: string;
+  ikon: LucideIcon;
+  /** Aktiflik öneki (varsayılan href); alt adresi başka bağlantının olanlar için. */
+  onek?: string;
+  haric?: string;
+}
+
+/** MENÜ — tek liste; aktif bölüm ve bağlantılar buradan. */
+const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
+  {
+    id: "genel",
+    baslik: "Genel",
+    baglantilar: [{ href: "/teleskor/saglik", ad: "Sistem Sağlığı", ikon: Activity }],
+  },
+  {
+    id: "icerik",
+    baslik: "İçerik",
+    baglantilar: [
+      { href: "/teleskor/haber", ad: "Haberler", ikon: Newspaper },
+      { href: "/teleskor/duyuru", ad: "Duyurular", ikon: Megaphone },
+      { href: "/teleskor/surum-notu", ad: "Sürüm Notları", ikon: Sparkles },
+      { href: "/teleskor/mac-ozeti", ad: "Maç Özeti", ikon: Video },
+    ],
+  },
+  {
+    id: "spor",
+    baslik: "Spor verisi",
+    baglantilar: [
+      { href: "/teleskor/one-cikan-ligler", ad: "Öne Çıkan Ligler", ikon: Star },
+      { href: "/teleskor/kadro", ad: "Kadro Masası", ikon: Shirt },
+      { href: "/teleskor/veri", ad: "Veri Düzeltme", ikon: ClipboardList },
+      { href: "/teleskor/ceviri", ad: "Çeviri Düzeltme", ikon: Languages },
+    ],
+  },
+  {
+    id: "uyeler",
+    baslik: "Üyeler ve topluluk",
+    baglantilar: [
+      { href: "/teleskor/uyeler", ad: "Üyeler", ikon: UserCog },
+      { href: "/teleskor/kitle", ad: "Kitle", ikon: Users },
+      { href: "/teleskor/destek", ad: "Destek", ikon: LifeBuoy },
+      { href: "/teleskor/sohbet", ad: "Sohbet Şikayetleri", ikon: ShieldAlert },
+      { href: "/teleskor/akis", ad: "Akış Şikayetleri", ikon: MessagesSquare },
+    ],
+  },
+  {
+    id: "telepuan",
+    baslik: "Tele Puan",
+    baglantilar: [
+      {
+        href: "/teleskor/market",
+        ad: "Telepuan Marketi",
+        ikon: ShoppingBag,
+        haric: "/teleskor/market/siparisler",
+      },
+      { href: "/teleskor/market/siparisler", ad: "Market Siparişleri", ikon: PackageCheck },
+    ],
+  },
+  {
+    id: "sistem",
+    baslik: "Sistem",
+    baglantilar: [
+      { href: "/teleskor/ayarlar", ad: "Uygulama Ayarları", ikon: SlidersHorizontal },
+      { href: "/teleskor/sozlesme", ad: "Sözleşmeler", ikon: FileSignature },
+      { href: "/teleskor/denetim", ad: "Denetim Kaydı", ikon: ScrollText },
+      { href: "/teleskor/motor", ad: "Motor", ikon: Cpu },
+      { href: "/settings", ad: "Panel Ayarları", ikon: Settings },
+    ],
+  },
+];
+
+function aktifMi(pathname: string, b: Baglanti): boolean {
+  const onek = b.onek ?? b.href;
+  if (b.haric && pathname.startsWith(b.haric)) return false;
+  return pathname === onek || pathname.startsWith(onek + "/");
+}
+
 /** Aktif rotanın hangi bölümde olduğu — o bölüm otomatik açılır. */
 function sectionOfPath(pathname: string): SectionId {
-  if (pathname === "/") return "genel";
-  if (
-    pathname.startsWith("/news") ||
-    pathname.startsWith("/calendar") ||
-    pathname.startsWith("/slider") ||
-    pathname.startsWith("/media")
-  ) {
-    return "icerik";
+  for (const bolum of MENU) {
+    if (bolum.baglantilar.some((b) => aktifMi(pathname, b))) return bolum.id;
   }
-  if (
-    pathname.startsWith("/users") ||
-    pathname.startsWith("/comments") ||
-    pathname.startsWith("/reporters") ||
-    pathname.startsWith("/messages") ||
-    pathname.startsWith("/notifications") ||
-    pathname.startsWith("/game")
-  ) {
-    return "topluluk";
-  }
-  if (pathname.startsWith("/teleskor")) return "teleskor";
-  return "sistem";
+  return "genel";
 }
 
 /** Akordiyon bölümü — başlık tıklanınca içerik açılıp kapanır. */
@@ -124,7 +179,6 @@ export default function Sidebar({ user }: { user: AppUser }) {
   const pathname = usePathname();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState<Record<SectionId, boolean>>(DEFAULT_OPEN);
   const menu = useMobilMenu();
 
@@ -160,55 +214,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
     });
   }
 
-  useEffect(() => {
-    if (user.role !== "ADMIN") return;
-    let alive = true;
-    apiContactUnreadCount()
-      .then((n) => {
-        if (alive) setUnread(n);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [user.role]);
-
-  const isDashboard = pathname === "/";
-  const isNotifications = pathname === "/notifications";
-  const isDeliveries = pathname.startsWith("/notifications/deliveries");
-  const isSettings = pathname.startsWith("/settings");
-  const isComments = pathname.startsWith("/comments");
-  const isAudit = pathname.startsWith("/audit");
-  const isMessages = pathname.startsWith("/messages");
-  const isGame = pathname.startsWith("/game");
-  const isUsers = pathname.startsWith("/users");
-  const isReporters = pathname.startsWith("/reporters");
-  const isTeleskorMarket =
-    pathname.startsWith("/teleskor/market") &&
-    !pathname.startsWith("/teleskor/market/siparisler");
-  const isTeleskorOrders = pathname.startsWith("/teleskor/market/siparisler");
-  const isTeleskorUsers = pathname.startsWith("/teleskor/uyeler");
-  const isTeleskorCeviri = pathname.startsWith("/teleskor/ceviri");
-  const isTeleskorVeri = pathname.startsWith("/teleskor/veri");
-  const isTeleskorKadro = pathname.startsWith("/teleskor/kadro");
-  const isTeleskorHaber = pathname.startsWith("/teleskor/haber");
-  const isTeleskorDestek = pathname.startsWith("/teleskor/destek");
-  const isTeleskorDuyuru = pathname.startsWith("/teleskor/duyuru");
-  const isTeleskorSurumNotu = pathname.startsWith("/teleskor/surum-notu");
-  const isTeleskorOneCikanLigler = pathname.startsWith(
-    "/teleskor/one-cikan-ligler"
-  );
-  const isTeleskorMacOzeti = pathname.startsWith("/teleskor/mac-ozeti");
-  const isTeleskorAyarlar = pathname.startsWith("/teleskor/ayarlar");
-  const isTeleskorSohbet = pathname.startsWith("/teleskor/sohbet");
-  const isTeleskorAkis = pathname.startsWith("/teleskor/akis");
-  const isTeleskorDenetim = pathname.startsWith("/teleskor/denetim");
-  const isTeleskorSaglik = pathname.startsWith("/teleskor/saglik");
-  const isTeleskorKitle = pathname.startsWith("/teleskor/kitle");
-  const isTeleskorSozlesme = pathname.startsWith("/teleskor/sozlesme");
-  const isTeleskorMotor = pathname.startsWith("/teleskor/motor");
-
-  const initials = (user.displayName || user.email)
+  const initials = gorunenAd(user)
     .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
@@ -231,15 +237,10 @@ export default function Sidebar({ user }: { user: AppUser }) {
       }}
     >
       <div className="sidebar-brand">
-        <div className="logo">
+        <div className="marka">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/app_icon.png" alt="Scores TV" />
-        </div>
-        <div>
-          <div className="brand-name">
-            Scores<span className="accent">TV</span>
-          </div>
-          <small>Editör Paneli</small>
+          <img src="/images/logo-light.png" alt="TELE SKOR" />
+          <small>Yönetim Paneli</small>
         </div>
         <button className="menu-kapat" onClick={menu.kapat} aria-label="Menüyü kapat" title="Kapat">
           <X size={20} />
@@ -247,257 +248,36 @@ export default function Sidebar({ user }: { user: AppUser }) {
       </div>
 
       <nav className="sidebar-nav">
-        <NavSection id="genel" title="Genel" open={open.genel} onToggle={toggle}>
-          <Link href="/" className={`nav-item ${isDashboard ? "active" : ""}`}>
-            <LayoutDashboard className="icon" size={22} />
-            Panel
-          </Link>
-        </NavSection>
-
-        {/* İÇERİK (ScoresTV haberleri: Haberler, Yeni Haber, Takvim, Slider, Medya)
-            27 Eylül'de GİZLENDİ — ScoresTV'ye artık haber yazılmıyor, haberler
-            Teleskor → Haberler bölümünde. Sayfalar silinmedi (adresle açılır). */}
-        <NavSection id="topluluk" title="Topluluk" open={open.topluluk} onToggle={toggle}>
-          {user.role === "ADMIN" && (
-            <Link href="/users" className={`nav-item ${isUsers ? "active" : ""}`}>
-              <Users className="icon" size={22} />
-              Üyeler
-            </Link>
-          )}
-          <Link href="/comments" className={`nav-item ${isComments ? "active" : ""}`}>
-            <MessageSquare className="icon" size={22} />
-            Yorumlar
-          </Link>
-          <Link
-            href="/reporters"
-            className={`nav-item ${isReporters ? "active" : ""}`}
-          >
-            <Radio className="icon" size={22} />
-            Muhabirler
-          </Link>
-          {user.role === "ADMIN" && (
-            <Link href="/messages" className={`nav-item ${isMessages ? "active" : ""}`}>
-              <Mail className="icon" size={22} />
-              İletişim
-              {unread > 0 && <span className="nav-badge">{unread}</span>}
-            </Link>
-          )}
-          <Link
-            href="/notifications"
-            className={`nav-item ${isNotifications ? "active" : ""}`}
-          >
-            <Bell className="icon" size={22} />
-            Bildirim Gönder
-          </Link>
-          <Link
-            href="/notifications/deliveries"
-            className={`nav-item ${isDeliveries ? "active" : ""}`}
-          >
-            <BellRing className="icon" size={22} />
-            Bildirim Takip
-          </Link>
-          {user.role === "ADMIN" && (
-            <Link href="/game" className={`nav-item ${isGame ? "active" : ""}`}>
-              <Gamepad2 className="icon" size={22} />
-              Oyun
-            </Link>
-          )}
-        </NavSection>
-
-        <NavSection id="sistem" title="Sistem" open={open.sistem} onToggle={toggle}>
-          <Link href="/audit" className={`nav-item ${isAudit ? "active" : ""}`}>
-            <ScrollText className="icon" size={22} />
-            Denetim
-          </Link>
-          <Link
-            href="/settings"
-            className={`nav-item ${isSettings ? "active" : ""}`}
-          >
-            <Settings className="icon" size={22} />
-            Ayarlar
-          </Link>
-        </NavSection>
-
-        {/* AYRAÇ — buradan sonrası BAŞKA BİR ÜRÜN (Serhat, 29 Ağustos:
-            "araya çizgi çekip altına Teleskor kısmını koy, karışmasın").
-            Menüdeki diğer bölümler aynı ürünün parçaları; Teleskor ayrı
-            sunucu, ayrı veritabanı, ayrı üye tablosu. Çizgi bunu
-            başlıktan önce söylüyor. */}
-        {user.role === "ADMIN" && <div className="nav-urun-ayraci" />}
-
-        {/* TELESKOR — AYRI BİR ÜRÜN, ayrı sunucu ve ayrı veritabanı.
-            Kendi bölümünde duruyor ki ScoresTV'nin ekranlarıyla
-            karışmasın: "Oyun" ScoresTV'nin Scores Coin sistemi,
-            buradaki market Teleskor'un Telepuan sistemi. İkisi
-            birbirinin karşılığı DEĞİL.
-            Yalnız ADMIN görüyor: yetkinin tek kapısı bu panel
-            (Teleskor tarafında tek hizmet hesabıyla konuşuluyor).
-            27 Eylül: 20 bağlantı işe göre beş alt başlıkta (İçerik, Spor
-            verisi, Üyeler ve topluluk, Tele Puan, Sistem). */}
-        {user.role === "ADMIN" && (
+        {MENU.map((bolum) => (
           <NavSection
-            id="teleskor"
-            title="Teleskor"
-            open={open.teleskor}
+            key={bolum.id}
+            id={bolum.id}
+            title={bolum.baslik}
+            open={open[bolum.id]}
             onToggle={toggle}
           >
-            <div className="nav-altbaslik">İçerik</div>
-            <Link
-              href="/teleskor/haber"
-              className={`nav-item ${isTeleskorHaber ? "active" : ""}`}
-            >
-              <Newspaper className="icon" size={22} />
-              Haberler
-            </Link>
-            <Link
-              href="/teleskor/duyuru"
-              className={`nav-item ${isTeleskorDuyuru ? "active" : ""}`}
-            >
-              <Megaphone className="icon" size={22} />
-              Duyurular
-            </Link>
-            <Link
-              href="/teleskor/surum-notu"
-              className={`nav-item ${isTeleskorSurumNotu ? "active" : ""}`}
-            >
-              <Sparkles className="icon" size={22} />
-              Sürüm Notları
-            </Link>
-            <Link
-              href="/teleskor/mac-ozeti"
-              className={`nav-item ${isTeleskorMacOzeti ? "active" : ""}`}
-            >
-              <Video className="icon" size={22} />
-              Maç Özeti
-            </Link>
-            <div className="nav-altbaslik">Spor verisi</div>
-            <Link
-              href="/teleskor/one-cikan-ligler"
-              className={`nav-item ${
-                isTeleskorOneCikanLigler ? "active" : ""
-              }`}
-            >
-              <Star className="icon" size={22} />
-              Öne Çıkan Ligler
-            </Link>
-            <Link
-              href="/teleskor/kadro"
-              className={`nav-item ${isTeleskorKadro ? "active" : ""}`}
-            >
-              <Shirt className="icon" size={22} />
-              Kadro Masası
-            </Link>
-            <Link
-              href="/teleskor/veri"
-              className={`nav-item ${isTeleskorVeri ? "active" : ""}`}
-            >
-              <ClipboardList className="icon" size={22} />
-              Veri Düzeltme
-            </Link>
-            <Link
-              href="/teleskor/ceviri"
-              className={`nav-item ${isTeleskorCeviri ? "active" : ""}`}
-            >
-              <Languages className="icon" size={22} />
-              Çeviri Düzeltme
-            </Link>
-            <div className="nav-altbaslik">Üyeler ve topluluk</div>
-            <Link
-              href="/teleskor/uyeler"
-              className={`nav-item ${isTeleskorUsers ? "active" : ""}`}
-            >
-              <UserCog className="icon" size={22} />
-              Üyeler
-            </Link>
-            <Link
-              href="/teleskor/kitle"
-              className={`nav-item ${isTeleskorKitle ? "active" : ""}`}
-            >
-              <Users className="icon" size={22} />
-              Kitle
-            </Link>
-            <Link
-              href="/teleskor/destek"
-              className={`nav-item ${isTeleskorDestek ? "active" : ""}`}
-            >
-              <LifeBuoy className="icon" size={22} />
-              Destek
-            </Link>
-            <Link
-              href="/teleskor/sohbet"
-              className={`nav-item ${isTeleskorSohbet ? "active" : ""}`}
-            >
-              <ShieldAlert className="icon" size={22} />
-              Sohbet Şikayetleri
-            </Link>
-            <Link
-              href="/teleskor/akis"
-              className={`nav-item ${isTeleskorAkis ? "active" : ""}`}
-            >
-              <MessagesSquare className="icon" size={22} />
-              Akış Şikayetleri
-            </Link>
-            <div className="nav-altbaslik">Tele Puan</div>
-            <Link
-              href="/teleskor/market"
-              className={`nav-item ${isTeleskorMarket ? "active" : ""}`}
-            >
-              <ShoppingBag className="icon" size={22} />
-              Telepuan Marketi
-            </Link>
-            <Link
-              href="/teleskor/market/siparisler"
-              className={`nav-item ${isTeleskorOrders ? "active" : ""}`}
-            >
-              <PackageCheck className="icon" size={22} />
-              Market Siparişleri
-            </Link>
-            <div className="nav-altbaslik">Sistem</div>
-            <Link
-              href="/teleskor/ayarlar"
-              className={`nav-item ${isTeleskorAyarlar ? "active" : ""}`}
-            >
-              <SlidersHorizontal className="icon" size={22} />
-              Uygulama Ayarları
-            </Link>
-            <Link
-              href="/teleskor/sozlesme"
-              className={`nav-item ${isTeleskorSozlesme ? "active" : ""}`}
-            >
-              <FileSignature className="icon" size={22} />
-              Sözleşmeler
-            </Link>
-            <Link
-              href="/teleskor/denetim"
-              className={`nav-item ${isTeleskorDenetim ? "active" : ""}`}
-            >
-              <ScrollText className="icon" size={22} />
-              Denetim Kaydı
-            </Link>
-            <Link
-              href="/teleskor/saglik"
-              className={`nav-item ${isTeleskorSaglik ? "active" : ""}`}
-            >
-              <Activity className="icon" size={22} />
-              Sistem Sağlığı
-            </Link>
-            <Link
-              href="/teleskor/motor"
-              className={`nav-item ${isTeleskorMotor ? "active" : ""}`}
-            >
-              <Cpu className="icon" size={22} />
-              Motor
-            </Link>
+            {bolum.baglantilar.map((b) => {
+              const Ikon = b.ikon;
+              return (
+                <Link
+                  key={b.href}
+                  href={b.href}
+                  className={`nav-item ${aktifMi(pathname, b) ? "active" : ""}`}
+                >
+                  <Ikon className="icon" size={22} />
+                  {b.ad}
+                </Link>
+              );
+            })}
           </NavSection>
-        )}
-
+        ))}
       </nav>
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="avatar">{initials}</div>
           <div className="meta">
-            <div className="name">{user.displayName || user.email}</div>
+            <div className="name">{gorunenAd(user)}</div>
             <div className="role">{ROLE_TR[user.role] ?? user.role}</div>
           </div>
         </div>

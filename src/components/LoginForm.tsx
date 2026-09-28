@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiLogin, ApiError } from "@/lib/api-client";
 
-// Son BAŞARILI e-postayı tarayıcıda hatırlar → "Tekrar hoş geldin" kartı.
-// Yalnız e-posta saklanır; ŞİFRE asla saklanmaz.
-const LAST_EMAIL_KEY = "stv_admin_last_email";
+// Son BAŞARILI girişin e-postası/kullanıcı adı tarayıcıda hatırlanır →
+// "Tekrar hoş geldin" kartı. ŞİFRE asla saklanmaz.
+const LAST_EMAIL_KEY = "tsk_panel_son_hesap";
 
 export default function LoginForm({ next }: { next: string }) {
   const router = useRouter();
@@ -67,12 +67,12 @@ export default function LoginForm({ next }: { next: string }) {
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
+        // Teleskor'un kendi metni (yanlış şifre, geçici kilit ve kalan
+        // süre) olduğu gibi gösteriliyor; 403 panelin kendi cevabı.
         setError(
           err.status === 403
-            ? "Bu panele yalnızca editör ve yöneticiler erişebilir."
-            : err.status === 401
-              ? "E-posta veya şifre hatalı."
-              : err.message,
+            ? "Bu panele yalnız Teleskor yöneticileri (ADMIN) girebilir."
+            : err.message || "Giriş yapılamadı.",
         );
       } else {
         setError("Giriş yapılamadı. Bağlantınızı kontrol edin.");
@@ -90,7 +90,7 @@ export default function LoginForm({ next }: { next: string }) {
         <p>
           {showWelcome
             ? "Devam etmek için şifreni gir."
-            : "Editör paneline erişmek için giriş yap."}
+            : "TELE SKOR hesabınla giriş yap (e-posta ya da kullanıcı adı)."}
         </p>
       </div>
 
@@ -116,13 +116,15 @@ export default function LoginForm({ next }: { next: string }) {
       ) : (
         <div className="login-field">
           <label className="label" htmlFor="email">
-            E-posta
+            E-posta ya da kullanıcı adı
           </label>
           <div className="login-input">
             <MailIcon />
             <input
               id="email"
-              type="email"
+              type="text"
+              autoCapitalize="none"
+              spellCheck={false}
               className="input"
               autoComplete="username"
               value={email}

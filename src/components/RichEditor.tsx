@@ -42,7 +42,7 @@ import {
   Sparkles,
   X as XIcon,
 } from "lucide-react";
-import { apiUploadImageIlerlemeli, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
 import { kucult, baytMetni } from "@/lib/gorsel";
 import { videoCoz } from "@/lib/video-gomme";
 
@@ -202,7 +202,7 @@ function gorselleriAyikla(dosyalar: FileList | null | undefined): File[] {
 
 /**
  * TipTap zengin metin editörü. HTML çıktısı editor.getHTML() ile onChange'e
- * verilir. Görseller /api/news/images'e yüklenir, dönen URL editöre eklenir.
+ * verilir. Görseller `yukleyici` ile yüklenir, dönen URL editöre eklenir.
  * Backend body'yi zaten sanitize eder; burada temel bir editör yeterlidir.
  *
  * <p>Görsel yolu üç şeyi birden yapıyor ve üçü de bir şikâyetin cevabı:
@@ -224,16 +224,13 @@ export default function RichEditor({
   value,
   onChange,
   placeholder = "Haber içeriğini buraya yazın...",
-  yukleyici = apiUploadImageIlerlemeli,
+  yukleyici,
 }: {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
-  /**
-   * Görselin yükleneceği yer. Varsayılan ScoresTV (/api/news/images);
-   * Teleskor haber formu kendi deposunu (cdn.teleskor.com.tr) veriyor.
-   */
-  yukleyici?: (dosya: File, onIlerleme?: (yuzde: number) => void) => Promise<{ url: string }>;
+  /** Görselin yükleneceği yer (Teleskor haber deposu, cdn.teleskor.com.tr). */
+  yukleyici: (dosya: File, onIlerleme?: (yuzde: number) => void) => Promise<{ url: string }>;
 }) {
   const [kuyruk, setKuyruk] = useState<YuklemeSatiri[]>([]);
   const [uyari, setUyari] = useState<string | null>(null);

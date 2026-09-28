@@ -5,14 +5,12 @@ import { teleskorConfigured, type TeleskorResult } from "./teleskor";
 import type { AppUser } from "./types";
 
 /**
- * TELESKOR ROTALARININ TEK KAPISI.
+ * TELESKOR ROTALARININ KAPISI.
  *
- * <p>Teleskor tarafındaki hizmet hesabı her zaman ADMIN olduğu için yetki
- * kontrolünün TAMAMI burada. Her rotada elle yazılsaydı biri er geç
- * unutulurdu ve EDITOR rolündeki bir editör Teleskor'un marketini
- * yönetebilirdi — hiçbir yerde hata patlamadan. ({@code /game} rotalarında
- * bu risk yok: orada ScoresTV backend'i isteği atan kişinin kendi rolüne
- * bakıyor.)
+ * <p>Asıl yetki kontrolü Teleskor'da (istek yöneticinin kendi token'ıyla
+ * gidiyor, uçlar `hasRole('ADMIN')`). Buradaki kontrol erken ve anlaşılır
+ * bir cevap için: oturumu düşmüş kullanıcı 401'i Teleskor'un iç metniyle
+ * değil panelin cümlesiyle görsün.
  *
  * @returns yetki varsa kullanıcı, yoksa döndürülecek hata yanıtı
  */
@@ -36,11 +34,7 @@ export async function teleskorAdmin(): Promise<
   if (!teleskorConfigured()) {
     return {
       error: NextResponse.json(
-        {
-          message:
-            "Teleskor bağlantısı kurulu değil. Sunucuda TELESKOR_BACKEND_URL, " +
-            "TELESKOR_ADMIN_USER ve TELESKOR_ADMIN_PASSWORD tanımlanmalı.",
-        },
+        { message: "Teleskor bağlantısı kurulu değil. Sunucuda TELESKOR_BACKEND_URL tanımlanmalı." },
         { status: 503 },
       ),
     };
@@ -59,9 +53,8 @@ export function teleskorResponse<T>(
   }
   // 502/503 İKİ AYRI ŞEY OLABİLİR ve gövde bunu ayırıyor:
   //
-  //   body === null -> İSTEĞİN KENDİSİ başarısız (teleskorJson bağlanamadı
-  //                    ya da hizmet hesabıyla giriş yapamadı) — kendi
-  //                    ürettiğimiz durum, gövdesi yok.
+  //   body === null -> İSTEĞİN KENDİSİ başarısız (Teleskor'a bağlanılamadı)
+  //                    — kendi ürettiğimiz durum, gövdesi yok.
   //   body dolu     -> Teleskor CEVAP VERDİ ve içinde açıklama var
   //                    (ör. "Motor, yönetim anahtarını reddetti").
   //
@@ -69,30 +62,13 @@ export function teleskorResponse<T>(
   // kullanıcı yanlış yere bakıyordu. Aynı hata 403'te de yapılmıştı.
   if ((r.status === 502 || r.status === 503) && r.body == null) {
     return NextResponse.json(
-      {
-        message:
-          "Teleskor sunucusuna ulaşılamıyor ya da hizmet hesabıyla giriş " +
-          "yapılamadı. Kimlik bilgilerini ve adresi kontrol et.",
-      },
+      { message: "Teleskor sunucusuna ulaşılamıyor. Biraz sonra yeniden dene." },
       { status: 503 },
     );
   }
-  // 403 ARTIK TEK ANLAMLI. Eskiden motorun 403'ü de buraya düşüyordu ve
-  // "hizmet hesabı ADMIN değil" diye görünüyordu — hesap ADMIN'di, sorun
-  // motorun anahtarıydı. Backend o durumu artık 502 ile ayırıyor
-  // (MotorCeviriVekili), yani buraya gelen 403 gerçekten rol sorunudur.
-  if (r.status === 403) {
-    // Teleskor'un "Bu işlem için yetkiniz yok" mesajı burada YETMİYOR:
-    // panele giren kişi zaten ADMIN (guard onu geçirdi), yetkisi olmayan
-    // HİZMET HESABI. Mesaj olduğu gibi geçseydi kullanıcı kendi rolünü
-    // sorgulardı ve yanlış yerde ararrdı.
+  if (r.status === 403 && r.body == null) {
     return NextResponse.json(
-      {
-        message:
-          "Teleskor, panelin hizmet hesabını yetkisiz buldu. O hesap " +
-          "Teleskor tarafında ADMIN rolüne yükseltilmiş olmalı: " +
-          "UPDATE users SET role='ADMIN' WHERE username='…';",
-      },
+      { message: "Bu işlem için Teleskor'da yönetici (ADMIN) yetkisi gerekli." },
       { status: 403 },
     );
   }

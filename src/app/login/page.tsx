@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
-import { resolveUser, isEditorOrAdmin } from "@/lib/auth-server";
+import { resolveUser, panelYetkili } from "@/lib/auth-server";
 import LoginForm from "@/components/LoginForm";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Giriş sayfası — iki kolon: sol görsel (login-bg.jpg + logo), sağ form.
- * Zaten geçerli EDITOR/ADMIN oturumu varsa panele yönlendir. Kayıt (signup) yok.
+ * Zaten geçerli yönetici oturumu varsa panele yönlendir. Kayıt yok (hesap
+ * Teleskor'da açılır, rolü Üyeler ekranından ADMIN yapılır).
  */
 export default async function LoginPage({
   searchParams,
@@ -15,7 +16,7 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   const user = await resolveUser();
-  if (isEditorOrAdmin(user)) {
+  if (panelYetkili(user)) {
     redirect("/");
   }
 
@@ -26,8 +27,8 @@ export default async function LoginPage({
       <aside className="login-aside">
         <div className="login-aside-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-light.png" alt="Scores TV" />
-          <p className="login-aside-tag">Editör Paneli</p>
+          <img src="/images/logo-light.png" alt="TELE SKOR" />
+          <p className="login-aside-tag">Yönetim Paneli</p>
         </div>
       </aside>
       <main className="login-main">

@@ -17,7 +17,7 @@ const OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
 
 /**
  * Panel Teması (tüm roller, yalnız istemci). Açık/Koyu/Sistem seçimi
- * localStorage'da (stv.theme) saklanır ve <html data-theme> üzerine canlı
+ * localStorage'da (tsk.theme) saklanır ve <html data-theme> üzerine canlı
  * uygulanır. Sayfa yüklenirken flash'ı önleyen script layout.tsx <head>'inde.
  */
 export default function ThemeSection() {

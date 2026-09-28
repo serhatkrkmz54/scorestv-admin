@@ -1,8 +1,8 @@
 # ===================================================================
-# Multi-stage build — scorestv-admin (Haber Editör Paneli, Next.js 16)
-# scorestv_web Dockerfile'i ile AYNI desen (standalone).
-# Panel'de NEXT_PUBLIC_* build arg'i YOK; tum config runtime env ile gelir:
-#   - BACKEND_URL   (Spring backend'e ulasilan adres)
+# Multi-stage build — TELE SKOR Yonetim Paneli (Next.js 16, standalone).
+# NEXT_PUBLIC_* build arg'i YOK; ayarlar calisma aninda env ile gelir:
+#   - TELESKOR_BACKEND_URL  (api-1; sunucuda compose.prod.yaml verir)
+#   - PANEL_GATE_KEY / PANEL_GATE_TOKEN (istege bagli anahtar kapisi)
 # Sonuc: ~120MB imaj.
 # ===================================================================
 

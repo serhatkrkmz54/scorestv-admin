@@ -641,10 +641,10 @@ export default function TeleskorUsersClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Üyeler</h1>
+          <h1 className="page-title">Üyeler</h1>
           <div className="muted" style={{ fontSize: 13 }}>
-            Teleskor’un kendi üye tablosu. ScoresTV üyeleriyle aynı değil —
-            ayrı servis, ayrı veritabanı.
+            Uygulamanın ve sitenin üyeleri. Panele girebilenler rolü Yönetici
+            (ADMIN) olan hesaplar.
           </div>
         </div>
         <button className="btn btn-primary" onClick={() => setYeniAcik((v) => !v)}>

@@ -2,11 +2,12 @@ import "server-only";
 import { cookies } from "next/headers";
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "./cookie-names";
 
-// Panel çerezleri public web'den AYRI isim uzayı kullanır (admin.* alt alan
-// adında çakışmayı önlemek için). httpOnly + sameSite=lax.
+// Panel çerezleri kendi isim uzayında (tsk_panel_*). Çerez alan adı
+// verilmiyor: yalnız panelin alt alanına yazılır, www'ye ya da api'ye
+// gitmez. httpOnly + sameSite=lax.
 export { ACCESS_COOKIE, REFRESH_COOKIE };
 
-const REFRESH_MAX_AGE = 60 * 60 * 24 * 14; // 14 gün (backend refresh-token-ttl)
+const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 gün (Teleskor REFRESH_TOKEN_TTL)
 
 export async function setAuthCookies(
   accessToken: string,

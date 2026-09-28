@@ -7,11 +7,10 @@ import type { TeleskorMarketOrder, TeleskorOrderStatus } from "@/lib/types";
 /**
  * Sipariş durumu — İPTAL puanı ve stoğu geri verir (yalnız bir kez).
  *
- * <h3>Editörün adı nota EKLENİYOR</h3>
- * Teleskor'un denetim kaydı bu işlemi hizmet hesabı üzerinde görüyor;
- * "kim iptal etti" sorusu orada cevapsız kalırdı. Yönetici notunun sonuna
- * paneldeki kişinin GÖRÜNEN ADI ekleniyor — e-posta değil, çünkü bu not
- * kullanıcıya da gösteriliyor.
+ * <h3>Yöneticinin adı nota EKLENİYOR</h3>
+ * Teleskor'un denetim kaydı işlemi yapan hesabı zaten biliyor; not
+ * kullanıcıya da gösterildiği için sonuna yalnız GÖRÜNEN AD ekleniyor
+ * (e-posta değil).
  */
 export async function PUT(
   req: NextRequest,

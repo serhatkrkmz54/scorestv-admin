@@ -254,11 +254,10 @@ export default function TeleskorDestekClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Destek</h1>
+          <h1 className="page-title">Destek</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Buraya yazdığın cevabı kullanıcı <b>uygulamadan</b> okuyor ve
-            bildirim alıyor. Teleskor mesajları artık ScoresTV&apos;nin
-            Mesajlar sayfasına düşmüyor.
+            bildirim alıyor; web ziyaretçisine e-postayla gidiyor.
           </div>
         </div>
         <div className="row">

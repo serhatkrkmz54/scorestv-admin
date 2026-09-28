@@ -1,105 +1,99 @@
-# ScoresTV Editör Paneli — Canlı Dağıtım (addnews.scorestv.com)
+# TELE SKOR Yönetim Paneli — Canlı Dağıtım (panel.teleskor.com.tr)
 
-Panel, public web'den **ayrı** bir Next.js uygulaması. Canlıda:
-`https://addnews.scorestv.com` → nginx → `127.0.0.1:3200` (panel) → BFF → Spring backend.
+28 Eylül 2026: panel `addnews.scorestv.com`'dan (ScoresTV sunucusu) Teleskor'a
+taşındı. ScoresTV kendi panelini yapıyor; bu panel yalnız Teleskor'un.
 
-Port haritası (production):
-- `3001` = public web (scorestv.com)
-- `3000` = Grafana
-- **`3200` = bu panel** (yeni)
-- `8080` = Spring backend
+```
+tarayıcı → Cloudflare → api-1 nginx (panel.teleskor.com.tr)
+         → 127.0.0.1:3200 (bu panel, Docker)
+         → http://app:8080 (teleskor-backend, aynı Docker ağı)
+```
 
----
-
-## 0. Ön koşul — Backend canlıda olmalı
-
-Panelin girişi ve tüm uçları Spring backend'e bağlı. Önce:
-1. Backend'i **Faz 1 haber kodu** ile derleyip deploy et (`V71` migration otomatik uygulanır).
-2. Bir **EDITOR** veya **ADMIN** kullanıcı olsun (yoksa `AdminUserController` `POST /api/v1/admin/users` ile oluştur).
-
-Backend çalışmıyorsa panelde giriş **503** verir (şu an bu yüzden 503 alıyorsun — lokalde backend kapalı).
+- **Giriş Teleskor hesabıyla** (e-posta ya da kullanıcı adı). Yalnız rolü
+  **ADMIN** olan hesaplar girer. Her istek o yöneticinin kendi oturumuyla
+  gider: Teleskor'un denetim kaydı işlemi yapan kişiyi ve IP'sini yazar.
+- Eski düzendeki **hizmet hesabı** (`TELESKOR_ADMIN_USER/PASSWORD`) ve
+  ScoresTV backend bağlantısı (`BACKEND_URL`) kalktı.
+- ScoresTV'nin sayfaları (haberler, yorumlar, oyun, bildirim, muhabirler,
+  iletişim, slider, medya) panelden çıkarıldı.
 
 ---
 
-## 1. Cloudflare — DNS + SSL
+## 0. Ön koşul — yönetici hesapları
 
-1. Cloudflare > scorestv.com > **DNS** > Add record:
-   - Type `A`, Name `addnews`, Content = sunucu IP'si (scorestv.com ile aynı), **Proxy: Açık (turuncu bulut)**.
-   - (Veya `CNAME addnews → scorestv.com`, proxied.)
-2. **SSL/TLS mode = Full** (origin'de Cloudflare Origin Cert var — diğer subdomainlerle aynı). Zaten Full ise dokunma.
+Panele girecek herkesin Teleskor'da hesabı olmalı ve rolü ADMIN olmalı:
+- Hesap yoksa uygulamadan ya da sitenin kayıt sayfasından açılır.
+- Rol: panelde **Üyeler** → kişi → rol **Yönetici** (ilk yönetici zaten var).
+  Veritabanından: `UPDATE users SET role='ADMIN' WHERE username='…';`
 
----
+## 1. Cloudflare
 
-## 2. nginx — hazır
+1. **DNS** → Add record: Type `A`, Name `panel`, Content = api-1'in IP'si,
+   **Proxy açık** (turuncu bulut).
+2. SSL/TLS **Full (strict)** zaten açık; origin sertifikası
+   `*.teleskor.com.tr`'yi kapsıyor (takip alt alanları da onu kullanıyor).
+   Yeni sertifika gerekmez.
+3. İsteğe bağlı ek kilit: Zero Trust → Access ile `panel.teleskor.com.tr`'yi
+   yalnız belirli e-postalara açmak.
 
-`scorestv-backend/nginx/scorestv.conf` dosyasına eklendi:
-- `upstream nextjs_admin { server 127.0.0.1:3200; }`
-- `server { server_name addnews.scorestv.com; ... }` (static cache + `/api` + SSR, login rate-limit, `noindex`, 25M upload).
+## 2. api-1 — paneli çalıştır
 
-Sunucuda config'i güncelle ve test et:
 ```bash
-# scorestv.conf'u sunucudaki yerine kopyala (WinSCP / scp / git pull),
-# sonra:
-nginx -t && systemctl reload nginx      # ya da: docker exec <nginx> nginx -s reload
+cd /opt/teleskor
+git clone https://github.com/serhatkrkmz54/scorestv-admin.git panel
+cd panel
+cp .env.example .env        # anahtar kapısı isteniyorsa PANEL_GATE_* doldur
+docker compose -f compose.prod.yaml up -d --build
+docker compose -f compose.prod.yaml logs -f panel     # "Ready" görünce Ctrl+C
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3200/login   # 200
 ```
 
----
+teleskor-backend compose'u önce ayakta olmalı (`teleskor_default` ağını o
+açıyor). Güncelleme: `git pull && docker compose -f compose.prod.yaml up -d --build`.
 
-## 3. Paneli çalıştır — 2 seçenek
+## 3. api-1 — nginx (İKİ ADIM: önce fark, sonra kopya)
 
-Panel `output: "standalone"` (Dockerfile hazır).
+Panel bloğu teleskor-backend `altyapi/nginx-api.conf`'un sonunda.
 
-### Seçenek A — Docker (web ile aynı sistem, ÖNERİLEN)
+**Adım 1 — farkı gör, DUR:**
 ```bash
-cd /opt/scorestv/scorestv-admin        # repoyu sunucuya çek
-docker build -t scorestv-admin:latest .
-docker run -d --name scorestv-admin --restart unless-stopped \
-  -p 127.0.0.1:3200:3200 \
-  -e BACKEND_URL="https://api.scorestv.com" \
-  scorestv-admin:latest
+cd /opt/teleskor/teleskor-backend && git pull
+diff -u /etc/nginx/sites-available/api.conf altyapi/nginx-api.conf
 ```
-> `BACKEND_URL`: Container'dan backend'e nasıl ulaşıyorsan onu ver. Web container'ı hangi değeri kullanıyorsa **aynısını** kullan. Güvenli varsayılan: `https://api.scorestv.com`. Aynı docker network'te backend servis adı varsa `http://<backend-servis>:8080` daha hızlı. `127.0.0.1:8080` **container içini** işaret eder, host backend'e ulaşmaz — kullanma.
+Farkta yalnız dosyanın sonuna eklenen `panel.teleskor.com.tr` bölümü
+görünmeli. Başka bir fark varsa (sunucuda elle yapılmış değişiklik)
+kopyalamadan önce o fark depoya alınmalı.
 
-İstersen `docker-compose`'a servis olarak da ekleyebilirsin:
-```yaml
-  scorestv-admin:
-    build: ./scorestv-admin
-    restart: unless-stopped
-    ports: ["127.0.0.1:3200:3200"]
-    environment:
-      BACKEND_URL: "https://api.scorestv.com"
-```
-
-### Seçenek B — Host'ta doğrudan (hızlı, container'sız)
+**Adım 2 — kopyala ve yeniden yükle:**
 ```bash
-cd /opt/scorestv/scorestv-admin
-npm ci
-npm run build
-BACKEND_URL="http://127.0.0.1:8080" PORT=3200 HOSTNAME=0.0.0.0 \
-  node .next/standalone/server.js
+sudo cp altyapi/nginx-api.conf /etc/nginx/sites-available/api.conf
+sudo nginx -t && sudo systemctl reload nginx
 ```
-Kalıcı olması için **PM2** ya da systemd:
-```bash
-pm2 start "node .next/standalone/server.js" --name scorestv-admin \
-  --env BACKEND_URL=http://127.0.0.1:8080 --env PORT=3200 --env HOSTNAME=0.0.0.0
-pm2 save
-```
-> Host'ta çalıştığın için `BACKEND_URL=http://127.0.0.1:8080` en hızlısı ve doğrudan çalışır.
-
----
 
 ## 4. Doğrula
 
-1. `https://addnews.scorestv.com` → giriş ekranı gelmeli.
-2. EDITOR/ADMIN hesabıyla gir → haber listesi.
-3. Bir deneme haberi oluştur → kaydet → yayınla.
+1. `https://panel.teleskor.com.tr` → giriş ekranı (TELE SKOR).
+2. Teleskor yönetici hesabıyla gir → Sistem Sağlığı açılır.
+3. Rolü USER olan bir hesapla dene → "yalnız yöneticiler" (403).
+4. Bir ayar değiştir → Denetim Kaydı'nda işlem SENİN adınla ve gerçek IP'nle.
 
----
+## 5. Taşımadan SONRA — eski düzeni kapat (güvenlik)
 
-## Notlar / Güvenlik
+1. **Hizmet hesabını kapat.** Eski panelin Teleskor'a girdiği hesabın
+   (`TELESKOR_ADMIN_USER`, örneğin `panel-servis`) şifresi ScoresTV
+   sunucusundaki `.env`'de duruyor ve o sunucu artık ScoresTV'nin. Panelde
+   **Üyeler** → o hesap → rolü **Kullanıcı** yap ya da hesabı askıya al.
+   Rol düşünce eski panel Teleskor'da hiçbir şey yapamaz.
+2. `addnews.scorestv.com`'u kapatmak ScoresTV'nin işi (eski panel
+   konteyneri + nginx bloğu + DNS kaydı).
 
-- Panel çerezleri public web'den **ayrı** (`stv_admin_*`), aynı ana domain altında çakışmaz.
-- Panel `noindex` + `robots.txt Disallow: /` — arama motorlarına düşmez.
-- Sadece **EDITOR/ADMIN** girebilir (panel rol-guard + backend `@PreAuthorize`).
-- Eğer giriş/mutasyon **403** verirse: panel origin-check'i `X-Forwarded-Proto/Host` başlıklarına güveniyor mu bak (nginx bunları set ediyor). Gerekirse panelde origin doğrulamasına `addnews.scorestv.com` host'unu ekleriz.
-- Güncelleme akışı: kod değişince → (Docker) `docker build` + `docker restart scorestv-admin`, ya da (host) `npm run build` + `pm2 restart scorestv-admin`. Backend/panel = anında; mobil değil.
+## Notlar
+
+- Çerezler `tsk_panel_*`, yalnız panelin alt alanına yazılır.
+- Güvenlik başlıkları (noindex, `X-Frame-Options: DENY`, `Referrer-Policy`)
+  panelin kendisinden (`next.config.ts`); nginx yazmıyor (çift giderdi).
+- Giriş ucu nginx'te gerçek IP başına dakikada 10 (+5) ile sınırlı; asıl
+  kaba kuvvet koruması Teleskor'da. Panel `CF-Connecting-IP`'yi Teleskor'a
+  iletiyor, yani kilit kişinin kendi IP'sine uygulanır.
+- Şifre değişikliği panelden de yapılabilir (Panel Ayarları → Hesap);
+  değişince diğer bütün oturumlar (telefondaki uygulama dâhil) kapanır.

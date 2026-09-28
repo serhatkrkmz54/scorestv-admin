@@ -1,30 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { apiUpdateProfile, apiChangePassword, ApiError } from "@/lib/api-client";
-import type { AppUser } from "@/lib/types";
+import { apiChangePassword, ApiError } from "@/lib/api-client";
+import { gorunenAd, type AppUser } from "@/lib/types";
 
 /**
- * Profil bölümü (tüm roller). Görünen ad + doğum tarihi + ülke günceller ve
- * şifre değiştirir. Backend'in MEVCUT auth uçlarına (PUT /api/v1/auth/me ve
- * POST /api/v1/auth/change-password) BFF üzerinden bağlanır.
+ * Hesap bölümü — panelin hesabı bir TELESKOR hesabı (28 Eylül 2026).
  *
- * NOT: Backend UpdateProfileRequest doğum tarihi + ülkeyi ZORUNLU tutar, bu
- * yüzden bu alanlar da forma dahildir (mevcut değerlerle önden doldurulur).
+ * Ad, kullanıcı adı ve e-posta uygulamadaki hesap ekranından düzenleniyor
+ * (kullanıcı adı bekleme süresi, e-posta onayı gibi kurallar orada); burada
+ * yalnız gösteriliyor. Şifre Teleskor'un kuralıyla burada da değişebilir:
+ * değişince Teleskor diğer bütün oturumları (telefondaki uygulama dâhil)
+ * kapatır, bu panel oturumu yeni token'la sürer.
  */
 export default function ProfileSection({ user }: { user: AppUser }) {
-  const router = useRouter();
-
-  // ---- Profil formu ----
-  const [displayName, setDisplayName] = useState(user.displayName ?? "");
-  const [birthDate, setBirthDate] = useState(user.birthDate ?? "");
-  const [country, setCountry] = useState(user.country ?? "");
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileOk, setProfileOk] = useState<string | null>(null);
-
-  // ---- Şifre formu ----
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,42 +21,7 @@ export default function ProfileSection({ user }: { user: AppUser }) {
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwOk, setPwOk] = useState<string | null>(null);
 
-  // Sosyal (Google/Apple) hesaplarda yerel şifre olmayabilir.
   const canChangePassword = user.hasPassword !== false;
-
-  async function saveProfile() {
-    setProfileError(null);
-    setProfileOk(null);
-    if (!displayName.trim()) {
-      setProfileError("Görünen ad boş olamaz.");
-      return;
-    }
-    if (!birthDate) {
-      setProfileError("Doğum tarihi zorunludur.");
-      return;
-    }
-    if (!country.trim()) {
-      setProfileError("Ülke zorunludur.");
-      return;
-    }
-    setSavingProfile(true);
-    try {
-      await apiUpdateProfile({
-        displayName: displayName.trim(),
-        birthDate,
-        country: country.trim(),
-      });
-      setProfileOk("Profil güncellendi.");
-      // Sidebar/topbar'daki ad anında yenilensin.
-      router.refresh();
-    } catch (err) {
-      setProfileError(
-        err instanceof ApiError ? err.message : "Profil güncellenemedi.",
-      );
-    } finally {
-      setSavingProfile(false);
-    }
-  }
 
   async function changePassword() {
     setPwError(null);
@@ -76,8 +30,8 @@ export default function ProfileSection({ user }: { user: AppUser }) {
       setPwError("Tüm şifre alanları zorunludur.");
       return;
     }
-    if (newPassword.length < 3) {
-      setPwError("Yeni şifre en az 3 karakter olmalı.");
+    if (newPassword.length < 8) {
+      setPwError("Yeni şifre en az 8 karakter olmalı.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -86,15 +40,17 @@ export default function ProfileSection({ user }: { user: AppUser }) {
     }
     setSavingPw(true);
     try {
-      await apiChangePassword({ currentPassword, newPassword });
-      setPwOk("Şifreniz değiştirildi.");
+      await apiChangePassword({
+        currentPassword,
+        password: newPassword,
+        passwordConfirm: confirmPassword,
+      });
+      setPwOk("Şifren değiştirildi. Diğer cihazlardaki oturumların kapatıldı.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
-      setPwError(
-        err instanceof ApiError ? err.message : "Şifre değiştirilemedi.",
-      );
+      setPwError(err instanceof ApiError ? err.message : "Şifre değiştirilemedi.");
     } finally {
       setSavingPw(false);
     }
@@ -103,80 +59,44 @@ export default function ProfileSection({ user }: { user: AppUser }) {
   return (
     <>
       <div className="card card-pad">
-        <div className="section-title">Profil Bilgileri</div>
+        <div className="section-title">Hesap</div>
         <div className="section-hint">
-          Görünen adınız panel genelinde (kenar çubuğu, üst bar) kullanılır.
+          Panele TELE SKOR hesabınla giriyorsun. Ad, kullanıcı adı ve e-posta
+          uygulamadaki hesap ekranından değiştirilir.
         </div>
-
-        {profileError && <div className="alert alert-error">{profileError}</div>}
-        {profileOk && <div className="alert alert-success">{profileOk}</div>}
-
-        <div className="field">
-          <label className="label">E-posta</label>
-          <input className="input" value={user.email} disabled />
-          <div className="hint">E-posta adresi değiştirilemez.</div>
-        </div>
-
-        <div className="field">
-          <label className="label">
-            Görünen Ad <span className="req">*</span>
-          </label>
-          <input
-            className="input"
-            value={displayName}
-            maxLength={100}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Adınız Soyadınız"
-          />
-        </div>
-
         <div className="grid-2">
           <div className="field">
-            <label className="label">
-              Doğum Tarihi <span className="req">*</span>
-            </label>
-            <input
-              type="date"
-              className="input"
-              value={birthDate ?? ""}
-              onChange={(e) => setBirthDate(e.target.value)}
-            />
+            <label className="label">Görünen ad</label>
+            <input className="input" value={gorunenAd(user)} disabled />
           </div>
           <div className="field">
-            <label className="label">
-              Ülke <span className="req">*</span>
-            </label>
-            <input
-              className="input"
-              value={country}
-              maxLength={100}
-              onChange={(e) => setCountry(e.target.value)}
-              placeholder="Türkiye"
-            />
+            <label className="label">Kullanıcı adı</label>
+            <input className="input" value={user.username ?? ""} disabled />
           </div>
         </div>
-
-        <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button
-            className="btn btn-primary"
-            onClick={saveProfile}
-            disabled={savingProfile}
-          >
-            {savingProfile ? "Kaydediliyor..." : "Profili Kaydet"}
-          </button>
+        <div className="grid-2">
+          <div className="field">
+            <label className="label">E-posta</label>
+            <input className="input" value={user.email ?? ""} disabled />
+          </div>
+          <div className="field">
+            <label className="label">Rol</label>
+            <input className="input" value={user.role === "ADMIN" ? "Yönetici" : user.role} disabled />
+          </div>
         </div>
       </div>
 
       <div className="card card-pad">
         <div className="section-title">Şifre Değiştir</div>
         <div className="section-hint">
-          Güvenlik için şifre değişince diğer tüm oturumlar kapatılır.
+          Şifre değişince diğer bütün oturumların (telefondaki uygulama dâhil)
+          kapatılır.
         </div>
 
         {!canChangePassword ? (
           <div className="alert alert-info">
-            Bu hesap sosyal giriş (Google/Apple) ile oluşturulmuş; yerel şifresi
-            yok ve buradan değiştirilemez.
+            Bu hesap Google ya da Apple ile açılmış; şifresi yok. Şifre
+            uygulamadaki hesap ekranından oluşturulabilir.
           </div>
         ) : (
           <>
@@ -205,6 +125,7 @@ export default function ProfileSection({ user }: { user: AppUser }) {
                   className="input"
                   value={newPassword}
                   autoComplete="new-password"
+                  maxLength={72}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
@@ -217,17 +138,14 @@ export default function ProfileSection({ user }: { user: AppUser }) {
                   className="input"
                   value={confirmPassword}
                   autoComplete="new-password"
+                  maxLength={72}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
             </div>
 
             <div className="row" style={{ justifyContent: "flex-end" }}>
-              <button
-                className="btn btn-primary"
-                onClick={changePassword}
-                disabled={savingPw}
-              >
+              <button className="btn btn-primary" onClick={changePassword} disabled={savingPw}>
                 {savingPw ? "Değiştiriliyor..." : "Şifreyi Değiştir"}
               </button>
             </div>

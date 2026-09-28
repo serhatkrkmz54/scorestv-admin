@@ -76,7 +76,7 @@ export default function TeleskorOrdersClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Market Siparişleri</h1>
+          <h1 className="page-title">Market Siparişleri</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Telepuanla alınan ürünler. <b>İptal</b>, ödenen puanı kullanıcıya
             iade eder ve stoğu geri ekler — bir kez.

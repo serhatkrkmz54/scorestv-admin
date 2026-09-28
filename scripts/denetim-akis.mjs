@@ -205,11 +205,9 @@ console.log("\n8) Şikayet edilen EKLER gösteriliyor mu?");
 console.log("\n9) Menü girişi bağlı mı?");
 {
   const s = kod(oku("src/components/Sidebar.tsx"));
-  yaz(/href="\/teleskor\/akis"/.test(s), "kenar çubuğunda bağlantı var");
-  yaz(
-    /isTeleskorAkis = pathname\.startsWith\("\/teleskor\/akis"\)/.test(s),
-    "etkin sekme vurgusu tanımlı",
-  );
+  // 28 Eylül: menü tek listeden (MENU) çiziliyor; etkinlik aktifMi ile.
+  yaz(/href: "\/teleskor\/akis"/.test(s), "kenar çubuğunda bağlantı var");
+  yaz(/function aktifMi\(/.test(s) && /aktifMi\(pathname, b\)/.test(s), "etkin sekme vurgusu tanımlı");
 }
 
 console.log(

@@ -93,7 +93,7 @@ function HaberTablosu() {
                 <Link href={`/teleskor/haber/${h.id}`}>{h.baslik}</Link>
                 <div className="muted" style={{ fontSize: 12 }}>
                   {[h.sonDakika && "Son dakika", h.oneCikan && "Öne çıkan", h.slider && "Slider",
-                    h.eskiKaynak && "ScoresTV'den"].filter(Boolean).join(" · ")}
+                    h.eskiKaynak && "eski sistemden"].filter(Boolean).join(" · ")}
                 </div>
               </td>
               <td>{DURUM_ADI[h.durum] ?? h.durum}</td>

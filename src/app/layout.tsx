@@ -13,14 +13,14 @@ const ubuntu = Ubuntu({
 });
 
 export const metadata: Metadata = {
-  title: "Scores TV Editör Paneli",
-  description: "Haber yönetim paneli — Scores TV",
+  title: "TELE SKOR Yönetim Paneli",
+  description: "TELE SKOR yönetim paneli",
   robots: { index: false, follow: false },
 };
 
 // Tema flash'ını (FOUC) önle: paint'ten ÖNCE localStorage'daki tercihi okuyup
 // <html data-theme> ayarla. Hiçbir şey yoksa panelin mevcut görünümü (açık).
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('stv.theme')||'light';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('tsk.theme')||'light';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();`;
 
 export default function RootLayout({
   children,

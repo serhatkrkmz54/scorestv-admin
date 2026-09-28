@@ -292,7 +292,7 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
         <button className="btn" onClick={() => router.push("/teleskor/haber")}>Haberlere dön</button>
         <h1 style={{ margin: 0, fontSize: 20 }}>{ilk ? "Haberi düzenle" : "Yeni haber"}</h1>
         {ilk && <span className="muted" style={{ fontSize: 12 }}>#{ilk.id}</span>}
-        {ilk?.eskiKaynak && <span className="badge">ScoresTV'den taşındı</span>}
+        {ilk?.eskiKaynak && <span className="badge">Eski sistemden taşındı</span>}
         {ilk?.durum === "YAYINDA" && (
           <a className="btn btn-sm" href={ilk.adres} target="_blank" rel="noopener noreferrer">Sitede aç</a>
         )}

@@ -82,7 +82,7 @@ export default function TeleskorKitleClient() {
           gap: 12,
         }}
       >
-        <h1 className="page-title">Teleskor - Kitle</h1>
+        <h1 className="page-title">Kitle</h1>
         <button className="btn" onClick={() => void yukle()}>
           Yenile
         </button>

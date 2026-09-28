@@ -1,0 +1,45 @@
+# ==============================================================
+# SUNUCU kurulumu (yönetim paneli) — api-1 makinesi, teleskor-backend'in
+# ve teleskor-web'in YANINDA (28 Eylül 2026). Adres: panel.teleskor.com.tr
+# (nginx bloğu teleskor-backend `altyapi/nginx-api.conf` sonunda).
+#
+#   cp .env.example .env      -> değerleri doldur (anahtar kapısı isteğe bağlı)
+#   docker compose -f compose.prod.yaml up -d --build
+#   docker compose -f compose.prod.yaml logs -f panel
+#
+# Panel yalnız 127.0.0.1:3200'de dinler; dışarıya nginx açar. api-1
+# uygulamasıyla AYNI Docker ağında (`teleskor_default`, backend compose'unun
+# ağı): Teleskor'a `http://app:8080` ile gider, trafik makineden çıkmaz.
+# Backend compose'u ÖNCE ayakta olmalı (ağı o açar).
+# ==============================================================
+name: teleskor-panel
+
+services:
+  panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 'teleskor-panel:latest'
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TELESKOR_BACKEND_URL: ${TELESKOR_BACKEND_URL_IC:-http://app:8080}
+    ports:
+      - '127.0.0.1:3200:3200'
+    networks:
+      - teleskor
+    # Aynı makinede api-1 (Java), web ve özet videosu üretimi var; panel
+    # birkaç yöneticinin kullandığı hafif bir arayüz.
+    cpus: ${PANEL_CPU_TAVANI:-1}
+    mem_limit: ${PANEL_BELLEK_TAVANI:-512m}
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+networks:
+  teleskor:
+    name: teleskor_default
+    external: true

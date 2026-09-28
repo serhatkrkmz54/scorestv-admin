@@ -1,22 +1,23 @@
 import "server-only";
-import { backendJson, type BackendResult } from "./backend";
+import { backendJson, backendFetch, type BackendResult } from "./backend";
 import {
   clearAuthCookies,
   getAccessToken,
   getRefreshToken,
   setAuthCookies,
 } from "./auth-cookies";
-import type { AppUser, AuthResponse } from "./types";
+import type { AppUser, TokenResponse } from "./types";
 
 /**
  * Geçerli oturumun kullanıcısını çözer (LAYOUT RENDER'ında çağrılır).
  *
  * access token geçerliyse /me döner. Süresi dolmuşsa BURADA rotasyon YAPMAZ:
  * Next.js render sırasında cookie yazılamadığı için yeni refresh token
- * kaybolur, eski token "yeniden kullanıldı" sanılıp backend TÜM oturumları
- * kapatırdı. Tazeleme artık middleware'de (çerezi kalıcı yazan yer) yapılıyor;
- * bu fonksiyon render'a geldiğinde access token zaten taze olur. Taze değilse
- * null döneriz (layout /login'e yönlendirir) — asla oturum-nuke tetiklemeyiz.
+ * kaybolur, eski token "yeniden kullanıldı" sanılıp Teleskor bütün
+ * oturumları kapatırdı (hırsızlık tespiti ROTATED tekrarında). Tazeleme
+ * middleware'de (çerezi kalıcı yazan yer) yapılıyor; bu fonksiyon render'a
+ * geldiğinde access token zaten taze olur. Taze değilse null (layout
+ * /login'e yönlendirir) — asla oturum-nuke tetiklemeyiz.
  */
 export async function resolveUser(): Promise<AppUser | null> {
   const accessToken = await getAccessToken();
@@ -44,9 +45,16 @@ export async function resolveUserAllowRefresh(): Promise<AppUser | null> {
   return r.ok && r.body ? r.body : null;
 }
 
-/** EDITOR veya ADMIN mı? Panel erişim yetkisi bu koşula bağlı. */
-export function isEditorOrAdmin(user: AppUser | null): boolean {
-  return !!user && (user.role === "EDITOR" || user.role === "ADMIN");
+/**
+ * Panele kim girebilir: Teleskor'da rolü ADMIN olan hesap.
+ *
+ * Teleskor'un bütün yönetim uçları `hasRole('ADMIN')`; EDITOR rolüyle
+ * girilseydi her sayfa 403 verirdi. Yeni yönetici: Teleskor'da hesap aç,
+ * panelde Üyeler → rol ADMIN (ya da veritabanında
+ * `UPDATE users SET role='ADMIN' WHERE username='…'`).
+ */
+export function panelYetkili(user: AppUser | null): boolean {
+  return !!user && user.role === "ADMIN";
 }
 
 /**
@@ -56,7 +64,7 @@ export function isEditorOrAdmin(user: AppUser | null): boolean {
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
-  const rr = await backendJson<AuthResponse>("/api/v1/auth/refresh", {
+  const rr = await backendJson<TokenResponse>("/api/v1/auth/refresh", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
   });
@@ -67,15 +75,15 @@ async function refreshAccessToken(): Promise<string | null> {
   await setAuthCookies(
     rr.body.accessToken,
     rr.body.refreshToken,
-    rr.body.expiresIn,
+    rr.body.expiresInSeconds,
     true,
   );
   return rr.body.accessToken;
 }
 
 /**
- * Opsiyonel-auth istekler için: oturum varsa backend'e iletilecek access
- * token'ı döner (gerekirse refresh eder), yoksa null.
+ * Oturum varsa Teleskor'a iletilecek access token'ı döner (gerekirse
+ * refresh eder), yoksa null.
  */
 export async function getForwardAccessToken(): Promise<string | null> {
   const at = await getAccessToken();
@@ -84,9 +92,8 @@ export async function getForwardAccessToken(): Promise<string | null> {
 }
 
 /**
- * Auth GEREKTİREN backend istekleri için yardımcı. Bearer token enjekte eder;
- * 401 dönerse bir kez refresh + retry yapar. Oturum yoksa/refresh başarısızsa
- * {unauthorized:true} döner.
+ * Oturum GEREKTİREN Teleskor istekleri: Bearer token ekler; 401 dönerse bir
+ * kez refresh + retry. Oturum yoksa/refresh başarısızsa {unauthorized:true}.
  */
 export async function authorizedBackendJson<T = unknown>(
   path: string,
@@ -108,4 +115,32 @@ export async function authorizedBackendJson<T = unknown>(
     r = await backendJson<T>(path, withAuth(fresh));
   }
   return r;
+}
+
+/**
+ * Oturumlu multipart istek (dosya yükleme). {@link authorizedBackendJson}
+ * ile aynı token kuralı; Content-Type'ı fetch kendisi yazar (sınır dizesi).
+ */
+export async function authorizedBackendForm(
+  path: string,
+  form: FormData,
+): Promise<{ res: Response | null; unauthorized?: boolean }> {
+  let token = (await getAccessToken()) ?? null;
+  if (!token) {
+    token = await refreshAccessToken();
+    if (!token) return { res: null, unauthorized: true };
+  }
+  const gonder = (t: string) =>
+    backendFetch(path, {
+      method: "POST",
+      body: form,
+      headers: { Authorization: `Bearer ${t}` },
+    });
+  let res = await gonder(token);
+  if (res && res.status === 401) {
+    const fresh = await refreshAccessToken();
+    if (!fresh) return { res: null, unauthorized: true };
+    res = await gonder(fresh);
+  }
+  return { res };
 }

@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, GATE_COOKIE } from "@/lib/cookie-names";
 
-// Sunucu tarafı backend adresi (backend.ts ile aynı değişken).
-const BACKEND = process.env.BACKEND_URL ?? "http://localhost:8080";
-const REFRESH_MAX_AGE = 60 * 60 * 24 * 14; // 14 gün (backend refresh-token-ttl)
+// Teleskor backend adresi (backend.ts ile aynı değişken ve aynı sıra).
+const BACKEND =
+  process.env.TELESKOR_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:8080";
+const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 gün (Teleskor REFRESH_TOKEN_TTL)
 
 // ---- Erişim kapısı (paylaşımlı PIN/anahtar) ----
 // PANEL_GATE_KEY: editörlerin gireceği anahtar (yalnız sunucuda doğrulanır).
@@ -116,7 +117,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         const data = (await r.json()) as {
           accessToken: string;
           refreshToken: string;
-          expiresIn?: number;
+          expiresInSeconds?: number;
         };
         // Bu isteğin render'ı taze access token'ı görsün (request header).
         req.cookies.set(ACCESS_COOKIE, data.accessToken);
@@ -132,7 +133,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         // Tarayıcıya kalıcı yaz.
         res.cookies.set(ACCESS_COOKIE, data.accessToken, {
           ...common,
-          maxAge: Math.max(data.expiresIn ?? 3600, 60),
+          maxAge: Math.max(data.expiresInSeconds ?? 900, 60),
         });
         res.cookies.set(REFRESH_COOKIE, data.refreshToken, {
           ...common,

@@ -159,7 +159,7 @@ export default function TeleskorMarketClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Telepuan Marketi</h1>
+          <h1 className="page-title">Telepuan Marketi</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Kullanıcılar oyunlardan kazandıkları <b>Telepuan</b> ile bu
             ürünleri alıyor. Telepuan satın alınamaz ve paraya çevrilemez;

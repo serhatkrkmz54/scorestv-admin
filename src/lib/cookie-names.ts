@@ -1,7 +1,8 @@
 // Çerez isimleri — hem middleware (Edge) hem sunucu kodu import edebilsin diye
-// "server-only" içermeyen ayrı bir modül. Panel çerezleri public web'den ayrı
-// isim uzayı kullanır.
-export const ACCESS_COOKIE = "stv_admin_at";
-export const REFRESH_COOKIE = "stv_admin_rt";
+// "server-only" içermeyen ayrı bir modül. Panel kendi isim uzayını kullanır
+// (28 Eylül: ScoresTV panelinin stv_admin_* adları Teleskor'a taşınınca
+// değişti; eski çerezler zaten başka alan adındaydı).
+export const ACCESS_COOKIE = "tsk_panel_at";
+export const REFRESH_COOKIE = "tsk_panel_rt";
 // Erişim kapısı (PIN/anahtar) çerezi — opak token; middleware doğrular.
-export const GATE_COOKIE = "stv_admin_gate";
+export const GATE_COOKIE = "tsk_panel_gate";

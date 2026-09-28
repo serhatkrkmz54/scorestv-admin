@@ -11,19 +11,18 @@ import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
  * sözleşmenin aynısı). Tek istekte gitseydi 50 MB'lık bir video
  * yüklenirken ağ koptuğunda YAZILAN METİN de kaybolurdu.
  *
- * <h3>Dosyanın sahibi panelin hizmet hesabı</h3>
+ * <h3>Dosyanın sahibi cevabı yazan yönetici</h3>
  * Yükleme Teleskor'un normal medya hattından geçiyor
- * ({@code /api/v1/me/medya}) ve satırın sahibi hizmet hesabı oluyor;
- * cevap da aynı hesapla yazıldığı için iliştirme sahiplik denetiminden
- * geçiyor. Ayrı bir "yönetici medyası" yolu açılmadı: o hat EXIF
+ * ({@code /api/v1/me/medya}) ve satırın sahibi girişi yapan yöneticinin
+ * hesabı oluyor; cevap da aynı hesapla yazıldığı için iliştirme sahiplik
+ * denetiminden geçiyor. Ayrı bir "yönetici medyası" yolu açılmadı: o hat EXIF
  * temizliği, içerik imzası denetimi, sıkıştırma bombası koruması,
  * ffmpeg dönüşümü ve öksüz toplama işlerini zaten çözmüş durumda.
  *
- * <h3>SAATLİK KOTA ORTAK — bilinen sınır</h3>
- * Teleskor yükleme kotasını KULLANICI başına sayıyor (saatte 20) ve
- * panelin tamamı tek hizmet hesabı kullanıyor. Yani kota, destek
- * ekibinin toplamı için geçerli. Bugünkü hacimde sorun değil; darlık
- * yaşanırsa Teleskor tarafında kotayı role göre ayırmak gerekir.
+ * <h3>Saatlik kota yönetici başına</h3>
+ * Teleskor yükleme kotasını KULLANICI başına sayıyor (saatte 20). Panel
+ * 28 Eylül'den beri her yöneticinin kendi hesabıyla gittiği için kota da
+ * yönetici başına (eskiden tek hizmet hesabının, yani ekibin toplamıydı).
  */
 export async function POST(req: NextRequest) {
   const bad = checkSameOrigin(req);

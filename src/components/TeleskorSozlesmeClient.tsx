@@ -103,7 +103,7 @@ export default function TeleskorSozlesmeClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Sözleşmeler</h1>
+          <h1 className="page-title">Sözleşmeler</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Metinlerin kendisi <b>teleskor.com.tr</b>&apos;de; burada adresi ve
             SHA-256 özeti duruyor. Özet, &quot;o gün başka bir metin

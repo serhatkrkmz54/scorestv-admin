@@ -103,7 +103,7 @@ export default function TeleskorDuyuruClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Duyurular</h1>
+          <h1 className="page-title">Duyurular</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Gönderilen bildirim <b>geri alınamaz</b>. Göndermeden önce metni
             ve kime gideceğini kontrol et.

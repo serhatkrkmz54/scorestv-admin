@@ -1,226 +1,66 @@
 import "server-only";
+import { authorizedBackendForm, authorizedBackendJson } from "./auth-server";
 
 /**
- * TELESKOR KÖPRÜSÜ — bu panel iki ürüne birden hizmet ediyor.
+ * TELESKOR YÖNETİM İSTEKLERİ — girişi yapan yöneticinin KENDİ oturumuyla.
  *
- * ScoresTV backend'i {@link ./backend.ts} üzerinden konuşuluyor ve oradaki
- * kimlik panelin kendi oturumu. Teleskor AYRI bir servis: ayrı sunucu, ayrı
- * veritabanı, ayrı kullanıcı tablosu. Paneldeki editörün Teleskor'da bir
- * hesabı YOK ve olmamalı — Teleskor'un üyeleri son kullanıcılar.
- *
- * <h3>Çözüm: sunucu tarafında hizmet hesabı</h3>
- * Panelin sunucusu Teleskor'da tek bir ADMIN hesabıyla oturum açıyor ve
- * bütün yönetim isteklerini onunla atıyor. Kimlik bilgileri `.env`'de,
- * tarayıcıya HİÇ gitmiyor. Erişimi panelin kendi ADMIN kontrolü koruyor
- * (bkz. aşağıdaki uyarı).
- *
- * <h3>KİM YAPTI SORUSU — kısmen cevaplanıyor</h3>
- * Teleskor'un denetim zinciri bütün bu işlemleri TEK hesap üzerinde
- * görüyor: "market ürününü kim ekledi" sorusunun cevabı hep aynı çıkıyor.
- *
- * <p>SİPARİŞ işlemlerinde bu boşluk kapalı: panel, işlemi yapan kişinin
- * görünen adını yönetici notuna ekliyor ({@link teleskorAktor}) ve o not
- * Teleskor'un denetim ayrıntısına giriyor.
- *
- * <p><b>ÜRÜN işlemlerinde KAPALI DEĞİL.</b> Ürün ekleme/güncelleme/
- * pasifleştirme uçlarında serbest metin alanı yok, yani editörün adını
- * taşıyacak yer yok — o kayıtlar hizmet hesabı adına görünüyor. Bilinen
- * ve kabul edilen sınır. Kapatmak isteyen: Teleskor tarafında yönetim
- * uçlarına isteğe bağlı bir "adına işlem yapılan" başlığı okutup denetim
- * ayrıntısına eklemek yeterli (bu bir YETKİ mekanizması değil, etiket —
- * başlığı ancak hizmet hesabını elinde tutan gönderebilir).
- *
- * <h3>UYARI — panel tarafında rol kontrolü ŞART</h3>
- * Hizmet hesabı her zaman ADMIN olduğu için Teleskor artık "bu isteği kim
- * attı" diye soramıyor. Yetki kontrolünün TAMAMI bu panelde: her rota
- * {@code resolveUserAllowRefresh()} ile kullanıcıyı çözüp ADMIN olup
- * olmadığına bakmak ZORUNDA. Unutulursa EDITOR rolündeki bir editör
- * Teleskor'un marketini yönetebilir ve hiçbir yerde hata patlamaz.
+ * <h3>28 Eylül 2026: hizmet hesabı kalktı</h3>
+ * Panel eskiden ScoresTV'nin backend'inde oturum açıyor, Teleskor'a tek bir
+ * hizmet hesabıyla (TELESKOR_ADMIN_USER/PASSWORD) gidiyordu. Sonuçları:
+ * Teleskor'un denetim zinciri bütün işlemleri TEK hesap adına görüyordu
+ * ("market ürününü kim ekledi" sorusunun cevabı hep aynıydı) ve yetkinin
+ * tamamı panelin rol kontrolündeydi. Panel Teleskor'a taşınınca giriş de
+ * Teleskor hesaplarıyla: her istek o yöneticinin token'ıyla gidiyor, yetkiyi
+ * Teleskor kendisi denetliyor (`hasRole('ADMIN')`), denetim kaydı gerçek
+ * kişiyi yazıyor.
  */
-
-const BASE = process.env.TELESKOR_BACKEND_URL ?? "";
-const USER = process.env.TELESKOR_ADMIN_USER ?? "";
-const PASS = process.env.TELESKOR_ADMIN_PASSWORD ?? "";
 
 export interface TeleskorResult<T = unknown> {
   ok: boolean;
   status: number;
   body: T | null;
-  /** Köprü kurulu değil (env eksik) — 503'ten ayırt edilebilmesi için. */
+  /** Adres tanımlı değil (env eksik) — 503'ten ayırt edilebilmesi için. */
   notConfigured?: boolean;
 }
 
-/** Köprü kurulu mu? Sayfalar bunu kullanıp anlaşılır bir uyarı gösteriyor. */
+/** Teleskor adresi ortamda tanımlı mı? (Yerel varsayılana güvenilmez.) */
 export function teleskorConfigured(): boolean {
-  return !!BASE && !!USER && !!PASS;
+  return !!(process.env.TELESKOR_BACKEND_URL || process.env.BACKEND_URL);
 }
 
-/**
- * Erişim token'ı BELLEKTE tutuluyor.
- *
- * Teleskor'un erişim token'ı 15 dakikalık. Her istekte yeniden giriş yapmak
- * hem gereksiz hem zararlı olurdu: her giriş Teleskor'da yeni bir cihaz
- * oturumu açıyor ve "yeni cihazdan giriş" uyarısı üretebiliyor. Süresi
- * dolduğunda ya da 401 geldiğinde bir kez yenileniyor.
- *
- * Bellekte olması kabul edilebilir: panel yeniden başlarsa ilk istekte
- * tekrar giriş yapılıyor. Kalıcı saklamanın getirisi yok, riski var.
- */
-let token: string | null = null;
-let tokenExpiresAt = 0;
+const OTURUM_BITTI = {
+  message: "Oturumun süresi doldu. Sayfayı yenileyip yeniden giriş yap.",
+};
 
-/** Eşzamanlı isteklerin AYNI girişi beklemesi için — yoksa 10 istek 10 giriş açardı. */
-let loginInFlight: Promise<string | null> | null = null;
-
-async function login(): Promise<string | null> {
-  if (loginInFlight) return loginInFlight;
-  loginInFlight = (async () => {
-    try {
-      const res = await fetch(BASE + "/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: USER, password: PASS }),
-        cache: "no-store",
-      });
-      if (!res.ok) return null;
-      const body = (await res.json()) as {
-        accessToken?: string;
-        expiresIn?: number;
-      };
-      if (!body.accessToken) return null;
-      token = body.accessToken;
-      // 60 sn emniyet payı: tam sınırda giden bir istek 401 yemesin.
-      const ttl = (body.expiresIn ?? 900) - 60;
-      tokenExpiresAt = Date.now() + Math.max(ttl, 60) * 1000;
-      return token;
-    } catch {
-      return null;
-    } finally {
-      loginInFlight = null;
-    }
-  })();
-  return loginInFlight;
-}
-
-async function currentToken(): Promise<string | null> {
-  if (token && Date.now() < tokenExpiresAt) return token;
-  return login();
-}
-
-/**
- * Teleskor backend'ine kimlikli JSON isteği.
- *
- * <h3>401 VE 403'te bir kez yeniden giriş</h3>
- * 401 beklenen durum: token süresi erken dolmuş olabilir (şifre değişimi,
- * "tüm oturumları kapat").
- *
- * <p>403 ilk bakışta yeniden giriş gerektirmez gibi görünüyor ama
- * gerektiriyor: <b>rol JWT'nin İÇİNDE taşınıyor.</b> Hizmet hesabı
- * ADMIN'e yükseltildiğinde bellekteki token hâlâ eski rolü söylüyor ve
- * bütün istekler 15 dakika boyunca 403 dönüyor. Sahada birebir yaşandı:
- * hesap veritabanında ADMIN'di, panel "yetkiniz yok" diyordu ve tek çözüm
- * konteyneri yeniden başlatmaktı.
- *
- * <p>Tek deneme sınırı korunuyor: hesap gerçekten ADMIN değilse ikinci
- * 403 olduğu gibi dönüyor — sonsuz giriş döngüsü yok, istek başına en
- * fazla bir fazladan giriş.
- */
+/** Teleskor'a kimlikli JSON isteği (401'de bir kez yenileyip yeniden dener). */
 export async function teleskorJson<T = unknown>(
   path: string,
   init?: RequestInit,
 ): Promise<TeleskorResult<T>> {
-  if (!teleskorConfigured()) {
-    return { ok: false, status: 503, body: null, notConfigured: true };
+  const r = await authorizedBackendJson<T>(path, init);
+  if (r.unauthorized) {
+    return { ok: false, status: 401, body: OTURUM_BITTI as unknown as T };
   }
-
-  const gonder = async (t: string) => {
-    try {
-      return await fetch(BASE + path, {
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          ...(init?.headers ?? {}),
-          Authorization: `Bearer ${t}`,
-        },
-        cache: "no-store",
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  let t = await currentToken();
-  if (!t) return { ok: false, status: 502, body: null };
-
-  let res = await gonder(t);
-  if (res && (res.status === 401 || res.status === 403)) {
-    token = null;
-    t = await login();
-    if (!t) return { ok: false, status: 502, body: null };
-    res = await gonder(t);
-  }
-  if (!res) return { ok: false, status: 503, body: null };
-
-  const text = await res.text();
-  let body: T | null = null;
-  if (text) {
-    try {
-      body = JSON.parse(text) as T;
-    } catch {
-      body = text as unknown as T;
-    }
-  }
-  return { ok: res.ok, status: res.status, body };
+  return { ok: r.ok, status: r.status, body: r.body };
 }
 
 /**
  * DOSYA YÜKLEME — Teleskor'a multipart istek.
  *
- * <h3>Neden {@link teleskorJson} kullanılmıyor</h3>
- * O fonksiyon her isteğe {@code Content-Type: application/json} koyuyor.
- * Multipart'ta bu başlığı EL İLE yazmak imkânsız: içinde bir sınır
- * (boundary) dizesi var ve onu `fetch` gövdeyi görünce kendisi üretiyor.
- * Elle yazılan bir başlık o sınırı taşımaz ve sunucu gövdeyi
- * ayrıştıramaz — istek 400 döner ve sebebi hiçbir yerde görünmez.
- * Başlığı `undefined` ile ezmek de çalışmıyor: nesneden `Headers`
- * kurulurken değer `"undefined"` METNİNE dönüyor.
- *
- * <p>Token yönetimi (giriş, 401/403'te bir kez yeniden giriş) aynı
- * havuzdan geliyor; kopyalanan tek şey istek gövdesi.
+ * {@link teleskorJson} her isteğe `Content-Type: application/json` koyuyor;
+ * multipart'ta bu başlık EL İLE yazılamaz (sınır dizesini fetch üretiyor).
+ * Elle yazılan başlık o sınırı taşımaz, sunucu gövdeyi ayrıştıramaz ve 400
+ * döner — sebebi hiçbir yerde görünmez.
  */
 export async function teleskorDosya<T = unknown>(
   path: string,
   form: FormData,
 ): Promise<TeleskorResult<T>> {
-  if (!teleskorConfigured()) {
-    return { ok: false, status: 503, body: null, notConfigured: true };
-  }
-
-  const gonder = async (t: string) => {
-    try {
-      return await fetch(BASE + path, {
-        method: "POST",
-        body: form,
-        headers: { Authorization: `Bearer ${t}` },
-        cache: "no-store",
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  let t = await currentToken();
-  if (!t) return { ok: false, status: 502, body: null };
-
-  let res = await gonder(t);
-  if (res && (res.status === 401 || res.status === 403)) {
-    token = null;
-    t = await login();
-    if (!t) return { ok: false, status: 502, body: null };
-    res = await gonder(t);
+  const { res, unauthorized } = await authorizedBackendForm(path, form);
+  if (unauthorized) {
+    return { ok: false, status: 401, body: OTURUM_BITTI as unknown as T };
   }
   if (!res) return { ok: false, status: 503, body: null };
-
   const text = await res.text();
   let body: T | null = null;
   if (text) {
@@ -234,12 +74,11 @@ export async function teleskorDosya<T = unknown>(
 }
 
 /**
- * İşlemi yapan editörün kimliği — Teleskor'un denetim kaydına yazılsın diye
- * not alanlarına ekleniyor.
+ * İşlemi yapan yöneticinin adı — sipariş notlarına ekleniyor.
  *
- * <p>Metin kısa tutuluyor: Teleskor'un yönetici notu alanı KULLANICIYA
- * gösteriliyor (kargo takip numarası, iptal gerekçesi). Panel kullanıcısının
- * e-postası oraya sızmamalı — yalnız görünen ad kullanılıyor.
+ * Teleskor artık işlemi yapan hesabı kendisi biliyor (denetim kaydı); not
+ * alanındaki ad, siparişi KULLANICIYA gösterilen metinde kimin işlediğini
+ * söylemek için kalıyor. E-posta yazılmaz — yalnız görünen ad.
  */
 export function teleskorAktor(displayName?: string | null): string {
   const ad = (displayName ?? "").trim();

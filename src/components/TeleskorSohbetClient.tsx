@@ -104,7 +104,7 @@ export default function TeleskorSohbetClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Sohbet Şikayetleri</h1>
+          <h1 className="page-title">Sohbet Şikayetleri</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Maç sohbetinde kullanıcıların şikayet ettiği mesajlar. Bekleyen
             şikayetler burada; kapatılanlar listeden düşer.

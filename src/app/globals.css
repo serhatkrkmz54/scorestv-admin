@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* Scores TV Editör Paneli — "Multi-Purpose Dashboard" temasından uyarlanmış,
-   habere özel izole admin teması. Public site CSS'inden BAĞIMSIZ.
+/* TELE SKOR Yönetim Paneli — izole yönetim teması, sitenin CSS'inden BAĞIMSIZ.
+   Renkler TELE SKOR paleti: lacivert #1b2a49 (kenar çubuğu), turuncu aksan.
    Tailwind v4 (@tailwindcss/postcss) + özel CSS değişkenleri. Açık tema. */
 
 :root {
@@ -9,7 +9,7 @@
   --bg: #f1f5f9; /* uygulama arka planı (açık mavi-gri) */
   --surface: #ffffff; /* kart yüzeyi */
   --surface-2: #f8fafc; /* ikincil yüzey (hover, başlık satırı) */
-  --tint: #f0f7ff; /* yumuşak ipucu çipi (ikon zemini) */
+  --tint: #fff3ee; /* yumuşak ipucu çipi (ikon zemini) */
 
   --border: #edf2f7; /* kart kenarı */
   --border-strong: #dbe3ee; /* input kenarı */
@@ -20,9 +20,10 @@
   --text-faint: #9aa4b2; /* çok soluk */
 
   /* ---- Aksan (birincil) ---- */
-  --brand: #1677ff;
-  --brand-hover: #0f5fd6;
-  --brand-soft: rgba(22, 119, 255, 0.15);
+  /* Turuncu, beyaz yazıyla okunur tonda (sitenin #ff6a3d'sinin koyusu). */
+  --brand: #dd4b22;
+  --brand-hover: #c2401b;
+  --brand-soft: rgba(255, 106, 61, 0.15);
 
   /* ---- Durum tokenları ---- */
   --success: #00b69b; /* Yayında / pozitif */
@@ -40,18 +41,18 @@
   --info-soft: rgba(22, 119, 255, 0.15);
 
   /* ---- Sidebar (navy) ---- */
-  --sidebar-bg: #07275a;
+  --sidebar-bg: #1b2a49;
   --sidebar-text: #e6edf7;
   --sidebar-muted: #9db2ce;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(22, 119, 255, 0.15);
+  --sidebar-active-bg: rgba(255, 106, 61, 0.18);
 
   /* ---- Şekil ---- */
   --radius: 12px;
   --radius-sm: 8px;
   --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.02);
   --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 24px 60px rgba(7, 39, 90, 0.18);
+  --shadow-lg: 0 24px 60px rgba(27, 42, 73, 0.18);
 
   --sidebar-w: 256px;
   --topbar-h: 72px;
@@ -76,9 +77,9 @@
   --text-muted: #9db0cc;
   --text-faint: #6c7d98;
 
-  --brand: #3b8cff;
-  --brand-hover: #5aa0ff;
-  --brand-soft: rgba(59, 140, 255, 0.2);
+  --brand: #ea5a2e;
+  --brand-hover: #ff7a50;
+  --brand-soft: rgba(255, 122, 80, 0.2);
 
   --success: #2ee6c6;
   --success-soft: rgba(0, 182, 155, 0.18);
@@ -95,11 +96,11 @@
   --info-soft: rgba(59, 140, 255, 0.2);
 
   /* Sidebar zaten koyu lacivert — koyu temada biraz daha derinleştir. */
-  --sidebar-bg: #060e1c;
+  --sidebar-bg: #0b1220;
   --sidebar-text: #e6edf7;
   --sidebar-muted: #8ea6c6;
   --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(59, 140, 255, 0.2);
+  --sidebar-active-bg: rgba(255, 122, 80, 0.2);
 
   --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.25);
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -166,13 +167,13 @@ a {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #1677ff, #4f9dff);
+  background: linear-gradient(135deg, #dd4b22, #ff6a3d);
   display: grid;
   place-items: center;
   color: #fff;
   flex-shrink: 0;
   overflow: hidden;
-  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.35);
+  box-shadow: 0 6px 16px rgba(221, 75, 34, 0.35);
 }
 
 .sidebar-brand .logo img {
@@ -192,6 +193,20 @@ a {
 
 .sidebar-brand .brand-name .accent {
   color: #4f9dff;
+}
+
+/* Marka: TELE SKOR logosu (beyaz TELE + yeşil SKOR), altında panel adı. */
+.sidebar-brand .marka {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sidebar-brand .marka img {
+  width: 132px;
+  height: auto;
+  display: block;
 }
 
 .sidebar-brand small {
@@ -1183,7 +1198,7 @@ table.data-table {
   padding: 48px;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(7, 39, 90, 0.74), rgba(7, 39, 90, 0.86)),
+    linear-gradient(180deg, rgba(27, 42, 73, 0.72), rgba(27, 42, 73, 0.88)),
     url("/images/login-bg.jpg") center / cover no-repeat;
 }
 
@@ -1259,7 +1274,7 @@ table.data-table {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #1677ff, #4f9dff);
+  background: linear-gradient(135deg, #dd4b22, #ff6a3d);
   color: #fff;
   font-weight: 700;
   font-size: 17px;
@@ -1569,7 +1584,7 @@ table.data-table {
 
 /* Seçili blok düğüm — hangi görselin/videonun seçili olduğu görünsün. */
 .editor-content .ProseMirror .ProseMirror-selectednode {
-  outline: 2px solid var(--brand, #1677ff);
+  outline: 2px solid var(--brand, #dd4b22);
   outline-offset: 2px;
 }
 
@@ -2087,7 +2102,7 @@ table.data-table {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(7, 39, 90, 0.5);
+  background: rgba(27, 42, 73, 0.5);
   display: grid;
   place-items: center;
   z-index: 100;
@@ -2165,7 +2180,7 @@ table.data-table {
 .media-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(7, 39, 90, 0.5);
+  background: rgba(27, 42, 73, 0.5);
   display: grid;
   place-items: center;
   z-index: 120;
@@ -2234,7 +2249,7 @@ table.data-table {
 }
 .media-cell:hover {
   border-color: var(--brand);
-  box-shadow: 0 4px 14px rgba(22, 119, 255, 0.18);
+  box-shadow: 0 4px 14px rgba(221, 75, 34, 0.18);
   transform: translateY(-1px);
 }
 .media-cell img {
@@ -2770,7 +2785,7 @@ table.data-table {
   border-radius: 14px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  box-shadow: 0 12px 32px rgba(7, 39, 90, 0.22);
+  box-shadow: 0 12px 32px rgba(27, 42, 73, 0.22);
   max-width: calc(100vw - 48px);
   flex-wrap: wrap;
 }
@@ -2887,7 +2902,7 @@ table.data-table {
 }
 .drawer {
   width: 440px; max-width: 92vw; height: 100%; background: var(--surface);
-  box-shadow: -12px 0 40px rgba(7, 39, 90, 0.25); display: flex; flex-direction: column;
+  box-shadow: -12px 0 40px rgba(27, 42, 73, 0.25); display: flex; flex-direction: column;
   animation: drawer-in 0.18s ease;
 }
 @keyframes drawer-in { from { transform: translateX(20px); opacity: 0.6; } to { transform: none; opacity: 1; } }
@@ -3495,7 +3510,7 @@ table.data-table {
    zeminli olduğu için görselin nerede bitip kartın nerede başladığı
    belirsizleşirdi. */
 .destek-lightbox {
-  background: rgba(7, 39, 90, 0.82);
+  background: rgba(27, 42, 73, 0.82);
   cursor: zoom-out;
   padding: 32px;
 }

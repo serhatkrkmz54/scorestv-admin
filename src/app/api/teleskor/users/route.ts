@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Geçersiz istek." }, { status: 400 });
   }
 
-  // Gerekçeye paneldeki kişinin adı ekleniyor: Teleskor'un denetim kaydı
-  // işlemi hizmet hesabı üzerinde görüyor, "kim açtı" başka türlü
-  // cevaplanamazdı. Sipariş notundan farkı: bu metin KULLANICIYA
-  // GÖSTERİLMİYOR, yalnız denetim kaydına giriyor.
-  const aktor = (izin.user.displayName || izin.user.email || "panel").trim();
+  // Gerekçeye paneldeki kişinin adı ekleniyor. Teleskor işlemi yapan hesabı
+  // artık kendisi biliyor (yönetici kendi oturumuyla); ad, gerekçe metnini
+  // okuyan için duruyor. Bu metin KULLANICIYA GÖSTERİLMİYOR, yalnız denetim
+  // kaydına giriyor.
+  const aktor = (izin.user.displayName || izin.user.username || "panel").trim();
   const govde = {
     ...payload,
     reason: `${(payload.reason ?? "").trim()} [panel: ${aktor}]`.trim(),

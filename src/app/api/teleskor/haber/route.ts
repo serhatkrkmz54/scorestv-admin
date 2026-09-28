@@ -6,8 +6,7 @@ import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
 /**
  * TELESKOR HABERLERİ (V69) — liste ve yeni haber.
  *
- * Haberler Teleskor'un kendi tablosunda; ScoresTV'nin haber sayfaları
- * (Haberler / Yeni Haber) ayrı ve ScoresTV backend'ine gidiyor.
+ * Haberler Teleskor'un kendi tablosunda (`/api/v1/admin/haber`).
  */
 export async function GET(req: NextRequest) {
   const izin = await teleskorAdmin();

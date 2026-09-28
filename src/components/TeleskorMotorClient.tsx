@@ -194,7 +194,7 @@ export default function TeleskorMotorClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Motor</h1>
+          <h1 className="page-title">Motor</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Senkron kaynakları, sağlayıcı kotası, kimlik arama ve arşiv.
             Kuralların tamamı motorda — burası yalnızca penceresi.

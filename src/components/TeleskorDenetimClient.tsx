@@ -198,7 +198,7 @@ export default function TeleskorDenetimClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Denetim Kaydı</h1>
+          <h1 className="page-title">Denetim Kaydı</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Panelden yapılan her yönetici işlemi gerekçesiyle burada.{" "}
             <b>Bu sayfayı açmak da kayda geçiyor</b> — listede kendi izlerini

@@ -139,7 +139,7 @@ export default function TeleskorAkisClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Akış Şikayetleri</h1>
+          <h1 className="page-title">Akış Şikayetleri</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Sosyal akışta kullanıcıların şikayet ettiği tahmin gönderileri ve
             yorumlar. Bekleyen şikayetler burada; kapatılanlar listeden düşer.

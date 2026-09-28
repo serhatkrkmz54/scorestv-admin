@@ -238,7 +238,7 @@ export default function TeleskorOneCikanLiglerClient() {
     <div className="stack">
       <div className="spread">
         <div>
-          <h1 className="page-title">Teleskor — Öne çıkan ligler</h1>
+          <h1 className="page-title">Öne çıkan ligler</h1>
           <div className="muted" style={{ fontSize: 13 }}>
             Uygulamanın anasayfasında en üstte duran lig bloğu. Buradaki sıra,
             ekrandaki sıradır.
