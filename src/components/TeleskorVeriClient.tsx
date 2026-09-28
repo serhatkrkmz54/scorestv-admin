@@ -1149,6 +1149,9 @@ function AlanSatiri({
   // Görsel (motor V106): dosya yüklenir, motor görsel hattından geçirip
   // yamayı kendisi yazar. Adres elle yazılamaz.
   const gorselAlani = alan.tip === "gorsel";
+  // Kulüp rengi (motor V110): armadan otomatik hesaplanıyor; burada yazılan
+  // elle düzeltme. Motor "#RRGGBB" dışını reddediyor.
+  const renkAlani = alan.tip === "renk";
   const [ulkeAd, setUlkeAd] = useState<string | null>(alan.degerAd ?? null);
   const [dosya, setDosya] = useState<string | null>(null);
   const [deger, setDeger] = useState(alan.yama ?? alan.deger ?? "");
@@ -1209,6 +1212,11 @@ function AlanSatiri({
   }
 
   async function kaydet(kaldir = false) {
+    // Biçimi bozuk renk gönderilmiyor: uyarı zaten kutunun altında; motorun
+    // aynı uyarısı ikinci kez yazılmasın.
+    if (!kaldir && renkAlani && deger.trim() !== "" && !gecerliRenk(deger)) {
+      return;
+    }
     setDurum("kaydediliyor");
     setMesaj("");
 
@@ -1360,6 +1368,15 @@ function AlanSatiri({
               </span>
             </div>
           </div>
+        ) : renkAlani ? (
+          <RenkGirdisi
+            deger={deger}
+            onDegis={(v) => {
+              setDeger(v);
+              yazmayaBasla();
+            }}
+            yamali={yamaliMi}
+          />
         ) : tdAlani ? (
           <TeknikDirektorSecici
             // Kayıt sonrası yeniden kurulur: seçilenin "sayfasında" takımı
@@ -2126,6 +2143,74 @@ function TdKontrolKarti({
       <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={() => setHepsi(!hepsi)}>
         {hepsi ? "Yalnız kontrol edilecekleri göster" : `Bütün takımları göster (${liste.length})`}
       </button>
+    </div>
+  );
+}
+
+/** "#RRGGBB" mi — motorun kabul ettiği biçim (V110). */
+function gecerliRenk(v: string): boolean {
+  return /^#?[0-9a-fA-F]{6}$/.test(v.trim());
+}
+
+/**
+ * KULÜP RENGİ GİRDİSİ: renk seçici + metin kutusu (kulübün resmi sitesinden
+ * kopyalanan "#A90432" doğrudan yapıştırılabilsin) + önizleme. Uygulamanın
+ * maç ekranındaki çubuklar bu rengi alıyor; boşsa ev/deplasman rengine
+ * düşüyor.
+ */
+function RenkGirdisi({
+  deger,
+  onDegis,
+  yamali,
+}: {
+  deger: string;
+  onDegis: (v: string) => void;
+  yamali: boolean;
+}) {
+  const gecerli = deger === "" || gecerliRenk(deger);
+  const hex = gecerliRenk(deger)
+    ? `#${deger.trim().replace(/^#/, "").toUpperCase()}`
+    : "#000000";
+  return (
+    <div style={{ display: "grid", gap: 4 }}>
+      {/* flexWrap açıkça: telefonda kutu ile metin alt alta düşmesin. */}
+      <div style={{ display: "flex", flexWrap: "nowrap", gap: 8, alignItems: "center" }}>
+        <input
+          type="color"
+          value={hex}
+          onChange={(e) => onDegis(e.target.value.toUpperCase())}
+          aria-label="Renk seç"
+          style={{
+            width: 40,
+            height: 34,
+            padding: 0,
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            background: "transparent",
+            flex: "0 0 40px",
+          }}
+        />
+        <input
+          className="input"
+          value={deger}
+          placeholder="#A90432"
+          onChange={(e) => onDegis(e.target.value)}
+          style={{ fontFamily: "monospace", minWidth: 0, flex: 1 }}
+        />
+      </div>
+      {!gecerli ? (
+        <span style={{ fontSize: 11, color: "var(--danger)" }}>
+          #RRGGBB biçiminde olmalı (ör. #A90432).
+        </span>
+      ) : (
+        <span className="muted" style={{ fontSize: 11 }}>
+          {yamali
+            ? "Elle girildi; arma değişse de bu renk kalır."
+            : deger === ""
+              ? "Henüz hesaplanmadı ya da arma okunamadı."
+              : "Armadan otomatik hesaplandı. Yanlışsa buradan düzelt."}
+        </span>
+      )}
     </div>
   );
 }

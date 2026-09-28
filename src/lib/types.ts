@@ -1800,7 +1800,7 @@ export interface VeriAlani {
   tur: "VENUE" | "TEAM" | "PLAYER";
   alan: string;
   etiket: string;
-  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel";
+  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel" | "renk";
   referansTur?: string | null;
   /** Eksik raporunda sayılsın mı (web sitesi olmayan alt lig takımı eksiklik değil). */
   eksikSayilir: boolean;
@@ -1864,7 +1864,7 @@ export interface VeriOyuncusu {
 export interface VeriAlanDurumu {
   alan: string;
   etiket: string;
-  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel";
+  tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel" | "renk";
   referansTur?: string | null;
   /** Ana tablodaki şu anki değer (yama varsa yamanın uygulanmış hâli). */
   deger?: string | null;
