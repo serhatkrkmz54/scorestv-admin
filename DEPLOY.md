@@ -1,10 +1,10 @@
-# TELE SKOR Yönetim Paneli — Canlı Dağıtım (panel.teleskor.com.tr)
+# TELE SKOR Yönetim Paneli — Canlı Dağıtım
 
 28 Eylül 2026: panel `addnews.scorestv.com`'dan (ScoresTV sunucusu) Teleskor'a
 taşındı. ScoresTV kendi panelini yapıyor; bu panel yalnız Teleskor'un.
 
 ```
-tarayıcı → Cloudflare → api-1 nginx (panel.teleskor.com.tr)
+tarayıcı → Cloudflare → api-1 nginx (panel alt alanı)
          → 127.0.0.1:3200 (bu panel, Docker)
          → http://app:8080 (teleskor-backend, aynı Docker ağı)
 ```
@@ -26,14 +26,26 @@ Panele girecek herkesin Teleskor'da hesabı olmalı ve rolü ADMIN olmalı:
 - Rol: panelde **Üyeler** → kişi → rol **Yönetici** (ilk yönetici zaten var).
   Veritabanından: `UPDATE users SET role='ADMIN' WHERE username='…';`
 
+## Adres neden yazılmıyor
+
+Panelin alt alan adı bilerek tahmin edilemez (`panel.`, `admin.` gibi adlar
+alt alan tarayıcılarının listelerinde ilk sırada). Ad YALNIZ teleskor-backend
+`altyapi/nginx-api.conf`'taki `server_name` satırında ve Cloudflare DNS'te
+durur; bu belgeye, siteye, uygulamaya, e-postaya yazılmaz. Aşağıda `<PANEL>`
+o addır. Gizli ad tek başına kilit değil: asıl koruma Teleskor girişi, isteğe
+bağlı anahtar kapısı (`PANEL_GATE_*`) ve Cloudflare Access.
+
 ## 1. Cloudflare
 
-1. **DNS** → Add record: Type `A`, Name `panel`, Content = api-1'in IP'si,
-   **Proxy açık** (turuncu bulut).
+1. **DNS** → Add record: Type `A`, Name = `<PANEL>`'in ilk parçası (nokta
+   öncesi), Content = api-1'in IP'si, **Proxy açık** (turuncu bulut).
+   Bu ad için AYRI kenar sertifikası (Advanced Certificate) alma: sertifika
+   şeffaflık kayıtlarına düşer ve ad herkese açık olur. Universal SSL'in
+   joker sertifikası yeterli ve adı ele vermez.
 2. SSL/TLS **Full (strict)** zaten açık; origin sertifikası
    `*.teleskor.com.tr`'yi kapsıyor (takip alt alanları da onu kullanıyor).
    Yeni sertifika gerekmez.
-3. İsteğe bağlı ek kilit: Zero Trust → Access ile `panel.teleskor.com.tr`'yi
+3. Önerilen ek kilit: Zero Trust → Access ile `<PANEL>`'i
    yalnız belirli e-postalara açmak.
 
 ## 2. api-1 — paneli çalıştır
@@ -60,7 +72,7 @@ Panel bloğu teleskor-backend `altyapi/nginx-api.conf`'un sonunda.
 cd /opt/teleskor/teleskor-backend && git pull
 diff -u /etc/nginx/sites-available/api.conf altyapi/nginx-api.conf
 ```
-Farkta yalnız dosyanın sonuna eklenen `panel.teleskor.com.tr` bölümü
+Farkta yalnız dosyanın sonuna eklenen YÖNETİM PANELİ bölümü
 görünmeli. Başka bir fark varsa (sunucuda elle yapılmış değişiklik)
 kopyalamadan önce o fark depoya alınmalı.
 
@@ -72,7 +84,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## 4. Doğrula
 
-1. `https://panel.teleskor.com.tr` → giriş ekranı (TELE SKOR).
+1. `https://<PANEL>` → giriş ekranı (TELE SKOR).
 2. Teleskor yönetici hesabıyla gir → Sistem Sağlığı açılır.
 3. Rolü USER olan bir hesapla dene → "yalnız yöneticiler" (403).
 4. Bir ayar değiştir → Denetim Kaydı'nda işlem SENİN adınla ve gerçek IP'nle.

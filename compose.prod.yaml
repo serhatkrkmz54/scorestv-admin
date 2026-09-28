@@ -1,6 +1,6 @@
 # ==============================================================
 # SUNUCU kurulumu (yönetim paneli) — api-1 makinesi, teleskor-backend'in
-# ve teleskor-web'in YANINDA (28 Eylül 2026). Adres: panel.teleskor.com.tr
+# ve teleskor-web'in YANINDA (28 Eylül 2026). Adres: gizli adlı alt alan
 # (nginx bloğu teleskor-backend `altyapi/nginx-api.conf` sonunda).
 #
 #   cp .env.example .env      -> değerleri doldur (anahtar kapısı isteğe bağlı)

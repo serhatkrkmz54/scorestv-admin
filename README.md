@@ -1,7 +1,8 @@
 # TELE SKOR Yönetim Paneli
 
-Teleskor'un yönetim paneli (Next.js 16, App Router). Canlı adres
-**panel.teleskor.com.tr** (api-1). Dağıtım: [DEPLOY.md](DEPLOY.md).
+Teleskor'un yönetim paneli (Next.js 16, App Router). api-1'de, adı bilerek
+tahmin edilemez bir alt alanda (ad yalnız teleskor-backend
+`altyapi/nginx-api.conf`'ta; buraya yazılmaz). Dağıtım: [DEPLOY.md](DEPLOY.md).
 
 > Depo adı tarihsel (`scorestv-admin`): panel 28 Eylül 2026'ya kadar
 > `addnews.scorestv.com`'da ScoresTV ile ortaktı. ScoresTV kendi panelini
