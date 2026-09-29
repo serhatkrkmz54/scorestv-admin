@@ -29,6 +29,8 @@ export default function TeleskorOnayModal({
   onayMetni = "Onayla",
   tehlikeli = false,
   secim,
+  baslangicDegeri = "",
+  azamiUzunluk = 300,
   onKapat,
   onOnayla,
 }: {
@@ -56,10 +58,14 @@ export default function TeleskorOnayModal({
     varsayilan: string;
     secenekler: { deger: string; etiket: string }[];
   };
+  /** Alanın açılıştaki metni (ör. aynı oturumda son yazılan gerekçe). */
+  baslangicDegeri?: string;
+  /** Alanın en çok karakteri — sunucunun sınırına göre çağıran verir. */
+  azamiUzunluk?: number;
   onKapat: () => void;
   onOnayla: (deger: string, secim: string) => Promise<void>;
 }) {
-  const [deger, setDeger] = useState("");
+  const [deger, setDeger] = useState(baslangicDegeri);
   const [secilen, setSecilen] = useState(secim?.varsayilan ?? "");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -124,8 +130,9 @@ export default function TeleskorOnayModal({
             <label className="label">{alanEtiketi}</label>
             <input
               className="input"
-              maxLength={300}
+              maxLength={azamiUzunluk}
               autoFocus
+              onFocus={(e) => e.target.select()}
               value={deger}
               onChange={(e) => setDeger(e.target.value)}
               onKeyDown={(e) => {
