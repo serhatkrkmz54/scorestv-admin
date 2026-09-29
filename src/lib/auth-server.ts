@@ -7,6 +7,7 @@ import {
   setAuthCookies,
 } from "./auth-cookies";
 import type { AppUser, TokenResponse } from "./types";
+import { tekUcusYenile } from "./yenileme-ucusu";
 
 /**
  * Geçerli oturumun kullanıcısını çözer (LAYOUT RENDER'ında çağrılır).
@@ -64,21 +65,29 @@ export function panelYetkili(user: AppUser | null): boolean {
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
-  const rr = await backendJson<TokenResponse>("/api/v1/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
+  // TEK UÇUŞ — sayfanın paralel BFF istekleri aynı çerezle ayrı ayrı
+  // yenilemesin (gerekçe yenileme-ucusu.ts; middleware ile aynı harita).
+  const sonuc = await tekUcusYenile(refreshToken, async () => {
+    const rr = await backendJson<TokenResponse>("/api/v1/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+    });
+    return rr.ok && rr.body
+      ? { ok: true as const, ...rr.body }
+      : { ok: false as const, status: rr.status };
   });
-  if (!rr.ok || !rr.body) {
-    await clearAuthCookies();
+  if (!sonuc.ok) {
+    // Yalnız token GERÇEKTEN geçersizse çıkış; ağ/sunucu arızası oturumu düşürmez.
+    if (sonuc.status === 401 || sonuc.status === 403) await clearAuthCookies();
     return null;
   }
   await setAuthCookies(
-    rr.body.accessToken,
-    rr.body.refreshToken,
-    rr.body.expiresInSeconds,
+    sonuc.accessToken,
+    sonuc.refreshToken,
+    sonuc.expiresInSeconds ?? 900,
     true,
   );
-  return rr.body.accessToken;
+  return sonuc.accessToken;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, GATE_COOKIE } from "@/lib/cookie-names";
+import { tekUcusYenile, type YenilemeSonucu } from "@/lib/yenileme-ucusu";
 
 // Teleskor backend adresi (backend.ts ile aynı değişken ve aynı sıra).
 const BACKEND =
@@ -55,8 +56,83 @@ function loginRedirect(req: NextRequest, clear: boolean): NextResponse {
   return res;
 }
 
+/**
+ * Yenileme çereziyle oturumu tazeler; yeni çerezleri HEM tarayıcıya
+ * (yanıt) HEM bu isteğin işleyicisine (istek başlığı) yazar.
+ *
+ * @returns yanıt, ya da "gecersiz" (Teleskor 401/403: token gerçekten öldü).
+ *          Ağ/sunucu arızasında oturum düşürülmez, istek olduğu gibi geçer.
+ */
+async function tazele(req: NextRequest, refresh: string): Promise<NextResponse | "gecersiz"> {
+  try {
+    // TEK UÇUŞ: aynı anda gelen istekler aynı token'la ayrı ayrı yenilerse
+    // Teleskor ikincisini hırsızlık sayıyordu (gerekçe yenileme-ucusu.ts).
+    const sonuc = await tekUcusYenile(refresh, async (): Promise<YenilemeSonucu> => {
+      const r = await fetch(BACKEND + "/api/v1/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: refresh }),
+        cache: "no-store",
+      });
+      if (!r.ok) return { ok: false, status: r.status };
+      const govde = (await r.json()) as {
+        accessToken: string;
+        refreshToken: string;
+        expiresInSeconds?: number;
+      };
+      return { ok: true, ...govde };
+    });
+    if (sonuc.ok) {
+      // Bu isteğin işleyicisi taze access token'ı görsün (request header).
+      req.cookies.set(ACCESS_COOKIE, sonuc.accessToken);
+      req.cookies.set(REFRESH_COOKIE, sonuc.refreshToken);
+      const res = NextResponse.next({ request: { headers: req.headers } });
+      const secure = process.env.NODE_ENV === "production";
+      const common = {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        secure,
+        path: "/",
+      };
+      // Tarayıcıya kalıcı yaz.
+      res.cookies.set(ACCESS_COOKIE, sonuc.accessToken, {
+        ...common,
+        maxAge: Math.max(sonuc.expiresInSeconds ?? 900, 60),
+      });
+      res.cookies.set(REFRESH_COOKIE, sonuc.refreshToken, {
+        ...common,
+        maxAge: REFRESH_MAX_AGE,
+      });
+      return res;
+    }
+    if (sonuc.status === 401 || sonuc.status === 403) return "gecersiz";
+    // 5xx / ağ hatası → geçici kabul et, oturumu düşürme
+    return NextResponse.next();
+  } catch {
+    return NextResponse.next();
+  }
+}
+
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const path = req.nextUrl.pathname;
+
+  // BFF (API) İSTEKLERİ: YALNIZ oturum tazeleme (29 Eylül). Eskiden API
+  // yolları middleware'e hiç girmiyordu ve her route handler kendi
+  // yenilemesini yapıyordu; sayfa açılırken middleware ile paralel API
+  // çağrıları AYNI çerezle ayrı ayrı yeniliyor, Teleskor ikincisini
+  // hırsızlık sayıp bütün oturumları kapatıyordu (yerelde ölçüldü: tek
+  // sayfa açılışı 5 "hırsızlık"). Yenileme artık TEK noktada. Kapı ve
+  // login yönlendirmesi API'de yok: oturumsuz istek işleyicide 401 alır.
+  if (path.startsWith("/api/")) {
+    if (path.startsWith("/api/auth/")) return NextResponse.next();
+    const apiErisim = req.cookies.get(ACCESS_COOKIE)?.value;
+    const apiYenileme = req.cookies.get(REFRESH_COOKIE)?.value;
+    if (!apiYenileme || (apiErisim && !isJwtExpired(apiErisim))) {
+      return NextResponse.next();
+    }
+    const sonuc = await tazele(req, apiYenileme);
+    return sonuc === "gecersiz" ? NextResponse.next() : sonuc;
+  }
 
   // 0. ERİŞİM KAPISI — /gate hariç TÜM sayfaları (login dahil) sarar. Kapıyı
   //    geçmeyen kullanıcı paneli/login'i göremez, anahtar ekranına atılır.
@@ -106,51 +182,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   // 3. Refresh ile yenile (kalıcı çerez yazımı burada güvenli)
   if (refresh) {
-    try {
-      const r = await fetch(BACKEND + "/api/v1/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: refresh }),
-        cache: "no-store",
-      });
-      if (r.ok) {
-        const data = (await r.json()) as {
-          accessToken: string;
-          refreshToken: string;
-          expiresInSeconds?: number;
-        };
-        // Bu isteğin render'ı taze access token'ı görsün (request header).
-        req.cookies.set(ACCESS_COOKIE, data.accessToken);
-        req.cookies.set(REFRESH_COOKIE, data.refreshToken);
-        const res = NextResponse.next({ request: { headers: req.headers } });
-        const secure = process.env.NODE_ENV === "production";
-        const common = {
-          httpOnly: true,
-          sameSite: "lax" as const,
-          secure,
-          path: "/",
-        };
-        // Tarayıcıya kalıcı yaz.
-        res.cookies.set(ACCESS_COOKIE, data.accessToken, {
-          ...common,
-          maxAge: Math.max(data.expiresInSeconds ?? 900, 60),
-        });
-        res.cookies.set(REFRESH_COOKIE, data.refreshToken, {
-          ...common,
-          maxAge: REFRESH_MAX_AGE,
-        });
-        return res;
-      }
-      if (r.status === 401 || r.status === 403) {
-        // Refresh gerçekten geçersiz → temiz çıkış
-        return loginRedirect(req, true);
-      }
-      // 5xx / beklenmedik → geçici kabul et, oturumu düşürme
-      return NextResponse.next();
-    } catch {
-      // Backend erişilemez → oturumu düşürme
-      return NextResponse.next();
-    }
+    const sonuc = await tazele(req, refresh);
+    if (sonuc === "gecersiz") return loginRedirect(req, true);
+    return sonuc;
   }
 
   // Access süresi dolmuş, refresh yok → login
@@ -158,10 +192,10 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  // Middleware /login VE /gate dahil tüm sayfalarda çalışır (erişim kapısı
-  // login'i de sarmalı). Hariç tutulanlar: API (kendi auth'unu yönetir), _next
+  // Middleware /login VE /gate dahil tüm sayfalarda ve BFF API'lerinde
+  // çalışır (API'de yalnız oturum tazeleme, bkz. middleware başı). Hariç: _next
   // statikler ve public dosyaları. ÖNEMLİ: `.*\..*` uzantılı yolları
   // (/images/*.jpg, *.png, robots.txt vb.) dışlar — aksi halde login arka planı
   // (login-bg.jpg) gibi statik istekler kapıya takılıp redirect oluyordu.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
