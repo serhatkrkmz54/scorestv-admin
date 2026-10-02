@@ -239,7 +239,9 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
       govde,
       kapakAnahtar,
       durum,
-      yayinAni: yayinYerel ? new Date(yayinYerel).toISOString() : null,
+      // Yalnız zamanlanmış haberde gönderilir (Serhat, 2 Ekim: "Yayında anında yayınlasın").
+      // Yayında'da null: api-1 ilk yayında şimdiyi yazar, yayındaki haberin tarihini korur.
+      yayinAni: durum === "ZAMANLI" && yayinYerel ? new Date(yayinYerel).toISOString() : null,
       kategori,
       spor: spor || null,
       sonDakika,
@@ -268,6 +270,10 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
     setTamam(null);
     if (!baslik.trim()) {
       setHata("Başlık zorunlu.");
+      return;
+    }
+    if (durum === "ZAMANLI" && !yayinYerel) {
+      setHata("Zamanlanmış haber için yayın tarihi ve saati seç.");
       return;
     }
     if (kapakZorunlu && !kapakAnahtar) {
@@ -415,14 +421,12 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
                 <div className="durum-uyari">Bu haber şu an yayında. Kaydedince yayından kalkar ve sayfası açılmaz.</div>
               )}
             </div>
-            {(durum === "ZAMANLI" || durum === "YAYINDA") && (
+            {durum === "ZAMANLI" && (
               <div className="field">
-                <label className="label">Yayın zamanı {durum === "ZAMANLI" && <span className="req">*</span>}</label>
+                <label className="label">Yayın zamanı <span className="req">*</span></label>
                 <input type="datetime-local" className="input" value={yayinYerel}
                   onChange={(e) => setYayinYerel(e.target.value)} />
-                <div className="hint">
-                  {durum === "ZAMANLI" ? "Bu zamanda kendiliğinden yayınlanır." : "Boşsa kaydedildiği an."}
-                </div>
+                <div className="hint">Bu zamanda kendiliğinden yayınlanır.</div>
               </div>
             )}
           </div>
