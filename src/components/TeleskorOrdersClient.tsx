@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   apiTeleskorOrders,
   apiTeleskorUpdateOrder,
@@ -41,15 +41,33 @@ export default function TeleskorOrdersClient() {
     yeni: TeleskorOrderStatus;
   } | null>(null);
 
+  // Üye kartından gelen bağlantı (?kullanici=ID): o üyenin BÜTÜN
+  // siparişleri (durum süzgeci "Tümü").
+  useEffect(() => {
+    const k = new URLSearchParams(window.location.search).get("kullanici")?.trim();
+    if (k) {
+      setDurum("");
+      setArama(k);
+      setKullanici(k);
+    }
+  }, []);
+
+  // Süzgeç hızlı değişince (bağlantıdan gelen üye gibi) GEÇ gelen eski
+  // yanıt yenisinin üstüne yazmasın: yalnız son isteğin cevabı işlenir.
+  const istekNo = useRef(0);
   const load = useCallback(async () => {
+    const no = ++istekNo.current;
     setLoading(true);
     try {
-      setRows(await apiTeleskorOrders({ durum, kullanici, limit: 200 }));
+      const r = await apiTeleskorOrders({ durum, kullanici, limit: 200 });
+      if (no !== istekNo.current) return;
+      setRows(r);
       setHata(null);
     } catch (e) {
+      if (no !== istekNo.current) return;
       setHata(e instanceof ApiError ? e.message : "Siparişler alınamadı.");
     } finally {
-      setLoading(false);
+      if (no === istekNo.current) setLoading(false);
     }
   }, [durum, kullanici]);
 
@@ -266,3 +284,6 @@ export default function TeleskorOrdersClient() {
     </div>
   );
 }
+
+/** Üye kartının moderasyon özeti de aynı adları kullanır. */
+export { DURUM_TR as SIPARIS_DURUM_TR };

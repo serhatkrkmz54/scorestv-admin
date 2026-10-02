@@ -182,6 +182,14 @@ export default function TeleskorDestekClient() {
     [load],
   );
 
+  // Üye kartından gelen bağlantı (?talep=ID): o talep doğrudan açılır.
+  // useSearchParams yerine window: sayfa dinamik, Suspense sınırı gerekmez.
+  useEffect(() => {
+    const talep = Number(new URLSearchParams(window.location.search).get("talep"));
+    if (Number.isInteger(talep) && talep > 0) void ac(talep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function gonder() {
     if (!seciliId || !cevap.trim() || busy || ekYukleniyor > 0) return;
     setBusy(true);
@@ -633,3 +641,6 @@ function durumRozeti(durum: string): string {
   if (durum === "CEVAPLANDI") return "badge-published";
   return "badge-archived";
 }
+
+/** Üye kartının moderasyon özeti de aynı adları kullanır. */
+export { DURUM_TR as DESTEK_DURUM_TR, durumRozeti as destekDurumRozeti };

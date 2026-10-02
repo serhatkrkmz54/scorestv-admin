@@ -31,6 +31,7 @@ import { formatDate } from "@/lib/format";
 import Zaman from "@/components/Zaman";
 import TeleskorOturumlar from "@/components/TeleskorOturumlar";
 import TeleskorHareketGecmisi from "@/components/TeleskorHareketGecmisi";
+import TeleskorModerasyon from "@/components/TeleskorModerasyon";
 import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
@@ -1085,6 +1086,8 @@ export default function TeleskorUsersClient() {
               apiTeleskorUser(secili.id).then(setSecili).catch(() => {});
             }}
           />
+
+          <TeleskorModerasyon key={`moderasyon-${secili.id}`} userId={secili.id} />
 
           <TeleskorHareketGecmisi key={`hareket-${secili.id}`} userId={secili.id} />
 

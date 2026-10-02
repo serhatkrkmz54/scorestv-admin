@@ -198,6 +198,31 @@ export type TeleskorFavoriTuru =
 /**
  * Üyenin profil dökümü — uygulamada gördüğü profilin yönetici karşılığı.
  */
+/** Üye kartının moderasyon ve içerik özeti (Adım 4). */
+export interface TeleskorSayiCifti {
+  toplam: number;
+  bekleyen: number;
+}
+
+export interface TeleskorModerasyonOzeti {
+  gonderiSikayeti: TeleskorSayiCifti;
+  yorumSikayeti: TeleskorSayiCifti;
+  sohbetSikayeti: TeleskorSayiCifti;
+  /** Kendisinin yaptığı şikayet sayısı. */
+  sikayetEttigi: number;
+  silinenGonderi: number;
+  silinenYorum: number;
+  silinenSohbet: number;
+  susturmalar: { zaman: string; yapan?: string | null; ayrinti?: string | null }[];
+  /** bekleyen = kapalı olmayan talepler. */
+  destek: TeleskorSayiCifti;
+  sonTalepler: { id: number; konu?: string | null; durum: string; sonMesaj?: string | null }[];
+  /** bekleyen = hazırlanıyor. */
+  siparis: TeleskorSayiCifti;
+  harcananPuan: number;
+  sonSiparisler: { id: number; urun?: string | null; puan: number; durum: string; tarih: string }[];
+}
+
 /** Üyenin açık oturumu (Adım 2). Cihaz/platform/sürüm istemcinin beyanı; IP ve ülke sunucunun. */
 export interface TeleskorOturum {
   id: string;

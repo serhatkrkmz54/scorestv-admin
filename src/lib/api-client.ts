@@ -20,6 +20,7 @@ import type {
   TeleskorUserDetail,
   TeleskorUserProfil,
   TeleskorOturumOzeti,
+  TeleskorModerasyonOzeti,
   TeleskorCreateUserRequest,
   TeleskorRole,
   TeleskorPointAccount,
@@ -312,6 +313,11 @@ export async function apiTeleskorHareketler(
     method: "GET",
   });
   return parse<DenetimSayfasi>(res);
+}
+
+export async function apiTeleskorModerasyon(id: number): Promise<TeleskorModerasyonOzeti> {
+  const res = await fetch(`/api/teleskor/users/${id}/moderasyon`, { method: "GET" });
+  return parse<TeleskorModerasyonOzeti>(res);
 }
 
 export async function apiTeleskorCreateUser(
