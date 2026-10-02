@@ -3888,3 +3888,120 @@ table.data-table {
   font-size: 12.5px;
   font-weight: 600;
 }
+
+/* Haber formu: durum seçimi — dört seçenek birden, ikon + açıklama (açılır liste yerine). */
+.durum-secici {
+  display: grid;
+  gap: 8px;
+}
+.durum-secenek {
+  --durum-renk: var(--neutral);
+  --durum-zemin: var(--neutral-soft);
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+.durum-secenek:hover {
+  border-color: var(--durum-renk);
+}
+.durum-secenek:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.durum-yayinda {
+  --durum-renk: var(--success);
+  --durum-zemin: var(--success-soft);
+}
+.durum-zamanli {
+  --durum-renk: var(--warning);
+  --durum-zemin: var(--warning-soft);
+}
+.durum-arsiv {
+  --durum-renk: var(--archive);
+  --durum-zemin: var(--archive-soft);
+}
+.durum-secili {
+  border-color: var(--durum-renk);
+  background: var(--durum-zemin);
+  box-shadow: inset 3px 0 0 var(--durum-renk);
+}
+.durum-ikon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--durum-zemin);
+  color: var(--durum-renk);
+}
+.durum-secili .durum-ikon {
+  background: var(--durum-renk);
+  color: #fff;
+}
+.durum-metin {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.durum-ad {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.durum-secili .durum-ad {
+  color: var(--durum-renk);
+}
+.durum-simdiki {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  color: var(--text-muted);
+}
+.durum-aciklama {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.durum-isaret {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  color: #fff;
+}
+.durum-secili .durum-isaret {
+  border-color: var(--durum-renk);
+  background: var(--durum-renk);
+}
+.durum-uyari {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}

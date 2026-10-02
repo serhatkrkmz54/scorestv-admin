@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Archive, CalendarClock, Check, FileText, Send } from "lucide-react";
 import RichEditor from "@/components/RichEditor";
 import {
   ApiError,
@@ -29,11 +30,21 @@ import type {
  * aynı), dil seçimi yok (yalnız Türkçe), yazar her haberde "TELE SKOR".
  */
 
-const DURUMLAR: { deger: TeleskorHaberDurum; ad: string }[] = [
-  { deger: "TASLAK", ad: "Taslak" },
-  { deger: "YAYINDA", ad: "Yayında" },
-  { deger: "ZAMANLI", ad: "Zamanlanmış" },
-  { deger: "ARSIV", ad: "Arşiv (yayından kaldırıldı)" },
+/**
+ * DURUM SEÇİMİ (Serhat, 2 Ekim: "açılır liste değil, hepsi ikonlu görünsün, açıklayıcı olsun").
+ * Açıklamalar api-1'in gerçek davranışı: sitede ve uygulamada yalnız YAYINDA görünür
+ * (`HaberDeposu.YAYINDA`), bildirim yalnız İLK yayında gider, kapak yayın ve zamanlamada
+ * zorunlu (`HaberYonetimServisi.KAPAK_ZORUNLU`).
+ */
+const DURUMLAR: { deger: TeleskorHaberDurum; ad: string; aciklama: string; Ikon: typeof FileText }[] = [
+  { deger: "TASLAK", ad: "Taslak", Ikon: FileText,
+    aciklama: "Sitede ve uygulamada görünmez; üzerinde çalışmaya devam edersin. Kapak görseli olmadan da kaydedilebilir." },
+  { deger: "YAYINDA", ad: "Yayında", Ikon: Send,
+    aciklama: "Kaydedince sitede ve uygulamada hemen yayınlanır. Bildirim seçiliyse yalnız ilk yayında gider." },
+  { deger: "ZAMANLI", ad: "Zamanlanmış", Ikon: CalendarClock,
+    aciklama: "Seçtiğin tarih ve saatte kendiliğinden yayınlanır; o ana kadar görünmez." },
+  { deger: "ARSIV", ad: "Arşiv", Ikon: Archive,
+    aciklama: "Yayından kaldırılır: haber sayfası açılmaz, listelerden çıkar. Silinmez, sonra yeniden yayına alınabilir." },
 ];
 
 const TUR_ADI: Record<TeleskorVarlikTur, string> = { TAKIM: "Takım", LIG: "Lig", OYUNCU: "Oyuncu" };
@@ -378,10 +389,31 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
           <div className="card card-pad">
             <div className="section-title">Yayın</div>
             <div className="field">
-              <label className="label">Durum</label>
-              <select className="select" value={durum} onChange={(e) => setDurum(e.target.value as TeleskorHaberDurum)}>
-                {DURUMLAR.map((d) => <option key={d.deger} value={d.deger}>{d.ad}</option>)}
-              </select>
+              <label className="label" id="durum-baslik">Durum</label>
+              <div className="durum-secici" role="radiogroup" aria-labelledby="durum-baslik">
+                {DURUMLAR.map(({ deger, ad, aciklama, Ikon }) => {
+                  const secili = durum === deger;
+                  return (
+                    <button key={deger} type="button" role="radio" aria-checked={secili}
+                      aria-labelledby={`durum-ad-${deger}`} aria-describedby={`durum-aciklama-${deger}`}
+                      className={`durum-secenek durum-${deger.toLowerCase()}${secili ? " durum-secili" : ""}`}
+                      onClick={() => setDurum(deger)}>
+                      <span className="durum-ikon" aria-hidden><Ikon size={18} /></span>
+                      <span className="durum-metin">
+                        <span className="durum-ad">
+                          <span id={`durum-ad-${deger}`}>{ad}</span>
+                          {ilk?.durum === deger && <span className="durum-simdiki">şu anki</span>}
+                        </span>
+                        <span className="durum-aciklama" id={`durum-aciklama-${deger}`}>{aciklama}</span>
+                      </span>
+                      <span className="durum-isaret" aria-hidden>{secili && <Check size={14} strokeWidth={3} />}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {ilk?.durum === "YAYINDA" && durum !== "YAYINDA" && (
+                <div className="durum-uyari">Bu haber şu an yayında. Kaydedince yayından kalkar ve sayfası açılmaz.</div>
+              )}
             </div>
             {(durum === "ZAMANLI" || durum === "YAYINDA") && (
               <div className="field">
