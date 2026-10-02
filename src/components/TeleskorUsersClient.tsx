@@ -27,7 +27,7 @@ import type {
   TeleskorPointAccount,
   TeleskorRole,
 } from "@/lib/types";
-import { formatDate } from "@/lib/format";
+import { formatDate, goreliZaman } from "@/lib/format";
 import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
@@ -252,6 +252,7 @@ export default function TeleskorUsersClient() {
   const [sayfa, setSayfa] = useState(0);
   const [arama, setArama] = useState("");
   const [q, setQ] = useState("");
+  const [sirala, setSirala] = useState("");
   const [loading, setLoading] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -313,7 +314,7 @@ export default function TeleskorUsersClient() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const p = await apiTeleskorUsers({ q, page: sayfa, size: 20 });
+      const p = await apiTeleskorUsers({ q, page: sayfa, size: 20, sirala });
       setRows(p.content);
       setToplam(p.totalElements);
       setHata(null);
@@ -322,7 +323,7 @@ export default function TeleskorUsersClient() {
     } finally {
       setLoading(false);
     }
-  }, [q, sayfa]);
+  }, [q, sayfa, sirala]);
 
   useEffect(() => {
     load();
@@ -776,6 +777,20 @@ export default function TeleskorUsersClient() {
           >
             Ara
           </button>
+          <select
+            className="input"
+            style={{ maxWidth: 220 }}
+            aria-label="Sıralama"
+            value={sirala}
+            onChange={(e) => {
+              setSayfa(0);
+              setSirala(e.target.value);
+            }}
+          >
+            <option value="">En yeni üye önce</option>
+            <option value="sonGorulme">Son görülen önce</option>
+            <option value="sonGiris">Son giriş yapan önce</option>
+          </select>
           <div style={{ flex: 1 }} />
           <span className="muted" style={{ fontSize: 12.5, alignSelf: "center" }}>
             {toplam} üye
@@ -799,7 +814,12 @@ export default function TeleskorUsersClient() {
                     <th>Üye</th>
                     <th>Rol</th>
                     <th>Durum</th>
-                    <th>Son giriş</th>
+                    <th title="Uygulamayı ya da siteyi en son ne zaman kullandı (açıkken yaklaşık 15 dakikada bir güncellenir)">
+                      Son görülme
+                    </th>
+                    <th title="En son şifre, Google ya da Apple ile giriş (kayıt da sayılır)">
+                      Son giriş
+                    </th>
                     <th style={{ textAlign: "right" }} />
                   </tr>
                 </thead>
@@ -826,7 +846,10 @@ export default function TeleskorUsersClient() {
                         </span>
                       </td>
                       <td style={{ fontSize: 12.5 }}>
-                        {formatDate(u.lastLoginAt)}
+                        <Zaman iso={u.lastSeenAt} />
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>
+                        <Zaman iso={u.lastLoginAt} />
                       </td>
                       <td style={{ textAlign: "right" }}>
                         <button className="btn btn-sm" onClick={() => detayAc(u)}>
@@ -967,6 +990,24 @@ export default function TeleskorUsersClient() {
             <div className="field">
               <label className="label">Açık oturum</label>
               <div>{secili.activeSessions}</div>
+            </div>
+            <div className="field">
+              <label className="label">Son görülme</label>
+              <div>
+                <Zaman iso={secili.lastSeenAt} />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label">Son giriş</label>
+              <div>
+                <Zaman iso={secili.lastLoginAt} />
+              </div>
+            </div>
+            <div className="field">
+              <label className="label">Üyelik</label>
+              <div>
+                <Zaman iso={secili.createdAt} />
+              </div>
             </div>
             <div className="field">
               <label className="label">Giriş kilidi</label>
@@ -1595,5 +1636,24 @@ function PuanModal({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Tarih + göreli zaman ("3 saat önce"). Değer yoksa "—" (sunucu boş alanı
+ * yanıta hiç yazmıyor; "hiç görülmedi" ile "alan yok" ayırt edilemez).
+ */
+function Zaman({ iso }: { iso: string | null | undefined }) {
+  if (!iso) return <span className="muted">—</span>;
+  const goreli = goreliZaman(iso);
+  return (
+    <>
+      <div>{formatDate(iso)}</div>
+      {goreli && (
+        <div className="muted" style={{ fontSize: 11.5 }}>
+          {goreli}
+        </div>
+      )}
+    </>
   );
 }

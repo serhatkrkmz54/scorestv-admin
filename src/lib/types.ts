@@ -129,7 +129,13 @@ export interface TeleskorUserSummary {
   role: TeleskorRole;
   status: TeleskorAccountStatus;
   emailVerified: boolean;
+  /** Son şifre / Google / Apple girişi (kayıt da sayılır). */
   lastLoginAt: string | null;
+  /**
+   * Son görülme: oturumun en son yenilendiği an (uygulama açıkken ~15 dk
+   * hassas). Hiç görülmemişse sunucu alanı göndermiyor (`undefined`).
+   */
+  lastSeenAt?: string | null;
   createdAt: string;
 }
 

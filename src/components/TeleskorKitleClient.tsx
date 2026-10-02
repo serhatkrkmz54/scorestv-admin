@@ -196,11 +196,11 @@ export default function TeleskorKitleClient() {
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(u.aktifgun)}</div>
-                <div className="stat-label">Son 24 saatte giriş</div>
+                <div className="stat-label">Son 24 saatte görülen</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(u.aktifhafta)}</div>
-                <div className="stat-label">Son 7 günde giriş</div>
+                <div className="stat-label">Son 7 günde görülen</div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(veri?.misafirCihaz)}</div>
@@ -208,10 +208,10 @@ export default function TeleskorKitleClient() {
               </div>
             </div>
             <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-              &quot;Giriş&quot; sayıları son giriş anına bakıyor; oturum 30 gün
-              açık kaldığı için uygulamayı her gün açan bir üye burada her gün
-              görünmeyebilir. Günlük aktif kullanıcı için Firebase Console
-              daha doğru kaynak.
+              &quot;Görülen&quot; sayıları üyenin uygulamayı ya da siteyi en son
+              kullandığı ana bakıyor (oturum yenilemesi; açıkken yaklaşık 15
+              dakikada bir). Misafir kullanıcılar burada yok; günlük aktif
+              kullanıcının tamamı için Firebase Console.
             </div>
           </>
         )}

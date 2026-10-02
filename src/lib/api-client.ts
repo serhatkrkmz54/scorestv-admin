@@ -251,11 +251,14 @@ export async function apiTeleskorUsers(params?: {
   role?: string;
   page?: number;
   size?: number;
+  /** "sonGorulme" | "sonGiris"; boş = en yeni üye önce. */
+  sirala?: string;
 }): Promise<TeleskorUserPage> {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
   if (params?.status) q.set("status", params.status);
   if (params?.role) q.set("role", params.role);
+  if (params?.sirala) q.set("sirala", params.sirala);
   q.set("page", String(params?.page ?? 0));
   q.set("size", String(params?.size ?? 20));
   const res = await fetch(`/api/teleskor/users?${q}`, { method: "GET" });
