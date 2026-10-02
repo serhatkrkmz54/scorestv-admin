@@ -32,6 +32,7 @@ import Zaman from "@/components/Zaman";
 import TeleskorOturumlar from "@/components/TeleskorOturumlar";
 import TeleskorHareketGecmisi from "@/components/TeleskorHareketGecmisi";
 import TeleskorModerasyon from "@/components/TeleskorModerasyon";
+import TeleskorIcNotlar from "@/components/TeleskorIcNotlar";
 import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
@@ -1200,6 +1201,15 @@ export default function TeleskorUsersClient() {
               </div>
             </div>
           </div>
+
+          <TeleskorIcNotlar
+            key={`not-${secili.id}`}
+            userId={secili.id}
+            username={secili.username}
+            onayIste={(baslik, uyari, onayla) =>
+              setOnayModal({ baslik, uyari, onayla: (gerekce) => onayla(gerekce) })
+            }
+          />
 
           {/* OTURUMLAR VE CİHAZLAR — üst bilgi (oturum sayısı, durum)
               değişince bölüm kendini yeniden yükler. */}

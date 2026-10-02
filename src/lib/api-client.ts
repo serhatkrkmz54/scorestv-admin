@@ -21,6 +21,7 @@ import type {
   TeleskorUserProfil,
   TeleskorOturumOzeti,
   TeleskorModerasyonOzeti,
+  TeleskorUyeNotu,
   TeleskorCreateUserRequest,
   TeleskorRole,
   TeleskorPointAccount,
@@ -326,6 +327,22 @@ export async function apiTeleskorHareketler(
 export async function apiTeleskorModerasyon(id: number): Promise<TeleskorModerasyonOzeti> {
   const res = await fetch(`/api/teleskor/users/${id}/moderasyon`, { method: "GET" });
   return parse<TeleskorModerasyonOzeti>(res);
+}
+
+export async function apiTeleskorNotlar(id: number): Promise<TeleskorUyeNotu[]> {
+  const res = await fetch(`/api/teleskor/users/${id}/notlar`, { method: "GET" });
+  return parse<TeleskorUyeNotu[]>(res);
+}
+
+export async function apiTeleskorNotEkle(id: number, metin: string): Promise<TeleskorUyeNotu> {
+  const res = await fetch(`/api/teleskor/users/${id}/notlar`, jsonInit("POST", { metin }));
+  return parse<TeleskorUyeNotu>(res);
+}
+
+/** Yumuşak silme; gerekçe zorunlu (denetim kaydı). */
+export async function apiTeleskorNotSil(id: number, notId: number, reason: string): Promise<void> {
+  const res = await fetch(`/api/teleskor/users/${id}/notlar/${notId}/sil`, jsonInit("POST", { reason }));
+  await parse<{ ok: boolean }>(res);
 }
 
 export async function apiTeleskorCreateUser(

@@ -5,7 +5,7 @@
 import type { DenetimSatiri } from "@/lib/types";
 
 /**
- * Denetim olaylarının Türkçesi — AuditEvent enum'unun TAMAMI (76 olay;
+ * Denetim olaylarının Türkçesi — AuditEvent enum'unun TAMAMI (79 olay;
  * 2 Ekim'de 8 eksik + 14 yeni panel işlemi eklendi).
  *
  * <p>İlk yazımda yalnız gözüme çarpanları yazmıştım ve yarısı ham kod
@@ -79,6 +79,9 @@ export const OLAY_TR: Record<string, string> = {
   AVATAR_REMOVED_BY_ADMIN: "Profil fotoğrafı kaldırıldı (yönetici)",
   SESSIONS_REVOKED_BY_ADMIN: "Oturumlar kapatıldı (yönetici)",
   SESSION_REVOKED_BY_ADMIN: "Tek oturum kapatıldı (yönetici)",
+  USER_VIEWED_BY_ADMIN: "Üye kartı görüntülendi",
+  UYE_NOTU_EKLENDI: "İç not yazıldı",
+  UYE_NOTU_SILINDI: "İç not silindi",
   LOGIN_LOCK_CLEARED_BY_ADMIN: "Giriş kilidi açıldı (yönetici)",
   TELEPUAN_ADJUSTED_BY_ADMIN: "Telepuan değiştirildi (yönetici)",
   MARKET_PRODUCT_SAVED_BY_ADMIN: "Market ürünü kaydedildi",
@@ -134,6 +137,9 @@ export const YONETICI_OLAYLARI = [
   "ACCOUNT_ENABLED",
   "SESSIONS_REVOKED_BY_ADMIN",
   "SESSION_REVOKED_BY_ADMIN",
+  "USER_VIEWED_BY_ADMIN",
+  "UYE_NOTU_EKLENDI",
+  "UYE_NOTU_SILINDI",
   "LOGIN_LOCK_CLEARED_BY_ADMIN",
   "AVATAR_REMOVED_BY_ADMIN",
   "CHAT_MESSAGE_DELETED_BY_ADMIN",
@@ -196,6 +202,7 @@ export const KONU_TR: Record<string, string> = {
   urun: "Market ürünü",
   siparis: "Sipariş",
   user: "Hesap",
+  not: "İç not",
 };
 
 /** Öneksiz konular (tek kelime) — panelin hangi masasında yapıldı. */

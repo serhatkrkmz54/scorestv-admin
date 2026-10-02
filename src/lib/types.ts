@@ -198,6 +198,15 @@ export type TeleskorFavoriTuru =
 /**
  * Üyenin profil dökümü — uygulamada gördüğü profilin yönetici karşılığı.
  */
+/** Üyeye yönetici iç notu (Adım 6; kullanıcı görmez). */
+export interface TeleskorUyeNotu {
+  id: number;
+  metin: string;
+  yazanId?: number | null;
+  yazan?: string | null;
+  zaman: string;
+}
+
 /** Üye kartının moderasyon ve içerik özeti (Adım 4). */
 export interface TeleskorSayiCifti {
   toplam: number;
