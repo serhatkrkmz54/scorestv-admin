@@ -7,7 +7,7 @@ import type { TeleskorCreateUserRequest, TeleskorUserPage } from "@/lib/types";
 /**
  * Teleskor üyeleri — arama ve hesap açma.
  * Teleskor backend:
- *   GET  /api/v1/admin/users?q=&status=&role=&sirala=&page=&size=
+ *   GET  /api/v1/admin/users?q=&status=&role=&emailVerified=&bagliHesap=&platform=&sonGorulme=&sirala=&page=&size=
  *   POST /api/v1/admin/users
  */
 export async function GET(req: NextRequest) {
@@ -16,7 +16,16 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams;
   const q = new URLSearchParams();
-  for (const anahtar of ["q", "status", "role", "emailVerified", "sirala"]) {
+  for (const anahtar of [
+    "q",
+    "status",
+    "role",
+    "emailVerified",
+    "sirala",
+    "bagliHesap",
+    "platform",
+    "sonGorulme",
+  ]) {
     const deger = sp.get(anahtar);
     if (deger) q.set(anahtar, deger);
   }

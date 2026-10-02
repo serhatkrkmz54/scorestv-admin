@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   apiTeleskorUsers,
   apiTeleskorUser,
@@ -47,6 +47,55 @@ const DURUM_TR: Record<string, string> = {
   DELETION_PENDING: "Silme bekliyor",
   ANONYMIZED: "Anonimleştirildi",
 };
+
+/** Üye listesi süzgeçleri; değerler sunucunun beklediği kodlar. */
+const SUZGEC_ALANLARI = [
+  { anahtar: "status", etiket: "Durum", secenekler: Object.entries(DURUM_TR) },
+  { anahtar: "role", etiket: "Rol", secenekler: Object.entries(ROL_TR) },
+  {
+    anahtar: "emailVerified",
+    etiket: "E-posta",
+    secenekler: [
+      ["true", "doğrulanmış"],
+      ["false", "doğrulanmamış"],
+    ],
+  },
+  {
+    anahtar: "bagliHesap",
+    etiket: "Bağlı hesap",
+    secenekler: [
+      ["GOOGLE", "Google"],
+      ["APPLE", "Apple"],
+      ["YOK", "yok (yalnız şifre)"],
+    ],
+  },
+  {
+    anahtar: "platform",
+    etiket: "Açık oturum",
+    secenekler: [
+      ["IOS", "iOS"],
+      ["ANDROID", "Android"],
+      ["WEB", "Web"],
+      ["YOK", "hiç yok"],
+    ],
+  },
+  {
+    anahtar: "sonGorulme",
+    etiket: "Son görülme",
+    secenekler: [
+      ["GUN", "son 24 saat"],
+      ["HAFTA", "son 7 gün"],
+      ["AY", "son 30 gün"],
+      ["PASIF", "30 günden eski"],
+      ["HIC", "hiç görülmedi"],
+    ],
+  },
+] as const;
+
+type SuzgecAnahtari = (typeof SUZGEC_ALANLARI)[number]["anahtar"];
+type Suzgec = Record<SuzgecAnahtari, string>;
+const SUZGEC_ANAHTARLARI = SUZGEC_ALANLARI.map((a) => a.anahtar);
+const BOS_SUZGEC = Object.fromEntries(SUZGEC_ANAHTARLARI.map((k) => [k, ""])) as Suzgec;
 
 /**
  * Telepuan hareket türlerinin Türkçesi.
@@ -257,6 +306,10 @@ export default function TeleskorUsersClient() {
   const [arama, setArama] = useState("");
   const [q, setQ] = useState("");
   const [sirala, setSirala] = useState("");
+  // SÜZGEÇLER — adres çubuğunda da tutulur (paylaşılabilir bağlantı,
+  // yenilemede kaybolmaz; Kitle sayfası "görülen" sayılarından buraya bağlanır).
+  const [suzgec, setSuzgec] = useState<Suzgec>(BOS_SUZGEC);
+  const [suzgecHazir, setSuzgecHazir] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -315,19 +368,56 @@ export default function TeleskorUsersClient() {
     onayla: (gerekce: string, secilen: string) => Promise<void>;
   } | null>(null);
 
+  // Süzgeç hızlı değişince geç gelen ESKİ yanıt yenisinin üstüne yazmasın.
+  const istekNo = useRef(0);
   const load = useCallback(async () => {
+    // Adres çubuğundaki süzgeçler okunmadan istek yok (yanlış liste + titreme).
+    if (!suzgecHazir) return;
+    const no = ++istekNo.current;
     setLoading(true);
     try {
-      const p = await apiTeleskorUsers({ q, page: sayfa, size: 20, sirala });
+      const p = await apiTeleskorUsers({ q, page: sayfa, size: 20, sirala, ...suzgec });
+      if (no !== istekNo.current) return;
       setRows(p.content);
       setToplam(p.totalElements);
       setHata(null);
     } catch (e) {
+      if (no !== istekNo.current) return;
       setHata(e instanceof ApiError ? e.message : "Üyeler alınamadı.");
     } finally {
-      setLoading(false);
+      if (no === istekNo.current) setLoading(false);
     }
-  }, [q, sayfa, sirala]);
+  }, [q, sayfa, sirala, suzgec, suzgecHazir]);
+
+  // İlk açılışta adres çubuğundaki süzgeçler (useSearchParams yerine
+  // window: Suspense sınırı gerekmez); sonra her değişiklik adrese yazılır.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const ilk = { ...BOS_SUZGEC };
+    for (const k of SUZGEC_ANAHTARLARI) ilk[k] = sp.get(k) ?? "";
+    setSuzgec(ilk);
+    setQ(sp.get("q") ?? "");
+    setArama(sp.get("q") ?? "");
+    setSirala(sp.get("sirala") ?? "");
+    setSuzgecHazir(true);
+  }, []);
+  useEffect(() => {
+    if (!suzgecHazir) return;
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (sirala) sp.set("sirala", sirala);
+    for (const k of SUZGEC_ANAHTARLARI) if (suzgec[k]) sp.set(k, suzgec[k]);
+    const yeni = `${window.location.pathname}${sp.size ? `?${sp}` : ""}`;
+    if (yeni !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, "", yeni);
+    }
+  }, [q, sirala, suzgec, suzgecHazir]);
+
+  function suzgecDegistir(k: SuzgecAnahtari, v: string) {
+    setSayfa(0);
+    setSuzgec((s) => ({ ...s, [k]: v }));
+  }
+  const suzgecSayisi = SUZGEC_ANAHTARLARI.filter((k) => suzgec[k]).length;
 
   useEffect(() => {
     load();
@@ -799,6 +889,44 @@ export default function TeleskorUsersClient() {
           <span className="muted" style={{ fontSize: 12.5, alignSelf: "center" }}>
             {toplam} üye
           </span>
+        </div>
+
+        <div
+          style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}
+        >
+          {SUZGEC_ALANLARI.map((a) => (
+            <select
+              key={a.anahtar}
+              className="input"
+              style={{
+                flex: "1 1 150px",
+                minWidth: 0,
+                maxWidth: 230,
+                ...(suzgec[a.anahtar] ? { borderColor: "var(--brand)" } : {}),
+              }}
+              aria-label={a.etiket}
+              value={suzgec[a.anahtar]}
+              onChange={(e) => suzgecDegistir(a.anahtar, e.target.value)}
+            >
+              <option value="">{a.etiket}: tümü</option>
+              {a.secenekler.map(([deger, ad]) => (
+                <option key={deger} value={deger}>
+                  {a.etiket}: {ad}
+                </option>
+              ))}
+            </select>
+          ))}
+          {suzgecSayisi > 0 && (
+            <button
+              className="btn btn-sm btn-ghost"
+              onClick={() => {
+                setSayfa(0);
+                setSuzgec(BOS_SUZGEC);
+              }}
+            >
+              Süzgeçleri temizle ({suzgecSayisi})
+            </button>
+          )}
         </div>
 
         {loading ? (

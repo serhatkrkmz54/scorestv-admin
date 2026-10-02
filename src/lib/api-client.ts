@@ -255,12 +255,20 @@ export async function apiTeleskorUsers(params?: {
   size?: number;
   /** "sonGorulme" | "sonGiris"; boş = en yeni üye önce. */
   sirala?: string;
+  /** "true" | "false" */
+  emailVerified?: string;
+  /** GOOGLE | APPLE | YOK */
+  bagliHesap?: string;
+  /** Açık oturumun platformu: IOS | ANDROID | WEB | YOK */
+  platform?: string;
+  /** GUN | HAFTA | AY | PASIF | HIC */
+  sonGorulme?: string;
 }): Promise<TeleskorUserPage> {
   const q = new URLSearchParams();
-  if (params?.q) q.set("q", params.q);
-  if (params?.status) q.set("status", params.status);
-  if (params?.role) q.set("role", params.role);
-  if (params?.sirala) q.set("sirala", params.sirala);
+  for (const k of ["q", "status", "role", "sirala", "emailVerified", "bagliHesap", "platform", "sonGorulme"] as const) {
+    const v = params?.[k];
+    if (v) q.set(k, v);
+  }
   q.set("page", String(params?.page ?? 0));
   q.set("size", String(params?.size ?? 20));
   const res = await fetch(`/api/teleskor/users?${q}`, { method: "GET" });

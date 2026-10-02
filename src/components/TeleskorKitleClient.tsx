@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 type Kitle = {
@@ -196,11 +197,15 @@ export default function TeleskorKitleClient() {
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(u.aktifgun)}</div>
-                <div className="stat-label">Son 24 saatte görülen</div>
+                <div className="stat-label">
+                  <Link href="/teleskor/uyeler?sonGorulme=GUN&sirala=sonGorulme">Son 24 saatte görülen</Link>
+                </div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(u.aktifhafta)}</div>
-                <div className="stat-label">Son 7 günde görülen</div>
+                <div className="stat-label">
+                  <Link href="/teleskor/uyeler?sonGorulme=HAFTA&sirala=sonGorulme">Son 7 günde görülen</Link>
+                </div>
               </div>
               <div className="stat-card">
                 <div className="stat-value">{sayi(veri?.misafirCihaz)}</div>
