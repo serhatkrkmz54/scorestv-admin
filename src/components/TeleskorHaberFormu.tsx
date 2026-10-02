@@ -182,6 +182,11 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
   const [kapakAnahtar, setKapakAnahtar] = useState<string | null>(ilk?.kapakAnahtar ?? null);
   const [kapakAdres, setKapakAdres] = useState<string | null>(ilk?.kapakAdres ?? null);
   const [kapakYukleniyor, setKapakYukleniyor] = useState<number | null>(null);
+  // KAPAK ZORUNLU (Serhat, 2 Ekim): yayında ve zamanlanmış haberde şart, taslakta değil
+  // (api-1 `HaberYonetimServisi.KAPAK_ZORUNLU` ile aynı kural). Hata kapak kartında
+  // işaretlenir ve sayfa oraya kayar; mesaj Kaydet'in yanında da görünür.
+  const [kapakHatasi, setKapakHatasi] = useState(false);
+  const kapakKarti = useRef<HTMLDivElement>(null);
   const [durum, setDurum] = useState<TeleskorHaberDurum>(ilk?.durum ?? "TASLAK");
   const [yayinYerel, setYayinYerel] = useState(yerelSaat(ilk?.yayinAni ?? null));
   const [kategori, setKategori] = useState(ilk?.kategori ?? "GENERAL");
@@ -208,6 +213,7 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
       const y = await apiTeleskorHaberGorsel(dosya, (p) => setKapakYukleniyor(p));
       setKapakAnahtar(y.anahtar);
       setKapakAdres(y.url);
+      setKapakHatasi(false);
     } catch (e) {
       setHata(e instanceof ApiError ? e.message : "Kapak yüklenemedi.");
     } finally {
@@ -238,11 +244,24 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
       slider, sliderSira, kaynak, kaynakUrl, bildirim, varliklar],
   );
 
+  const kapakZorunlu = durum === "YAYINDA" || durum === "ZAMANLI";
+
+  const kapagaGit = () => {
+    setKapakHatasi(true);
+    kapakKarti.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    kapakKarti.current?.focus({ preventScroll: true });
+  };
+
   const kaydet = async () => {
     setHata(null);
     setTamam(null);
     if (!baslik.trim()) {
       setHata("Başlık zorunlu.");
+      return;
+    }
+    if (kapakZorunlu && !kapakAnahtar) {
+      setHata(`Kapak görseli zorunlu: ${durum === "ZAMANLI" ? "zamanlamak" : "yayınlamak"} için önce kapak görseli yükle.`);
+      kapagaGit();
       return;
     }
     if (durum === "YAYINDA" && bildirim !== "YOK" && !bildirimGitti) {
@@ -259,7 +278,9 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
         router.refresh();
       }
     } catch (e) {
-      setHata(e instanceof ApiError ? e.message : "Kaydedilemedi.");
+      const mesaj = e instanceof ApiError ? e.message : "Kaydedilemedi.";
+      setHata(mesaj);
+      if (mesaj.startsWith("Kapak görseli zorunlu")) kapagaGit();
     } finally {
       setKaydediliyor(false);
     }
@@ -374,8 +395,8 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
             )}
           </div>
 
-          <div className="card card-pad">
-            <div className="section-title">Kapak görseli</div>
+          <div ref={kapakKarti} tabIndex={-1} className={`card card-pad${kapakHatasi && kapakZorunlu && !kapakAnahtar ? " kart-hatali" : ""}`}>
+            <div className="section-title">Kapak görseli {kapakZorunlu && <span className="req">*</span>}</div>
             {kapakAdres ? (
               <img src={kapakAdres} alt="" style={{ width: "100%", borderRadius: 8, marginBottom: 8 }} />
             ) : (
@@ -396,7 +417,10 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
                 Kaldır
               </button>
             )}
-            <div className="hint">JPEG, PNG ya da WebP; en fazla 10 MB, 1080 px genişliğe küçültülür.</div>
+            {kapakHatasi && kapakZorunlu && !kapakAnahtar && (
+              <div className="field-error" role="alert">Kapak görseli zorunlu. Yayınlamadan ya da zamanlamadan önce bir görsel seç.</div>
+            )}
+            <div className="hint">JPEG, PNG ya da WebP; en fazla 10 MB, 1080 px genişliğe küçültülür. Yayın ve zamanlama için zorunlu; taslak kapaksız kaydedilebilir.</div>
           </div>
 
           <div className="card card-pad">
@@ -474,6 +498,8 @@ export default function TeleskorHaberFormu({ ilk }: { ilk: TeleskorHaberDetayi |
       </div>
 
       <div className="form-actions">
+        {/* Kaydet çubuğu yapışkan: hata, sayfa nerede olursa olsun düğmenin yanında görünür. */}
+        {hata && <span className="form-actions-hata" role="alert">{hata}</span>}
         {ilk && <button className="btn btn-danger" onClick={() => void sil()} disabled={kaydediliyor}>Sil</button>}
         {ilk?.durum === "YAYINDA" && (
           <button className="btn" onClick={() => void indexNow()} disabled={kaydediliyor}>
