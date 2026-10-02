@@ -434,6 +434,10 @@ export interface DenetimSatiri {
   userAgent: string | null;
   requestId: string | null;
   detail: string | null;
+  /** Hedef hesabın kullanıcı adı (okuma anında; eski sunucuda yok). */
+  userName?: string | null;
+  /** Yapan yöneticinin kullanıcı adı. */
+  actorName?: string | null;
 }
 
 export interface DenetimSayfasi {

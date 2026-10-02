@@ -27,7 +27,8 @@ import { formatDate } from "@/lib/format";
  */
 
 /**
- * Denetim olaylarının Türkçesi — AuditEvent enum'unun TAMAMI (53 olay).
+ * Denetim olaylarının Türkçesi — AuditEvent enum'unun TAMAMI (75 olay;
+ * 2 Ekim'de 8 eksik + 14 yeni panel işlemi eklendi).
  *
  * <p>İlk yazımda yalnız gözüme çarpanları yazmıştım ve yarısı ham kod
  * olarak görünüyordu; biri de yanlıştı ({@code LOGIN_FAILED} diye bir
@@ -105,7 +106,31 @@ const OLAY_TR: Record<string, string> = {
   MARKET_ORDER_UPDATED_BY_ADMIN: "Market siparişi güncellendi",
   CHAT_MESSAGE_DELETED_BY_ADMIN: "Sohbet mesajı silindi (yönetici)",
   CHAT_REPORT_DISMISSED_BY_ADMIN: "Sohbet şikayeti yersiz bulundu",
+  ONAY_ROZETI_DEGISTI: "Onay rozeti değiştirildi",
+  KULLANICI_SUSTURULDU: "Kullanıcı susturuldu / susturma kalktı",
+  GONDERI_DELETED_BY_ADMIN: "Gönderi silindi (yönetici)",
+  YORUM_DELETED_BY_ADMIN: "Yorum silindi (yönetici)",
+  GONDERI_REPORT_DISMISSED_BY_ADMIN: "Gönderi şikayeti yersiz bulundu",
   AUDIT_LOG_VIEWED: "Denetim kaydı görüntülendi",
+
+  // Panel içerik ve ayar işlemleri
+  ONE_CIKAN_LIG_DEGISTI: "Öne çıkan ligler değiştirildi",
+  UYGULAMA_AYARI_DEGISTI: "Uygulama ayarı değiştirildi",
+  MAC_OZETI_DEGISTI: "Maç özeti / nabız videosu değişti",
+  DESTEK_CEVAPLANDI: "Destek talebi cevaplandı",
+  DESTEK_DURUMU_DEGISTI: "Destek talebinin durumu değişti",
+  DUYURU_GONDERILDI: "Duyuru gönderildi",
+  SURUM_NOTU_DEGISTI: "Sürüm notu değişti",
+  HABER_KAYDEDILDI: "Haber kaydedildi",
+  HABER_SILINDI: "Haber silindi",
+  HABER_ARAMA_MOTORUNA_BILDIRILDI: "Haber arama motorlarına bildirildi",
+  CEVIRI_DUZELTILDI: "Çeviri düzeltildi",
+  VERI_DUZELTILDI: "Veri düzeltildi",
+  KADRO_DUZELTILDI: "Kadro düzeltildi",
+  MOTOR_ISLEMI_CALISTIRILDI: "Veri işlemi elle çalıştırıldı",
+  SAYAC_SIFIRLANDI: "Sayaçlar sıfırlandı",
+  BILDIRIM_UZLASTIRILDI: "Bildirim abonelikleri uzlaştırıldı",
+  ORANLAR_TAZELENDI: "Oranlar elle tazelendi",
 
   // Bakım
   AUDIT_LOG_PRUNED: "Eski kayıtlar silindi",
@@ -134,13 +159,120 @@ const YONETICI_OLAYLARI = [
   "CHAT_MESSAGE_DELETED_BY_ADMIN",
   "CHAT_REPORT_DISMISSED_BY_ADMIN",
   "LEGAL_DOCUMENT_PUBLISHED",
+  "ONAY_ROZETI_DEGISTI",
+  "KULLANICI_SUSTURULDU",
+  "GONDERI_DELETED_BY_ADMIN",
+  "YORUM_DELETED_BY_ADMIN",
+  "GONDERI_REPORT_DISMISSED_BY_ADMIN",
+  "HABER_KAYDEDILDI",
+  "HABER_SILINDI",
+  "HABER_ARAMA_MOTORUNA_BILDIRILDI",
+  "DUYURU_GONDERILDI",
+  "SURUM_NOTU_DEGISTI",
+  "DESTEK_CEVAPLANDI",
+  "DESTEK_DURUMU_DEGISTI",
+  "ONE_CIKAN_LIG_DEGISTI",
+  "UYGULAMA_AYARI_DEGISTI",
+  "MAC_OZETI_DEGISTI",
+  "CEVIRI_DUZELTILDI",
+  "VERI_DUZELTILDI",
+  "KADRO_DUZELTILDI",
+  "MOTOR_ISLEMI_CALISTIRILDI",
+  "ORANLAR_TAZELENDI",
+  "BILDIRIM_UZLASTIRILDI",
+  "SAYAC_SIFIRLANDI",
   "AUDIT_LOG_VIEWED",
+  "AUDIT_LOG_PRUNED",
 ];
 
 /** Kalanlar — kullanıcının kendi hareketleri, Türkçe ada göre sıralı. */
 const DIGER_OLAYLAR = Object.keys(OLAY_TR)
   .filter((k) => !YONETICI_OLAYLARI.includes(k))
   .sort((a, b) => OLAY_TR[a].localeCompare(OLAY_TR[b], "tr"));
+
+/** Sunucunun kaynağı olmayan (zamanlanmış görev) kayıtlarına yazdığı IP. */
+const BILINMEYEN_IP = "bilinmiyor";
+
+/** Kimse tarafından değil, sunucunun kendi görevince yazılmış satır. */
+function sistemSatiri(s: DenetimSatiri): boolean {
+  return (
+    s.actorUserId == null &&
+    s.userId == null &&
+    (s.ipAddress == null || s.ipAddress === BILINMEYEN_IP)
+  );
+}
+
+/** Konu önekleri ("mac:7722", "haber#5") — okunur ada. Tanınmayan olduğu gibi. */
+const KONU_TR: Record<string, string> = {
+  mac: "Maç",
+  haber: "Haber",
+  destek: "Destek talebi",
+  duyuru: "Duyuru",
+  "surum-notu": "Sürüm notu",
+  kadro: "Kadro düzeltmesi",
+  sozluk: "Sözlük",
+  veri: "Veri",
+  senkron: "Veri kaynağı",
+  urun: "Market ürünü",
+  siparis: "Sipariş",
+  user: "Hesap",
+};
+
+/** Öneksiz konular (tek kelime) — panelin hangi masasında yapıldı. */
+const TEK_KONU_TR: Record<string, string> = {
+  kadro: "Kadro Masası",
+  ceviri: "Çeviri Düzeltme",
+  arsiv: "Arşiv",
+  push: "Bildirim cihazları",
+  oranlar: "Oranlar",
+  "db-usage": "Sorgu sayaçları",
+  "motor-kullanimi": "Veri isteği sayaçları",
+};
+
+function konuYaz(konu: string): string {
+  if (TEK_KONU_TR[konu]) return TEK_KONU_TR[konu];
+  const m = /^([a-z-]+)[:#](.+)$/i.exec(konu);
+  if (!m) return konu;
+  const ad = KONU_TR[m[1].toLowerCase()];
+  if (!ad) return konu;
+  return /^\d+$/.test(m[2]) ? `${ad} #${m[2]}` : `${ad}: ${m[2]}`;
+}
+
+/**
+ * Ayrıntıdaki boş süzgeç izleri. 2 Ekim'den önceki görüntüleme kayıtları
+ * "sorgu: userId=null event=null …" yazıyordu; kayıt değiştirilemez
+ * (zincir), yalnız gösterimde temizlenir.
+ */
+function ayrintiYaz(detay: string | null): string {
+  if (!detay) return "—";
+  let metin = detay;
+  if (/\b\w+=null\b/.test(metin)) {
+    metin = metin.replace(/\s*\b\w+=null\b/g, "").trim();
+    if (metin === "sorgu:" || metin === "") return "liste açıldı (süzgeçsiz)";
+    metin = metin
+      .replace(/^sorgu:/, "süzgeç:")
+      .replace(/\buserId=(\d+)/, "hesap #$1")
+      .replace(/\bevent=/, "olay ")
+      .replace(/\bip=/, "IP ")
+      .replace(/\bfrom=/, "başlangıç ")
+      .replace(/\bto=/, "bitiş ");
+  }
+  // Panelin gönderdiği gövde (JSON) "alan: değer · alan: değer" olarak.
+  metin = metin.replace(/\{.*\}/, (j) => {
+    try {
+      const o = JSON.parse(j);
+      if (!o || typeof o !== "object" || Array.isArray(o)) return j;
+      return Object.entries(o)
+        .filter(([, v]) => v !== null && v !== "")
+        .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+        .join(" · ");
+    } catch {
+      return j;
+    }
+  });
+  // Ayrıntıda geçen olay kodu (süzgeç özeti) Türkçesiyle.
+  return metin.replace(/\b[A-Z][A-Z_]{2,}\b/g, (k) => (OLAY_TR[k] ? `"${OLAY_TR[k]}"` : k));
+}
 
 export default function TeleskorDenetimClient() {
   const [satirlar, setSatirlar] = useState<DenetimSatiri[]>([]);
@@ -275,7 +407,7 @@ export default function TeleskorDenetimClient() {
             onKeyDown={(e) => {
               if (e.key === "Enter") uygula();
             }}
-            placeholder="Kullanıcı id"
+            placeholder="Hesap no (#)"
           />
           <button className="btn btn-sm" onClick={uygula}>
             Süz
@@ -315,14 +447,17 @@ export default function TeleskorDenetimClient() {
                   <tr>
                     <th style={{ width: 150 }}>Zaman</th>
                     <th>Olay</th>
-                    <th style={{ width: 110 }}>Kullanıcı</th>
-                    <th style={{ width: 110 }}>Yapan</th>
+                    <th style={{ width: 150 }}>Hedef</th>
+                    <th style={{ width: 130 }}>Yapan</th>
                     <th>Ayrıntı</th>
                     <th style={{ width: 120 }}>IP</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {satirlar.map((s) => (
+                  {satirlar.map((s) => {
+                    const sistem = sistemSatiri(s);
+                    const konu = s.subject && s.subject !== s.userName ? konuYaz(s.subject) : null;
+                    return (
                     <tr key={s.id}>
                       <td style={{ fontSize: 12.5 }}>{formatDate(s.occurredAt)}</td>
                       <td style={{ fontSize: 12.5 }}>
@@ -330,18 +465,42 @@ export default function TeleskorDenetimClient() {
                           {OLAY_TR[s.event] ?? s.event}
                         </div>
                         {s.outcome !== "SUCCESS" && (
-                          <span className="badge badge-archived">{s.outcome}</span>
+                          <span className="badge badge-archived">{s.outcome === "FAILURE" ? "Başarısız" : s.outcome}</span>
                         )}
                       </td>
-                      <td style={{ fontSize: 12.5 }}>
-                        {s.userId ?? "—"}
-                        {s.subject && (
-                          <div className="muted" style={{ fontSize: 11.5 }}>
-                            {s.subject}
+                      <td style={{ fontSize: 12.5, wordBreak: "break-word" }}>
+                        {s.userId != null ? (
+                          <>
+                            <b>{s.userName ?? `Hesap #${s.userId}`}</b>
+                            {s.userName && (
+                              <span className="muted" style={{ fontSize: 11.5 }}> #{s.userId}</span>
+                            )}
+                          </>
+                        ) : !konu ? (
+                          "—"
+                        ) : null}
+                        {konu && (
+                          <div className={s.userId != null ? "muted" : undefined} style={{ fontSize: s.userId != null ? 11.5 : 12.5 }}>
+                            {konu}
                           </div>
                         )}
                       </td>
-                      <td style={{ fontSize: 12.5 }}>{s.actorUserId ?? "—"}</td>
+                      <td style={{ fontSize: 12.5 }}>
+                        {s.actorUserId != null ? (
+                          <>
+                            <b>{s.actorName ?? `Hesap #${s.actorUserId}`}</b>
+                            {s.actorName && (
+                              <span className="muted" style={{ fontSize: 11.5 }}> #{s.actorUserId}</span>
+                            )}
+                          </>
+                        ) : sistem ? (
+                          <span className="badge" style={{ whiteSpace: "nowrap" }}>Sistem (otomatik)</span>
+                        ) : s.userId != null ? (
+                          <span className="muted">Kullanıcının kendisi</span>
+                        ) : (
+                          <span className="muted">Oturumsuz istek</span>
+                        )}
+                      </td>
                       <td
                         style={{
                           fontSize: 12.5,
@@ -349,10 +508,14 @@ export default function TeleskorDenetimClient() {
                           wordBreak: "break-word",
                         }}
                       >
-                        {s.detail ?? "—"}
+                        {ayrintiYaz(s.detail)}
                       </td>
                       <td style={{ fontSize: 12 }}>
-                        {s.ipAddress ?? "—"}
+                        {s.ipAddress == null || s.ipAddress === BILINMEYEN_IP ? (
+                          <span className="muted">{sistem ? "Sunucu" : "—"}</span>
+                        ) : (
+                          s.ipAddress
+                        )}
                         {s.country && (
                           <div className="muted" style={{ fontSize: 11.5 }}>
                             {s.country}
@@ -360,7 +523,8 @@ export default function TeleskorDenetimClient() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
