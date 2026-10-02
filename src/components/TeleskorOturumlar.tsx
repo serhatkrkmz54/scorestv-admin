@@ -30,8 +30,11 @@ function kapanisYaz(kod: string | null | undefined): string {
     SESSION_CLOSED: "Kullanıcı oturumu kapattı",
     USER_REQUEST: "Bildirimleri kapattı ya da çıkış yaptı",
     UNREGISTERED: "Adres geçersiz (uygulama silinmiş olabilir)",
-    ACCOUNT_CLOSED: "Hesap kapandı",
+    ACCOUNT_CLOSED: "Hesap donduruldu, silinmek üzere ya da kapandı",
     ADMIN: "Yönetici kapattı",
+    PASSWORD_CHANGED: "Şifre değişti (diğer oturumlar kapandı)",
+    EMAIL_CHANGED: "E-posta değişti (bütün oturumlar kapandı)",
+    SECURITY: "Güvenlik: kullanılmış oturum anahtarı tekrar denendi",
     YENI_TOKEN: "Aynı cihaz yeniden kaydoldu",
     "UZLASTIRMA:NOT_FOUND": "Bildirim sunucusunda kaydı yok",
   };
