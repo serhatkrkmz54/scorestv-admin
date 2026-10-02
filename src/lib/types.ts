@@ -198,6 +198,45 @@ export type TeleskorFavoriTuru =
 /**
  * Üyenin profil dökümü — uygulamada gördüğü profilin yönetici karşılığı.
  */
+/** Üyenin açık oturumu (Adım 2). Cihaz/platform/sürüm istemcinin beyanı; IP ve ülke sunucunun. */
+export interface TeleskorOturum {
+  id: string;
+  cihaz?: string | null;
+  platform?: string | null;
+  surum?: string | null;
+  ilkIp?: string | null;
+  sonIp?: string | null;
+  ulke?: string | null;
+  baslangic: string;
+  sonKullanim: string;
+  bitis: string;
+  /** Bu oturuma bağlı açık bir bildirim cihazı var mı. */
+  bildirimAcik: boolean;
+}
+
+/** Bildirim cihazı: açık olanlar ve son 30 günde kapananlar. */
+export interface TeleskorBildirimCihazi {
+  id: number;
+  platform?: string | null;
+  cihaz?: string | null;
+  surum?: string | null;
+  dil?: string | null;
+  saatDilimi?: string | null;
+  kayit: string;
+  sonGorulme: string;
+  kapanis?: string | null;
+  /** Ham kod (LOGOUT, ADMIN, UZLASTIRMA:NOT_FOUND…). */
+  kapanisSebebi?: string | null;
+  oturumId?: string | null;
+  kuruluKonu: number;
+  bekleyenKonu: number;
+}
+
+export interface TeleskorOturumOzeti {
+  oturumlar: TeleskorOturum[];
+  bildirimCihazlari: TeleskorBildirimCihazi[];
+}
+
 export interface TeleskorUserProfil {
   /** Herkese açık profil kapalıysa profili kimse göremez. */
   profilAcik: boolean;

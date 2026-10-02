@@ -28,6 +28,7 @@ import type {
   TeleskorRole,
 } from "@/lib/types";
 import { formatDate, goreliZaman } from "@/lib/format";
+import TeleskorOturumlar from "@/components/TeleskorOturumlar";
 import TeleskorOnayModal from "./TeleskorOnayModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
@@ -1068,6 +1069,20 @@ export default function TeleskorUsersClient() {
               </div>
             </div>
           </div>
+
+          {/* OTURUMLAR VE CİHAZLAR — üst bilgi (oturum sayısı, durum)
+              değişince bölüm kendini yeniden yükler. */}
+          <TeleskorOturumlar
+            key={`${secili.id}-${secili.activeSessions}-${secili.status}`}
+            userId={secili.id}
+            username={secili.username}
+            onayIste={(baslik, uyari, onayla) =>
+              setOnayModal({ baslik, uyari, onayla: (gerekce) => onayla(gerekce) })
+            }
+            onDegisti={() => {
+              apiTeleskorUser(secili.id).then(setSecili).catch(() => {});
+            }}
+          />
 
           {/* PROFİL VE FAVORİLER — kullanıcının uygulamada gördüğü
               profilin karşılığı. Ayrı istekle geliyor (detayAc): favori

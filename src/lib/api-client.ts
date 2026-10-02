@@ -19,6 +19,7 @@ import type {
   TeleskorUserPage,
   TeleskorUserDetail,
   TeleskorUserProfil,
+  TeleskorOturumOzeti,
   TeleskorCreateUserRequest,
   TeleskorRole,
   TeleskorPointAccount,
@@ -281,6 +282,24 @@ export async function apiTeleskorUserProfil(
 ): Promise<TeleskorUserProfil> {
   const res = await fetch(`/api/teleskor/users/${id}/profil`, { method: "GET" });
   return parse<TeleskorUserProfil>(res);
+}
+
+export async function apiTeleskorOturumlar(id: number): Promise<TeleskorOturumOzeti> {
+  const res = await fetch(`/api/teleskor/users/${id}/oturumlar`, { method: "GET" });
+  return parse<TeleskorOturumOzeti>(res);
+}
+
+/** Tek oturumu kapatır; gerekçe zorunlu (denetim kaydı). */
+export async function apiTeleskorOturumKapat(
+  id: number,
+  oturumId: string,
+  reason: string,
+): Promise<void> {
+  const res = await fetch(
+    `/api/teleskor/users/${id}/oturumlar/${encodeURIComponent(oturumId)}/kapat`,
+    jsonInit("POST", { reason }),
+  );
+  await parse<{ ok: boolean }>(res);
 }
 
 export async function apiTeleskorCreateUser(
