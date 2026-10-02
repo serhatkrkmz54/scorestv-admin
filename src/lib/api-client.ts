@@ -302,6 +302,18 @@ export async function apiTeleskorOturumKapat(
   await parse<{ ok: boolean }>(res);
 }
 
+/** Üyenin hareket geçmişi (denetim kayıtları, görüntülemeler hariç). */
+export async function apiTeleskorHareketler(
+  id: number,
+  page = 0,
+  size = 20,
+): Promise<DenetimSayfasi> {
+  const res = await fetch(`/api/teleskor/users/${id}/hareketler?page=${page}&size=${size}`, {
+    method: "GET",
+  });
+  return parse<DenetimSayfasi>(res);
+}
+
 export async function apiTeleskorCreateUser(
   data: TeleskorCreateUserRequest,
 ): Promise<{ id: number }> {

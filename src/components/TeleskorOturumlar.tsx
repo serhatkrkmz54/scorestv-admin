@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiTeleskorOturumKapat, apiTeleskorOturumlar, ApiError } from "@/lib/api-client";
 import type { TeleskorBildirimCihazi, TeleskorOturumOzeti } from "@/lib/types";
-import { formatDate, goreliZaman } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import Zaman from "@/components/Zaman";
 
 /**
  * Üye kartının "Oturumlar ve cihazlar" bölümü.
@@ -39,21 +40,6 @@ function kapanisYaz(kod: string | null | undefined): string {
 
 function platformYaz(p: string | null | undefined): string {
   return p ? (PLATFORM_TR[p] ?? p) : "—";
-}
-
-function Zaman({ iso }: { iso: string | null | undefined }) {
-  if (!iso) return <span className="muted">—</span>;
-  const goreli = goreliZaman(iso);
-  return (
-    <>
-      <div>{formatDate(iso)}</div>
-      {goreli && (
-        <div className="muted" style={{ fontSize: 11.5 }}>
-          {goreli}
-        </div>
-      )}
-    </>
-  );
 }
 
 export default function TeleskorOturumlar({
