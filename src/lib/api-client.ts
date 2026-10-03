@@ -1546,3 +1546,62 @@ export async function apiTeleskorSifreBelirle(
   const res = await fetch(`/api/teleskor/users/${id}/sifre`, jsonInit("PUT", { sifre, oturumlariKapat, reason }));
   return parse<{ oturumlarKapandi: boolean }>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Kim Daha Değerli? (api-1 V75)
+// ---------------------------------------------------------------------------
+
+export type KddHavuzSatiri = {
+  id: number;
+  ad: string;
+  foto?: string | null;
+  takim?: string | null;
+  lig?: string | null;
+  deger: number;
+  birim?: string | null;
+  degerTarihi?: string | null;
+  haric: boolean;
+};
+export type KddHavuz = { olusturuldu: string; toplam: number; haricSayisi: number; oyuncular: KddHavuzSatiri[] };
+export type KddHaric = { playerId: number; ad: string | null; notu: string | null; eklendi: string; ekleyen: string | null };
+export type KddOyuncuOzeti = { id: number; ad: string; takim?: string | null; deger: number; birim?: string | null };
+export type KddIstatistik = {
+  gun: string;
+  bicimler: { mod: string; baslayan: number; biten: number; misafir: number; uye: number; ortalamaDogru: number | null; enIyi: number }[];
+  duelloAcilan: number;
+  gununDuellosu?: {
+    kod: string;
+    bitiren: number;
+    sorular: { no: number; sol: KddOyuncuOzeti; sag: KddOyuncuOzeti; dogruTaraf: "SOL" | "SAG"; cevaplayan: number; dogruOrani: number | null }[];
+  };
+};
+
+export async function apiTeleskorKddHavuz(q: string, sadeceHaric: boolean): Promise<KddHavuz> {
+  const res = await fetch(`/api/teleskor/kdd/havuz?q=${encodeURIComponent(q)}&sadeceHaric=${sadeceHaric}`, { cache: "no-store" });
+  return parse<KddHavuz>(res);
+}
+
+export async function apiTeleskorKddTazele(): Promise<{ toplam: number }> {
+  const res = await fetch("/api/teleskor/kdd/havuz/tazele", jsonInit("POST", {}));
+  return parse<{ toplam: number }>(res);
+}
+
+export async function apiTeleskorKddHaricler(): Promise<KddHaric[]> {
+  const res = await fetch("/api/teleskor/kdd/haric", { cache: "no-store" });
+  return parse<KddHaric[]>(res);
+}
+
+export async function apiTeleskorKddHaricEkle(playerId: number, notu: string): Promise<void> {
+  const res = await fetch("/api/teleskor/kdd/haric", jsonInit("POST", { playerId, notu }));
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorKddHaricSil(playerId: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/kdd/haric/${playerId}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiTeleskorKddIstatistik(gun: string): Promise<KddIstatistik> {
+  const res = await fetch(`/api/teleskor/kdd/istatistik${gun ? `?gun=${gun}` : ""}`, { cache: "no-store" });
+  return parse<KddIstatistik>(res);
+}

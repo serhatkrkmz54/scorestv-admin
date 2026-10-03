@@ -10,6 +10,7 @@ import {
   Settings,
   ScrollText,
   ShoppingBag,
+  ArrowLeftRight,
   UserCog,
   ClipboardList,
   Shirt,
@@ -110,6 +111,7 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
         haric: "/teleskor/market/siparisler",
       },
       { href: "/teleskor/market/siparisler", ad: "Market Siparişleri", ikon: PackageCheck },
+      { href: "/teleskor/kim-daha-degerli", ad: "Kim Daha Değerli?", ikon: ArrowLeftRight },
     ],
   },
   {
