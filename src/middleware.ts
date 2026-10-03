@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, REFRESH_COOKIE, GATE_COOKIE } from "@/lib/cookie-names";
 import { tekUcusYenile, type YenilemeSonucu } from "@/lib/yenileme-ucusu";
+import { SEO_ACILIS, YOL_BASLIGI, sayfaIzinli } from "@/lib/panel-rol";
+import type { Role } from "@/lib/types";
 
 // Teleskor backend adresi (backend.ts ile aynı değişken ve aynı sıra).
 const BACKEND =
@@ -13,6 +15,11 @@ const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 gün (Teleskor REFRESH_TOKEN_TT
 // İkisi de doluysa kapı aktif; boşsa TAMAMEN devre dışı (geriye uyumlu).
 const GATE_TOKEN = process.env.PANEL_GATE_TOKEN ?? "";
 const GATE_ENABLED = (process.env.PANEL_GATE_KEY ?? "").length > 0 && GATE_TOKEN.length > 0;
+
+/** İsteği, (yol başlığı dâhil) değişmiş başlıklarıyla işleyiciye geçirir. */
+function devam(req: NextRequest): NextResponse {
+  return NextResponse.next({ request: { headers: req.headers } });
+}
 
 /**
  * Erişim kapısı + OTURUM TAZELEME (Edge middleware).
@@ -41,6 +48,23 @@ function isJwtExpired(token: string): boolean {
     return Date.now() / 1000 >= json.exp - 30;
   } catch {
     return true;
+  }
+}
+
+/**
+ * Token'daki rol (İMZA DOĞRULANMADAN — yalnız yönlendirme için; yetkiyi
+ * Teleskor her istekte kendisi denetliyor). Layout sayfalar arası
+ * istemci geçişinde yeniden çalışmadığı için SEO rolünün sayfa kapısı
+ * burada da var.
+ */
+function tokenRolu(token: string): Role | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json.role === "string" ? (json.role as Role) : null;
+  } catch {
+    return null;
   }
 }
 
@@ -107,9 +131,9 @@ async function tazele(req: NextRequest, refresh: string): Promise<NextResponse |
     }
     if (sonuc.status === 401 || sonuc.status === 403) return "gecersiz";
     // 5xx / ağ hatası → geçici kabul et, oturumu düşürme
-    return NextResponse.next();
+    return devam(req);
   } catch {
-    return NextResponse.next();
+    return devam(req);
   }
 }
 
@@ -133,6 +157,10 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     const sonuc = await tazele(req, apiYenileme);
     return sonuc === "gecersiz" ? NextResponse.next() : sonuc;
   }
+
+  // Layout'un rol kapısı için sayfa yolu (tarayıcının yolladığı aynı adlı
+  // başlık burada EZİLİR; `panel-rol.ts`).
+  req.headers.set(YOL_BASLIGI, path);
 
   // 0. ERİŞİM KAPISI — /gate hariç TÜM sayfaları (login dahil) sarar. Kapıyı
   //    geçmeyen kullanıcı paneli/login'i göremez, anahtar ekranına atılır.
@@ -177,7 +205,14 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   // 2. Access hâlâ geçerli → dokunma
   if (access && !isJwtExpired(access)) {
-    return NextResponse.next();
+    const rol = tokenRolu(access);
+    if (rol === "SEO" && !sayfaIzinli(rol, path)) {
+      const url = req.nextUrl.clone();
+      url.pathname = SEO_ACILIS;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return devam(req);
   }
 
   // 3. Refresh ile yenile (kalıcı çerez yazımı burada güvenli)

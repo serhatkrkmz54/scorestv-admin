@@ -39,6 +39,7 @@ const ROL_TR: Record<TeleskorRole, string> = {
   USER: "Üye",
   EDITOR: "Editör",
   ADMIN: "Yönetici",
+  SEO: "SEO danışmanı",
 };
 
 const DURUM_TR: Record<string, string> = {
@@ -504,6 +505,9 @@ export default function TeleskorUsersClient() {
         rol === "ADMIN"
           ? `${u.username} TÜM yönetim uçlarına erişecek. Rol değişikliği ` +
             "kullanıcının oturumlarını yenilenmeye zorlar."
+          : rol === "SEO"
+            ? `${u.username} panele girebilecek ama YALNIZ Site Haritası ekranını görecek ` +
+              "(başka hiçbir yönetim işlemi yapamaz). Oturumları yenilenmeye zorlanacak."
           : `${u.username} kullanıcısının rolü değişecek ve oturumları ` +
             "yenilenmeye zorlanacak.",
       onayla: async (gerekce) => {
@@ -824,6 +828,7 @@ export default function TeleskorUsersClient() {
                 <option value="USER">Üye</option>
                 <option value="EDITOR">Editör</option>
                 <option value="ADMIN">Yönetici</option>
+                <option value="SEO">SEO danışmanı (yalnız Site Haritası)</option>
               </select>
             </div>
             <div className="field">
@@ -1440,7 +1445,7 @@ export default function TeleskorUsersClient() {
               <span className="badge" style={{ alignSelf: "center" }}>
                 şu an {ROL_TR[secili.role]}
               </span>
-              {(["USER", "EDITOR", "ADMIN"] as const)
+              {(["USER", "EDITOR", "ADMIN", "SEO"] as const)
                 .filter((r) => r !== secili.role)
                 .map((r) => (
                   <button

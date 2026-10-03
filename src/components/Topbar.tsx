@@ -6,6 +6,7 @@ import { ExternalLink, LogOut, Menu } from "lucide-react";
 import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout } from "@/lib/api-client";
 import { gorunenAd, type AppUser } from "@/lib/types";
+import { ROL_ADI } from "@/lib/panel-rol";
 
 /** Rota → sayfa başlığı (menüdeki adlar). */
 const BASLIKLAR: [string, string][] = [
@@ -30,6 +31,7 @@ const BASLIKLAR: [string, string][] = [
   ["/teleskor/denetim", "Denetim Kaydı"],
   ["/teleskor/saglik", "Sistem Sağlığı"],
   ["/teleskor/motor", "Motor"],
+  ["/teleskor/site-haritasi", "Site Haritası"],
   ["/settings", "Panel Ayarları"],
 ];
 
@@ -54,7 +56,7 @@ export default function Topbar({ user }: { user: AppUser }) {
   }, []);
 
   const title = pageTitle(pathname);
-  const roleBadge = user.role === "ADMIN" ? "Yönetici" : user.role;
+  const roleBadge = ROL_ADI[user.role] ?? user.role;
 
   const initials = gorunenAd(user)
     .split(" ")

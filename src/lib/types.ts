@@ -1,7 +1,8 @@
 // Backend (Spring) sözleşmesiyle birebir eşleşen tipler.
 
 // ---- Auth (Teleskor, /api/v1/auth/*) ----
-export type Role = "ADMIN" | "EDITOR" | "USER";
+/** SEO (3 Ekim): panele girer ama YALNIZ Site Haritası ekranını görür. */
+export type Role = "ADMIN" | "EDITOR" | "USER" | "SEO";
 
 /** Teleskor `UserView` (GET /api/v1/auth/me) — panelin kullandığı alanlar. */
 export interface AppUser {
@@ -112,7 +113,7 @@ export interface TeleskorMarketOrder {
 // KARIŞTIRMA: ayrı servis, ayrı veritabanı, ayrı roller. Aynı e-posta iki
 // sistemde iki farklı kişi olabilir.
 
-export type TeleskorRole = "USER" | "EDITOR" | "ADMIN";
+export type TeleskorRole = "USER" | "EDITOR" | "ADMIN" | "SEO";
 
 export type TeleskorAccountStatus =
   | "ACTIVE"
@@ -1555,4 +1556,117 @@ export interface TeleskorHaberIstegi {
   kaynakUrl: string | null;
   bildirim: TeleskorHaberBildirim;
   varliklar: TeleskorHaberVarlik[];
+}
+
+// ---- Site haritası (Teleskor V72, /api/v1/admin/site-haritasi) ----
+
+export interface SiteHaritasiTuru {
+  tur: string;
+  ad: string;
+  aciklama: string;
+  acik: boolean;
+  /** Boşsa sitenin kendi değeri (sayfa türüne göre değişir). */
+  oncelik?: number | null;
+  siklik?: string | null;
+  guncelleyen?: string | null;
+  guncellendi?: string | null;
+}
+
+export interface SiteHaritasiEkAdres {
+  id: number;
+  yol: string;
+  oncelik?: number | null;
+  siklik?: string | null;
+  not?: string | null;
+  ekleyen?: string | null;
+  eklendi?: string | null;
+}
+
+export interface SiteHaritasiHaric {
+  id: number;
+  kalip: string;
+  /** Kalıba uyan sayfalara "dizine ekleme" başlığı da konur (V73). */
+  noindex: boolean;
+  not?: string | null;
+  ekleyen?: string | null;
+  eklendi?: string | null;
+}
+
+export interface SiteHaritasiRobots {
+  id: number;
+  kural: "ALLOW" | "DISALLOW";
+  yol: string;
+  not?: string | null;
+  ekleyen?: string | null;
+  eklendi?: string | null;
+}
+
+export interface SiteHaritasiAyarlari {
+  turler: SiteHaritasiTuru[];
+  ekAdresler: SiteHaritasiEkAdres[];
+  haricler: SiteHaritasiHaric[];
+  robots: SiteHaritasiRobots[];
+  indexNow: { acik: boolean; kalan: number; adresTavani: number };
+}
+
+export interface SiteHaritasiGecmis {
+  satirlar: { id: number; zaman: string; yapan: string | null; ayrinti: string | null }[];
+  dahaVar: boolean;
+}
+
+export interface SiteHaritasiIndexNowSonucu {
+  gonderilen: number;
+  durum: number;
+  kalan: number;
+}
+
+/** Site haritasının canlı özeti (panel sunucusu siteden ve herkese açık beslemeden okur). */
+export interface SiteHaritasiOzeti {
+  turler: {
+    tur: string;
+    dosya: number;
+    /** Kayıt (lig/takım/oyuncu...) sayısı; her kaydın birden çok adresi olabilir. */
+    kayit: number | null;
+    /** Adres sayısı yalnız tek dosyalı türlerde (genel, haber) ve maçlarda bugün için. */
+    adres: number | null;
+    not?: string;
+  }[];
+  toplamDosya: number;
+  hata?: string;
+}
+
+export interface SiteHaritasiDosyasi {
+  yol: string;
+  tur: "dizin" | "adresler";
+  toplam: number;
+  /** Süzgeçten sonra kaç tane (q verildiyse). */
+  eslesen: number;
+  satirlar: { loc: string; lastmod?: string; changefreq?: string; priority?: string }[];
+  /** İstek süresi (ms). */
+  sure: number;
+  boyut: number;
+}
+
+export interface SiteHaritasiAdresDenetimi {
+  adres: string;
+  yol: string;
+  zincir: { adres: string; durum: number; konum?: string | null }[];
+  durum: number;
+  sure: number;
+  boyut: number;
+  icerikTuru?: string | null;
+  xRobotsTag?: string | null;
+  baslik?: string | null;
+  aciklama?: string | null;
+  canonical?: string | null;
+  metaRobots?: string | null;
+  dil?: string | null;
+  h1: string[];
+  ogBaslik?: string | null;
+  ogAciklama?: string | null;
+  ogGorsel?: string | null;
+  yapisalVeri: string[];
+  hreflang: { dil: string; adres: string }[];
+  robotsTxt: { izinli: boolean; kural?: string | null };
+  hata?: string;
 }

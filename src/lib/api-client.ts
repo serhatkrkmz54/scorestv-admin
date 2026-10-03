@@ -68,6 +68,15 @@ import type {
   KadroTakimBulgusu,
   KadroTakimKadrosu,
   KadroTakimOzeti,
+  SiteHaritasiAdresDenetimi,
+  SiteHaritasiAyarlari,
+  SiteHaritasiDosyasi,
+  SiteHaritasiEkAdres,
+  SiteHaritasiGecmis,
+  SiteHaritasiHaric,
+  SiteHaritasiIndexNowSonucu,
+  SiteHaritasiOzeti,
+  SiteHaritasiRobots,
 } from "./types";
 
 export class ApiError extends Error {
@@ -1387,4 +1396,105 @@ export function apiTeleskorHaberGorsel(
     xhr.onerror = () => hata(new ApiError(0, "Sunucuya ulaşılamadı."));
     xhr.send(form);
   });
+}
+
+// ---- Site haritası (ADMIN ve SEO) ----
+
+export async function apiSiteHaritasi(): Promise<SiteHaritasiAyarlari> {
+  const res = await fetch("/api/teleskor/site-haritasi", { cache: "no-store" });
+  return parse<SiteHaritasiAyarlari>(res);
+}
+
+export async function apiSiteHaritasiTur(
+  tur: string,
+  istek: { acik: boolean; oncelik: number | null; siklik: string | null },
+): Promise<SiteHaritasiAyarlari> {
+  const res = await fetch(
+    `/api/teleskor/site-haritasi/turler/${encodeURIComponent(tur)}`,
+    jsonInit("PUT", istek),
+  );
+  return parse<SiteHaritasiAyarlari>(res);
+}
+
+export async function apiSiteHaritasiEkAdresEkle(istek: {
+  yol: string;
+  oncelik: number | null;
+  siklik: string | null;
+  not: string;
+}): Promise<SiteHaritasiEkAdres> {
+  const res = await fetch("/api/teleskor/site-haritasi/ek-adresler", jsonInit("POST", istek));
+  return parse<SiteHaritasiEkAdres>(res);
+}
+
+export async function apiSiteHaritasiEkAdresSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/site-haritasi/ek-adresler/${id}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiSiteHaritasiHaricEkle(istek: {
+  kalip: string;
+  noindex: boolean;
+  not: string;
+}): Promise<SiteHaritasiHaric> {
+  const res = await fetch("/api/teleskor/site-haritasi/haricler", jsonInit("POST", istek));
+  return parse<SiteHaritasiHaric>(res);
+}
+
+export async function apiSiteHaritasiHaricSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/site-haritasi/haricler/${id}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiSiteHaritasiHaricNoindex(id: number, noindex: boolean): Promise<SiteHaritasiAyarlari> {
+  const res = await fetch(`/api/teleskor/site-haritasi/haricler/${id}`, jsonInit("PUT", { noindex }));
+  return parse<SiteHaritasiAyarlari>(res);
+}
+
+export async function apiSiteHaritasiRobotsEkle(istek: {
+  kural: "ALLOW" | "DISALLOW";
+  yol: string;
+  not: string;
+}): Promise<SiteHaritasiRobots> {
+  const res = await fetch("/api/teleskor/site-haritasi/robots", jsonInit("POST", istek));
+  return parse<SiteHaritasiRobots>(res);
+}
+
+export async function apiSiteHaritasiRobotsSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/site-haritasi/robots/${id}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiSiteHaritasiGecmis(sayfa: number): Promise<SiteHaritasiGecmis> {
+  const res = await fetch(`/api/teleskor/site-haritasi/gecmis?sayfa=${sayfa}`, { cache: "no-store" });
+  return parse<SiteHaritasiGecmis>(res);
+}
+
+export async function apiSiteHaritasiIndexNow(adresler: string[]): Promise<SiteHaritasiIndexNowSonucu> {
+  const res = await fetch("/api/teleskor/site-haritasi/indexnow", jsonInit("POST", { adresler }));
+  return parse<SiteHaritasiIndexNowSonucu>(res);
+}
+
+export async function apiSiteHaritasiOzet(): Promise<SiteHaritasiOzeti> {
+  const res = await fetch("/api/teleskor/site-haritasi/ozet", { cache: "no-store" });
+  return parse<SiteHaritasiOzeti>(res);
+}
+
+export async function apiSiteHaritasiDosya(yol: string, q: string): Promise<SiteHaritasiDosyasi> {
+  const res = await fetch(
+    `/api/teleskor/site-haritasi/dosya?yol=${encodeURIComponent(yol)}&q=${encodeURIComponent(q)}`,
+    { cache: "no-store" },
+  );
+  return parse<SiteHaritasiDosyasi>(res);
+}
+
+export async function apiSiteHaritasiDenetle(adres: string): Promise<SiteHaritasiAdresDenetimi> {
+  const res = await fetch(`/api/teleskor/site-haritasi/denetle?adres=${encodeURIComponent(adres)}`, {
+    cache: "no-store",
+  });
+  return parse<SiteHaritasiAdresDenetimi>(res);
+}
+
+export async function apiSiteHaritasiRobotsTxt(): Promise<{ metin: string }> {
+  const res = await fetch("/api/teleskor/site-haritasi/robots-txt", { cache: "no-store" });
+  return parse<{ metin: string }>(res);
 }

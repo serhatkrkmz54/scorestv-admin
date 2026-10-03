@@ -9,8 +9,8 @@ import type { AppUser, TokenResponse } from "@/lib/types";
  * Panel girişi — TELESKOR HESABIYLA (e-posta ya da kullanıcı adı).
  *
  * Teleskor `/api/v1/auth/login` yalnız token çiftini döner; rol `/auth/me`'den
- * okunuyor. Yalnız ADMIN kabul edilir (Teleskor'un yönetim uçlarının hepsi
- * ADMIN). Yetkisiz hesapta açılan oturum Teleskor'da HEMEN kapatılıyor —
+ * okunuyor. Yalnız ADMIN ve SEO kabul edilir (SEO yalnız Site Haritası
+ * ekranını görür, `panel-rol.ts`). Yetkisiz hesapta açılan oturum Teleskor'da HEMEN kapatılıyor —
  * açık bırakılsa hesabın cihaz listesinde "Yönetim paneli" diye asılı kalırdı.
  * Token'lar tarayıcıya gitmez; httpOnly çerezlere yazılır.
  */
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ refreshToken: r.body.refreshToken }),
     });
     return NextResponse.json(
-      { message: "Bu panele yalnız yöneticiler (ADMIN) girebilir." },
+      { message: "Bu panele yalnız yönetici ve SEO hesapları girebilir." },
       { status: 403 },
     );
   }

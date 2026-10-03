@@ -8,6 +8,7 @@ import {
 } from "./auth-cookies";
 import type { AppUser, TokenResponse } from "./types";
 import { tekUcusYenile } from "./yenileme-ucusu";
+import { PANEL_ROLLERI } from "./panel-rol";
 
 /**
  * Geçerli oturumun kullanıcısını çözer (LAYOUT RENDER'ında çağrılır).
@@ -47,15 +48,16 @@ export async function resolveUserAllowRefresh(): Promise<AppUser | null> {
 }
 
 /**
- * Panele kim girebilir: Teleskor'da rolü ADMIN olan hesap.
+ * Panele kim girebilir: Teleskor'da rolü ADMIN ya da SEO olan hesap.
  *
- * Teleskor'un bütün yönetim uçları `hasRole('ADMIN')`; EDITOR rolüyle
- * girilseydi her sayfa 403 verirdi. Yeni yönetici: Teleskor'da hesap aç,
- * panelde Üyeler → rol ADMIN (ya da veritabanında
- * `UPDATE users SET role='ADMIN' WHERE username='…'`).
+ * Teleskor'un yönetim uçları `hasRole('ADMIN')`; EDITOR rolüyle girilseydi
+ * her sayfa 403 verirdi. SEO rolü (3 Ekim) yalnız site haritası uçlarına
+ * açık; panelde de yalnız o sayfayı görür (`panel-rol.ts`, layout).
+ * Yeni yönetici ya da danışman: Teleskor'da hesap aç, panelde Üyeler →
+ * rol ADMIN / SEO.
  */
 export function panelYetkili(user: AppUser | null): boolean {
-  return !!user && user.role === "ADMIN";
+  return !!user && PANEL_ROLLERI.includes(user.role);
 }
 
 /**

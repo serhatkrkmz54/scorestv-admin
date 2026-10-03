@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { resolveUserAllowRefresh } from "./auth-server";
 import { teleskorConfigured, type TeleskorResult } from "./teleskor";
-import type { AppUser } from "./types";
+import type { AppUser, Role } from "./types";
 
 /**
  * TELESKOR ROTALARININ KAPISI.
@@ -17,13 +17,29 @@ import type { AppUser } from "./types";
 export async function teleskorAdmin(): Promise<
   { user: AppUser } | { error: NextResponse }
 > {
+  return teleskorRol(["ADMIN"]);
+}
+
+/**
+ * Site Haritası rotalarının kapısı: ADMIN ya da SEO (Teleskor'da da bu uçlar
+ * `hasAnyRole('ADMIN','SEO')`). Başka hiçbir rota SEO'ya açık değil.
+ */
+export async function teleskorSiteHaritasi(): Promise<
+  { user: AppUser } | { error: NextResponse }
+> {
+  return teleskorRol(["ADMIN", "SEO"]);
+}
+
+async function teleskorRol(
+  roller: Role[],
+): Promise<{ user: AppUser } | { error: NextResponse }> {
   const user = await resolveUserAllowRefresh();
   if (!user) {
     return {
       error: NextResponse.json({ message: "Oturum gerekli." }, { status: 401 }),
     };
   }
-  if (user.role !== "ADMIN") {
+  if (!roller.includes(user.role)) {
     return {
       error: NextResponse.json(
         { message: "Bu işlem yalnız yöneticilere (ADMIN) açıktır." },

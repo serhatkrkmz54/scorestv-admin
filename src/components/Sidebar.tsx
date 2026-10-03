@@ -25,6 +25,7 @@ import {
   Star,
   Video,
   SlidersHorizontal,
+  Map as HaritaIkonu,
   LogOut,
   ChevronDown,
   X,
@@ -32,15 +33,10 @@ import {
 } from "lucide-react";
 import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout } from "@/lib/api-client";
-import { gorunenAd, type AppUser } from "@/lib/types";
+import { gorunenAd, type AppUser, type Role } from "@/lib/types";
+import { ROL_ADI, sayfaIzinli } from "@/lib/panel-rol";
 
-const ROLE_TR: Record<string, string> = {
-  ADMIN: "Yönetici",
-  EDITOR: "Editör",
-  USER: "Kullanıcı",
-};
-
-type SectionId = "genel" | "icerik" | "spor" | "uyeler" | "telepuan" | "sistem";
+type SectionId = "genel" | "icerik" | "spor" | "uyeler" | "telepuan" | "seo" | "sistem";
 
 /** Akordiyon açık/kapalı durumunun localStorage anahtarı.
  * v4 (28 Eylül): panel yalnız Teleskor'un; bölümler baştan kuruldu. */
@@ -52,6 +48,7 @@ const DEFAULT_OPEN: Record<SectionId, boolean> = {
   spor: true,
   uyeler: false,
   telepuan: false,
+  seo: false,
   sistem: false,
 };
 
@@ -116,6 +113,11 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
     ],
   },
   {
+    id: "seo",
+    baslik: "Arama motorları",
+    baglantilar: [{ href: "/teleskor/site-haritasi", ad: "Site Haritası", ikon: HaritaIkonu }],
+  },
+  {
     id: "sistem",
     baslik: "Sistem",
     baglantilar: [
@@ -127,6 +129,13 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
     ],
   },
 ];
+
+/** Rolün görebildiği menü (SEO yalnız Site Haritası + Panel Ayarları). */
+function rolMenusu(rol: Role) {
+  return MENU.map((b) => ({ ...b, baglantilar: b.baglantilar.filter((l) => sayfaIzinli(rol, l.href)) })).filter(
+    (b) => b.baglantilar.length > 0,
+  );
+}
 
 function aktifMi(pathname: string, b: Baglanti): boolean {
   const onek = b.onek ?? b.href;
@@ -248,7 +257,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
       </div>
 
       <nav className="sidebar-nav">
-        {MENU.map((bolum) => (
+        {rolMenusu(user.role).map((bolum) => (
           <NavSection
             key={bolum.id}
             id={bolum.id}
@@ -278,7 +287,7 @@ export default function Sidebar({ user }: { user: AppUser }) {
           <div className="avatar">{initials}</div>
           <div className="meta">
             <div className="name">{gorunenAd(user)}</div>
-            <div className="role">{ROLE_TR[user.role] ?? user.role}</div>
+            <div className="role">{ROL_ADI[user.role] ?? user.role}</div>
           </div>
         </div>
         <button className="sidebar-logout" onClick={logout} disabled={busy}>

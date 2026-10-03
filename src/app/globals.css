@@ -4005,3 +4005,173 @@ table.data-table {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* ---- Site Haritası (3 Ekim) ---- */
+.sh-baglantilar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sh-baglantilar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sh-turler {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+.sh-tur {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 13px;
+}
+.sh-tur.sh-kapali {
+  border-style: dashed;
+}
+.sh-tur-bas {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sh-tur-ad {
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sh-tur .t-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.sh-tur-alanlar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.sh-tur-dugmeler {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sh-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+.sh-form .sh-genis {
+  grid-column: span 1;
+}
+.sh-form-dugme {
+  display: flex;
+  align-items: end;
+}
+.sh-yol {
+  word-break: break-all;
+  min-width: 180px;
+}
+.sh-deneme {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.sh-deneme + .table-wrap,
+.sh-deneme + .muted {
+  margin-top: 16px;
+}
+.t-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+@media (max-width: 640px) {
+  .sh-turler {
+    grid-template-columns: 1fr;
+  }
+  .sh-form {
+    grid-template-columns: 1fr;
+  }
+  .sh-tur-alanlar {
+    grid-template-columns: 1fr;
+  }
+}
+.sh-form-robots {
+  grid-template-columns: 1fr 2fr 2fr auto;
+}
+.sh-noindex {
+  align-self: end;
+  padding-bottom: 8px;
+  font-size: 13px;
+  gap: 6px;
+}
+.sh-pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 420px;
+  overflow: auto;
+}
+.sh-baglanti {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brand);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  word-break: break-all;
+}
+.sh-baglanti:hover {
+  text-decoration: underline;
+}
+.sh-denetim th.sh-denetim-ad {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  color: var(--text-muted);
+  width: 170px;
+  white-space: nowrap;
+  vertical-align: top;
+  text-align: left;
+  font-weight: 600;
+}
+.sh-denetim td {
+  word-break: break-word;
+}
+.sh-bilgi p,
+.sh-bilgi li {
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.sh-bilgi ul {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+@media (max-width: 640px) {
+  .sh-form-robots {
+    grid-template-columns: 1fr;
+  }
+  .sh-denetim th.sh-denetim-ad {
+    width: 110px;
+    white-space: normal;
+  }
+}
+/* Tablo hücresindeki anahtar: satır içi label boyut almaz (görünmüyordu). */
+td .switch {
+  display: inline-block;
+  vertical-align: middle;
+}
