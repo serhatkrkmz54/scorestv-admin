@@ -1529,3 +1529,20 @@ export async function apiAltSayfaTaramasi(adres: string): Promise<AltSayfaTarama
   });
   return parse<AltSayfaTaramasi>(res);
 }
+
+// ---- Üyenin şifresi (yönetici) ----
+
+export async function apiTeleskorSifreBaglantisi(id: number, reason: string): Promise<void> {
+  const res = await fetch(`/api/teleskor/users/${id}/sifre-baglantisi`, jsonInit("POST", { reason }));
+  await parse<{ ok: boolean }>(res);
+}
+
+export async function apiTeleskorSifreBelirle(
+  id: number,
+  sifre: string,
+  oturumlariKapat: boolean,
+  reason: string,
+): Promise<{ oturumlarKapandi: boolean }> {
+  const res = await fetch(`/api/teleskor/users/${id}/sifre`, jsonInit("PUT", { sifre, oturumlariKapat, reason }));
+  return parse<{ oturumlarKapandi: boolean }>(res);
+}

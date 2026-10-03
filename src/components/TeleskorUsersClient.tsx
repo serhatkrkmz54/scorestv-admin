@@ -16,6 +16,7 @@ import {
   apiTeleskorSustur,
   apiTeleskorSusturmayiKaldir,
   apiTeleskorUserProfil,
+  apiTeleskorSifreBaglantisi,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -34,6 +35,7 @@ import TeleskorHareketGecmisi from "@/components/TeleskorHareketGecmisi";
 import TeleskorModerasyon from "@/components/TeleskorModerasyon";
 import TeleskorIcNotlar from "@/components/TeleskorIcNotlar";
 import TeleskorOnayModal from "./TeleskorOnayModal";
+import TeleskorSifreModal from "./TeleskorSifreModal";
 
 const ROL_TR: Record<TeleskorRole, string> = {
   USER: "Üye",
@@ -231,6 +233,12 @@ function FavoriKarti({ f }: { f: TeleskorFavori }) {
  * @param ayrac üstüne çizgi çeker — geri alınamaz işlemleri ayırmak için
  * @param not   düğmelerin altında küçük açıklama
  */
+/** Bağlı hesap kodları okunur adla ("GOOGLE" → "Google"). */
+function saglayicilar(kodlar: string[]): string {
+  const ad: Record<string, string> = { GOOGLE: "Google", APPLE: "Apple" };
+  return kodlar.map((k) => ad[k] ?? k).join(", ");
+}
+
 function IslemSatiri({
   baslik,
   children,
@@ -355,6 +363,9 @@ export default function TeleskorUsersClient() {
   // GEREKÇE MODALI — rol değiştirme ve hesap işlemleri için.
   // `onayla` durumda tutuluyor: her çağıran kendi işini veriyor, modal
   // yalnız gerekçeyi topluyor.
+  // Şifre: yöneticinin belirlediği şifre penceresi + son işlemin sonucu (kartta gösterilir).
+  const [sifreModal, setSifreModal] = useState(false);
+  const [sifreBilgi, setSifreBilgi] = useState<string | null>(null);
   const [onayModal, setOnayModal] = useState<{
     baslik: string;
     uyari: string;
@@ -446,6 +457,10 @@ export default function TeleskorUsersClient() {
         setOnayModal(null);
         return;
       }
+      if (sifreModal) {
+        setSifreModal(false);
+        return;
+      }
       kapat();
     };
     window.addEventListener("keydown", onKey);
@@ -457,9 +472,11 @@ export default function TeleskorUsersClient() {
       // koymuşsa onu kaldırmış olurduk.
       document.body.style.overflow = oncekiOverflow;
     };
-  }, [secili, puanModal, onayModal]);
+  }, [secili, puanModal, onayModal, sifreModal]);
 
   function kapat() {
+    setSifreModal(false);
+    setSifreBilgi(null);
     setAcilan(null);
     setSecili(null);
     setPuanlar(null);
@@ -470,6 +487,7 @@ export default function TeleskorUsersClient() {
 
   async function detayAc(u: TeleskorUserSummary) {
     // Modal ANINDA açılıyor; içerik geldikçe doluyor.
+    if (acilan?.id !== u.id) setSifreBilgi(null);
     setAcilan(u);
     setSecili(null);
     setPuanlar(null);
@@ -496,6 +514,23 @@ export default function TeleskorUsersClient() {
     } catch (e) {
       setHata(e instanceof ApiError ? e.message : "Üye açılamadı.");
     }
+  }
+
+  /** Önerilen yol: şifreyi kullanıcı kendisi belirler (e-postadaki bağlantı/kod, 24 saat). */
+  function sifreBaglantisi(u: TeleskorUserDetail) {
+    setOnayModal({
+      baslik: u.hasPassword ? "Yeni şifre bağlantısı gönder" : "Şifre oluşturma bağlantısı gönder",
+      uyari:
+        `${u.email} adresine şifre belirleme bağlantısı ve 6 haneli kod gider (24 saat geçerli, tek kullanımlık). ` +
+        (u.hasPassword
+          ? "Kullanıcı yeni şifresini kendisi belirler; belirleyince açık oturumları kapanır."
+          : "Hesap şu an yalnız Google/Apple ile giriyor: kullanıcı bir şifre oluşturur, sosyal girişi de sürer. Şifreyi oluşturunca açık oturumları kapanır.") +
+        " Şifreyi kimse görmez.",
+      onayla: async (gerekce) => {
+        await apiTeleskorSifreBaglantisi(u.id, gerekce);
+        setSifreBilgi(`Bağlantı ${u.email} adresine gönderildi (24 saat geçerli).`);
+      },
+    });
   }
 
   function rolDegistir(u: TeleskorUserDetail, rol: TeleskorRole) {
@@ -1438,6 +1473,36 @@ export default function TeleskorUsersClient() {
               )}
             </IslemSatiri>
 
+            <IslemSatiri
+              baslik="Şifre"
+              not={
+                sifreBilgi ??
+                (secili.hasPassword
+                  ? "Hesabın şifresi var" + (secili.linkedProviders?.length ? ` (ayrıca ${saglayicilar(secili.linkedProviders)} bağlı)` : "") + "."
+                  : `Şifresi yok: yalnız ${secili.linkedProviders?.length ? saglayicilar(secili.linkedProviders) : "sosyal giriş"} ile giriyor.`)
+              }
+            >
+              <button
+                className="btn btn-sm"
+                disabled={islemde}
+                title="Kullanıcıya e-postayla şifre belirleme bağlantısı gider; şifreyi kendisi belirler (önerilen)."
+                onClick={() => sifreBaglantisi(secili)}
+              >
+                Bağlantı gönder (e-posta)
+              </button>
+              <button
+                className="btn btn-sm"
+                disabled={islemde}
+                title="Şifreyi siz belirlersiniz; kullanıcıya yalnız bilgi e-postası gider."
+                onClick={() => {
+                  setSifreBilgi(null);
+                  setSifreModal(true);
+                }}
+              >
+                {secili.hasPassword ? "Şifreyi ben belirleyeyim" : "Şifre tanımla"}
+              </button>
+            </IslemSatiri>
+
             <IslemSatiri baslik="Rol">
               {/* Mevcut rol düğme olarak DEĞİL, etiket olarak: "Üye yap"
                   düğmesinin yanında hangi rolde olduğu görünmezse liste
@@ -1651,8 +1716,22 @@ export default function TeleskorUsersClient() {
         />
       )}
 
+      {sifreModal && secili && (
+        <TeleskorSifreModal
+          kullaniciId={secili.id}
+          kullaniciAdi={secili.username}
+          sifresiVar={secili.hasPassword}
+          onKapat={() => setSifreModal(false)}
+          onTamam={(m) => {
+            setSifreModal(false);
+            setSifreBilgi(m);
+            void detayAc(secili);
+          }}
+        />
+      )}
       {onayModal && (
         <TeleskorOnayModal
+          key={onayModal.baslik}
           baslik={onayModal.baslik}
           uyari={onayModal.uyari}
           alanEtiketi={onayModal.alanEtiketi ?? "Gerekçe (zorunlu)"}

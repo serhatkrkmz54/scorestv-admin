@@ -38,6 +38,8 @@ export const OLAY_TR: Record<string, string> = {
   PASSWORD_RESET_BLOCKED: "Şifre sıfırlama engellendi (kota)",
   PASSWORD_RESET_COMPLETED: "Şifre sıfırlandı",
   PASSWORD_RESET_FAILED: "Şifre sıfırlama başarısız",
+  PASSWORD_LINK_SENT_BY_ADMIN: "Şifre belirleme bağlantısı gönderildi (yönetici)",
+  PASSWORD_SET_BY_ADMIN: "Şifre yönetici tarafından belirlendi",
 
   // E-posta
   EMAIL_VERIFICATION_REQUESTED: "E-posta doğrulaması istendi",
@@ -131,6 +133,8 @@ export const OLAY_TR: Record<string, string> = {
 export const YONETICI_OLAYLARI = [
   "USER_CREATED_BY_ADMIN",
   "ROLE_CHANGED",
+  "PASSWORD_LINK_SENT_BY_ADMIN",
+  "PASSWORD_SET_BY_ADMIN",
   "TELEPUAN_ADJUSTED_BY_ADMIN",
   "MARKET_PRODUCT_SAVED_BY_ADMIN",
   "MARKET_ORDER_UPDATED_BY_ADMIN",
