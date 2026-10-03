@@ -29,11 +29,13 @@ import InceleKarti from "./site-haritasi/InceleKarti";
 import IndexNowKarti from "./site-haritasi/IndexNowKarti";
 import GecmisKarti from "./site-haritasi/GecmisKarti";
 import BilgiKarti from "./site-haritasi/BilgiKarti";
+import SayfaBasliklariKarti from "./site-haritasi/SayfaBasliklariKarti";
 
-type Sekme = "kurallar" | "robots" | "incele" | "bildir" | "gecmis" | "bilgi";
+type Sekme = "kurallar" | "sayfalar" | "robots" | "incele" | "bildir" | "gecmis" | "bilgi";
 
 const SEKMELER: { kod: Sekme; ad: string }[] = [
   { kod: "kurallar", ad: "Harita kuralları" },
+  { kod: "sayfalar", ad: "Sayfa başlıkları" },
   { kod: "robots", ad: "robots.txt" },
   { kod: "incele", ad: "İnceleme" },
   { kod: "bildir", ad: "Arama motoruna bildir" },
@@ -61,6 +63,8 @@ export default function TeleskorSiteHaritasiClient() {
   const [bilgi, setBilgi] = useState<string | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [sekme, setSekme] = useState<Sekme>("kurallar");
+  /** İnceleme → "Başlığını düzenle": Sayfa başlıkları sekmesi bu adresle açılır. */
+  const [duzenlenecek, setDuzenlenecek] = useState<string | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- adres çubuğundan tek seferlik okuma (kasıtlı)
@@ -145,7 +149,17 @@ export default function TeleskorSiteHaritasiClient() {
         </>
       )}
       {veri && sekme === "robots" && <RobotsKarti veri={veri} yenile={yukle} bildir={bildir} />}
-      {veri && sekme === "incele" && <InceleKarti veri={veri} />}
+      {sekme === "sayfalar" && <SayfaBasliklariKarti ilkAdres={duzenlenecek} bildir={bildir} />}
+      {veri && sekme === "incele" && (
+        <InceleKarti
+          veri={veri}
+          baslikDuzenle={(a) => {
+            setDuzenlenecek(a);
+            sekmeSec("sayfalar");
+            window.scrollTo({ top: 0 });
+          }}
+        />
+      )}
       {veri && sekme === "bildir" && <IndexNowKarti veri={veri} yenile={yukle} bildir={bildir} />}
       {sekme === "gecmis" && <GecmisKarti />}
       {sekme === "bilgi" && <BilgiKarti />}

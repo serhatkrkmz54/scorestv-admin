@@ -1,6 +1,6 @@
 "use client";
 
-import { SITE } from "./ortak";
+import { OTOMATIK_NOINDEX, SITE } from "./ortak";
 
 /**
  * Danışman için başvuru sayfası: haritanın yapısı, adres düzenleri, ayarın
@@ -87,10 +87,51 @@ export default function BilgiKarti() {
             <li>Her değişiklik kimin yaptığıyla birlikte &quot;Değişiklik geçmişi&quot; sekmesinde görünür.</li>
           </ul>
           <p>
+            <b>Son değişiklik tarihi (lastmod)</b> yalnız gerçek bir tarih varsa yazılır: lig, takım,
+            oyuncu, teknik direktör ve hakem sayfalarında kaydın güncellenme anı, maçlarda maçın son
+            güncellemesi, haberlerde yayın anı, gün sayfalarında ve canlı skor sayfalarında o günün en
+            son güncellenen maçı, haber listesi ve kategorilerinde en yeni haber. Dizin dosyasında her
+            dosyanın satırına o dosyadaki en yeni tarih yazılır. Gerçek tarihi olmayan sabit sayfalarda
+            (TV rehberi, sıralamalar, iletişim…) bilerek yazılmaz: her okumada &quot;şimdi&quot; yazan lastmod&apos;u
+            Google güvenilmez sayıp sitenin bütün tarihlerini yok sayabiliyor.
+          </p>
+          <p>
             Haritaya hiç girmeyen ve robots.txt ile kapalı tutulan sayfalar: arama, karşılaştırma,
             üyelik (giriş, kayıt, hesap, bildirimler) sayfaları ve soru işaretli (parametreli) adresler.
             Bunlar sitenin sabit kurallarıdır, bu ekrandan açılamaz.
           </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Otomatik noindex (içeriği olmayan sayfalar)</div>
+        </div>
+        <div className="card-pad">
+          <div className="hint" style={{ marginBottom: 12 }}>
+            Site aşağıdaki durumlarda sayfaya kendiliğinden &quot;noindex, follow&quot; koyar: sayfa açılır,
+            bağlantıları izlenir ama arama sonucuna girmez (boş ya da birbirinin aynısı sayfalar sitenin
+            kalitesini düşürmesin). Bu sayfalar site haritasına da yazılmaz. Bir sayfanın durumunu
+            İnceleme sekmesindeki &quot;Alt sayfa taraması&quot; ve &quot;Adres denetimi&quot; ile görebilirsiniz.
+          </div>
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Sayfa</th>
+                  <th>Ne zaman noindex</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OTOMATIK_NOINDEX.map((k) => (
+                  <tr key={k.sayfa}>
+                    <td>{k.sayfa}</td>
+                    <td>{k.kosul}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

@@ -86,3 +86,38 @@ export function adresTuru(yol: string): string {
   if (/^\/haber\/(?!kategori\/)[^/]+$/.test(yol)) return "haber";
   return "genel";
 }
+
+/**
+ * Sitenin OTOMATİK noindex kuralları — teleskor-web'deki koşullarla aynı
+ * (`app/mac/[slug]/[sekme]/page.tsx`, `app/maclar/[tarih]`, `LigKabugu`,
+ * `TakimKabugu`, `OyuncuKabugu`, `PuanDurumlariSayfasi`, `TvRehberiSayfasi`,
+ * `TransferSayfasi`). Orada kural değişirse burası ve Nasıl çalışır sekmesi de.
+ */
+export const OTOMATIK_NOINDEX: { sayfa: string; kosul: string }[] = [
+  { sayfa: "Maç → Oyuncular", kosul: "Maçın oyuncu istatistiği yoksa (futbol)" },
+  { sayfa: "Maç → TV", kosul: "Maçın yayın bilgisi yoksa" },
+  { sayfa: "Maç → Sohbet", kosul: "Sohbette 10 mesajdan az varsa" },
+  { sayfa: "Maç → Oyunlar", kosul: "Her zaman (her maçta aynı tanıtım sayfası)" },
+  { sayfa: "Maç sekmesi (genel)", kosul: "O maçta sekmenin verisi hiç yoksa sayfa 404 + noindex" },
+  { sayfa: "Gün sayfaları (/maclar/…, /basketbol/maclar/…)", kosul: "O gün hiç maç yoksa" },
+  { sayfa: "Lig, takım, oyuncu, puan durumu", kosul: "Eski sezon seçiliyse (?sezon=…)" },
+  { sayfa: "Lig sekmeleri", kosul: "Süzgeçli görünümde (takım, görünüm, seçim, ilk olmayan oyuncu kategorisi)" },
+  { sayfa: "Takım oyuncuları", kosul: "İlk olmayan oyuncu kategorisi seçiliyse" },
+  { sayfa: "TV rehberi", kosul: "Ülke seçiliyse (?ulke=…)" },
+  { sayfa: "Transferler", kosul: "Varsayılan dışında bir gün aralığı seçiliyse" },
+  { sayfa: "Bulunamayan kayıt", kosul: "Lig, takım, oyuncu, maç, hakem, teknik direktör bulunamazsa" },
+  { sayfa: "Arama, karşılaştırma, üyelik sayfaları", kosul: "Her zaman" },
+];
+
+/** Alt sayfa taramasında noindex'in sitenin hangi kuralından geldiği (yola göre). */
+export function noindexSebebi(yol: string): string {
+  const son = yol.split("/").pop() ?? "";
+  if (yol.startsWith("/mac/")) {
+    if (son === "oyunlar") return "Sitenin kuralı: her maçta aynı tanıtım sayfası";
+    if (son === "sohbet") return "Sitenin kuralı: sohbette 10 mesajdan az";
+    if (son === "tv") return "Sitenin kuralı: yayın bilgisi yok";
+    if (son === "oyuncular") return "Sitenin kuralı: oyuncu istatistiği yok";
+  }
+  if (/\/maclar\/\d{4}-\d{2}-\d{2}$/.test(yol)) return "Sitenin kuralı: o gün maç yok";
+  return "Sitenin kuralı (içerik yok ya da süzgeçli görünüm)";
+}

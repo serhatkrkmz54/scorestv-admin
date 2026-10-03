@@ -1641,6 +1641,8 @@ export interface SiteHaritasiDosyasi {
   toplam: number;
   /** Süzgeçten sonra kaç tane (q verildiyse). */
   eslesen: number;
+  /** Son değişiklik tarihi (lastmod) yazılı satır sayısı (bütün dosyada). */
+  lastmodSayisi: number;
   satirlar: { loc: string; lastmod?: string; changefreq?: string; priority?: string }[];
   /** İstek süresi (ms). */
   sure: number;
@@ -1669,4 +1671,33 @@ export interface SiteHaritasiAdresDenetimi {
   hreflang: { dil: string; adres: string }[];
   robotsTxt: { izinli: boolean; kural?: string | null };
   hata?: string;
+}
+
+export interface SayfaMetaKaydi {
+  id: number;
+  yol: string;
+  baslik?: string | null;
+  aciklama?: string | null;
+  not?: string | null;
+  guncelleyen?: string | null;
+  guncellendi?: string | null;
+}
+
+export interface SayfaMetaListesi {
+  kayitlar: SayfaMetaKaydi[];
+  toplam: number;
+  dahaVar: boolean;
+}
+
+export interface AltSayfaTaramasi {
+  temel: string;
+  satirlar: {
+    adres: string;
+    yol: string;
+    durum: number;
+    metaRobots: string | null;
+    xRobotsTag: string | null;
+    baslik: string | null;
+    konum: string | null;
+  }[];
 }

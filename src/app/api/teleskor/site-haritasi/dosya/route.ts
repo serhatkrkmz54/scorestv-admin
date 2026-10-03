@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { etiketler, siteAdresi, webGetir, xmlCoz } from "@/lib/site-web";
+import { siteAdresi, webGetir, xmlCoz } from "@/lib/site-web";
 import { teleskorSiteHaritasi } from "@/lib/teleskor-guard";
 import type { SiteHaritasiDosyasi } from "@/lib/types";
 
@@ -36,12 +36,10 @@ export async function GET(req: NextRequest) {
   }
   const sure = Date.now() - t0;
   const dizin = metin.includes("<sitemapindex");
-  let satirlar: SiteHaritasiDosyasi["satirlar"];
-  if (dizin) {
-    satirlar = etiketler(metin, "loc").map((loc) => ({ loc: siteAdresi(loc) }));
-  } else {
-    satirlar = [];
-    const re = /<url>([\s\S]*?)<\/url>/g;
+  const satirlar: SiteHaritasiDosyasi["satirlar"] = [];
+  {
+    // Dizinde <sitemap>, haritada <url> blokları; ikisinde de loc + (varsa) lastmod.
+    const re = dizin ? /<sitemap>([\s\S]*?)<\/sitemap>/g : /<url>([\s\S]*?)<\/url>/g;
     for (let m = re.exec(metin); m; m = re.exec(metin)) {
       const blok = m[1];
       const al = (ad: string) => {
@@ -62,6 +60,7 @@ export async function GET(req: NextRequest) {
     tur: dizin ? "dizin" : "adresler",
     toplam: satirlar.length,
     eslesen: suzulu.length,
+    lastmodSayisi: satirlar.filter((s) => s.lastmod).length,
     satirlar: suzulu.slice(0, EN_COK),
     sure,
     boyut: metin.length,

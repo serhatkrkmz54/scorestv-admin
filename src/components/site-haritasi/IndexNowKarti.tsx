@@ -84,7 +84,7 @@ export default function IndexNowKarti({
             <div className="field-error">Geçersiz: {gecersiz.slice(0, 3).join(", ")}{gecersiz.length > 3 ? "…" : ""}</div>
           )}
         </div>
-        <div className="form-actions">
+        <div className="sh-dugmeler">
           <button
             className="btn btn-primary"
             disabled={!acik || mesgul || benzersiz === 0 || benzersiz > adresTavani || gecersiz.length > 0 || kalan === 0}

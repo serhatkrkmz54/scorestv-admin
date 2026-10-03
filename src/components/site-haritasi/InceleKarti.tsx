@@ -1,15 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ExternalLink, RefreshCw } from "lucide-react";
-import { apiSiteHaritasiDenetle, apiSiteHaritasiDosya, apiSiteHaritasiOzet } from "@/lib/api-client";
+import { ExternalLink, RefreshCw, X } from "lucide-react";
+import {
+  apiAltSayfaTaramasi,
+  apiSiteHaritasiDenetle,
+  apiSiteHaritasiDosya,
+  apiSiteHaritasiOzet,
+} from "@/lib/api-client";
 import type {
+  AltSayfaTaramasi,
   SiteHaritasiAdresDenetimi,
   SiteHaritasiAyarlari,
   SiteHaritasiDosyasi,
   SiteHaritasiOzeti,
 } from "@/lib/types";
-import { SIKLIK_AD, SITE, TUR_AD, adresTuru, hataMetni, kalipRegex, yolaCevir } from "./ortak";
+import { SIKLIK_AD, SITE, TUR_AD, adresTuru, hataMetni, kalipRegex, noindexSebebi, yolaCevir } from "./ortak";
 
 const SAYI = new Intl.NumberFormat("tr-TR");
 
@@ -18,13 +24,33 @@ const BASLIK_ARALIGI: [number, number] = [30, 60];
 const ACIKLAMA_ARALIGI: [number, number] = [70, 160];
 
 /** İnceleme: haritanın canlı özeti, dosya önizlemesi ve tek adres denetimi. */
-export default function InceleKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
-  const [dosyaYolu, setDosyaYolu] = useState("/sitemap.xml");
+export default function InceleKarti({
+  veri,
+  baslikDuzenle,
+}: {
+  veri: SiteHaritasiAyarlari;
+  baslikDuzenle: (adres: string) => void;
+}) {
+  // Dosya önizlemesi açılır pencerede (null = kapalı).
+  const [dosyaYolu, setDosyaYolu] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dosyaYolu) return;
+    const kapat = (e: KeyboardEvent) => e.key === "Escape" && setDosyaYolu(null);
+    window.addEventListener("keydown", kapat);
+    return () => window.removeEventListener("keydown", kapat);
+  }, [dosyaYolu]);
   return (
     <div className="stack">
       <OzetKarti dosyaAc={setDosyaYolu} />
-      <DosyaKarti yol={dosyaYolu} setYol={setDosyaYolu} />
-      <DenetimKarti veri={veri} />
+      <DenetimKarti veri={veri} baslikDuzenle={baslikDuzenle} />
+      <AltSayfaKarti veri={veri} />
+      {dosyaYolu && (
+        <div className="modal-overlay" onClick={() => setDosyaYolu(null)}>
+          <div className="modal sh-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Dosya önizleme">
+            <DosyaKarti yol={dosyaYolu} setYol={setDosyaYolu} kapat={() => setDosyaYolu(null)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -65,9 +91,14 @@ function OzetKarti({ dosyaAc }: { dosyaAc: (y: string) => void }) {
     <div className="card">
       <div className="card-header">
         <div className="card-title">Haritanın şu anki hâli</div>
-        <button className="btn btn-sm" disabled={mesgul} onClick={() => void yukle()}>
-          <RefreshCw size={14} /> {mesgul ? "Okunuyor…" : "Yenile"}
-        </button>
+        <div className="sh-dugmeler">
+          <button className="btn btn-sm" onClick={() => dosyaAc("/sitemap.xml")}>
+            Dizini aç
+          </button>
+          <button className="btn btn-sm" disabled={mesgul} onClick={() => void yukle()}>
+            <RefreshCw size={14} /> {mesgul ? "Okunuyor…" : "Yenile"}
+          </button>
+        </div>
       </div>
       <div className="card-pad">
         <div className="hint" style={{ marginBottom: 12 }}>
@@ -120,7 +151,7 @@ function OzetKarti({ dosyaAc }: { dosyaAc: (y: string) => void }) {
   );
 }
 
-function DosyaKarti({ yol, setYol }: { yol: string; setYol: (y: string) => void }) {
+function DosyaKarti({ yol, setYol, kapat }: { yol: string; setYol: (y: string) => void; kapat: () => void }) {
   const [girdi, setGirdi] = useState(yol);
   const [q, setQ] = useState("");
   const [dosya, setDosya] = useState<SiteHaritasiDosyasi | null>(null);
@@ -153,12 +184,19 @@ function DosyaKarti({ yol, setYol }: { yol: string; setYol: (y: string) => void 
   }
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <div className="card-title">Dosya önizleme</div>
-        <a href={`${SITE}${yol}`} target="_blank" rel="noreferrer" className="btn btn-sm">
-          <ExternalLink size={14} /> Sitede aç
-        </a>
+    <div>
+      <div className="modal-header">
+        <div className="card-title" style={{ margin: 0 }}>
+          Dosya önizleme
+        </div>
+        <div className="sh-dugmeler">
+          <a href={`${SITE}${yol}`} target="_blank" rel="noreferrer" className="btn btn-sm">
+            <ExternalLink size={14} /> Sitede aç
+          </a>
+          <button className="btn btn-sm btn-ghost" onClick={kapat} aria-label="Kapat" title="Kapat">
+            <X size={16} />
+          </button>
+        </div>
       </div>
       <div className="card-pad">
         <div className="sh-form">
@@ -215,6 +253,7 @@ function DosyaKarti({ yol, setYol }: { yol: string; setYol: (y: string) => void 
               {dosya.tur === "dizin" ? "Dizin" : "Adres listesi"}: {SAYI.format(dosya.toplam)} satır
               {dosya.eslesen !== dosya.toplam && `, aramaya uyan ${SAYI.format(dosya.eslesen)}`}
               {dosya.eslesen > dosya.satirlar.length && ` (ilk ${SAYI.format(dosya.satirlar.length)} gösteriliyor)`}
+              {` · son değişiklik tarihi ${SAYI.format(dosya.lastmodSayisi)}/${SAYI.format(dosya.toplam)} satırda`}
               {" · "}
               {SAYI.format(Math.round(dosya.boyut / 1024))} KB · {SAYI.format(dosya.sure)} ms
             </div>
@@ -227,9 +266,9 @@ function DosyaKarti({ yol, setYol }: { yol: string; setYol: (y: string) => void 
                       <>
                         <th>Öncelik</th>
                         <th>Sıklık</th>
-                        <th>Son değişiklik</th>
                       </>
                     )}
+                    <th>Son değişiklik</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,9 +295,9 @@ function DosyaKarti({ yol, setYol }: { yol: string; setYol: (y: string) => void 
                         <>
                           <td>{s.priority ?? <span className="muted">—</span>}</td>
                           <td>{s.changefreq ? SIKLIK_AD[s.changefreq] ?? s.changefreq : <span className="muted">—</span>}</td>
-                          <td className="cell-sub">{s.lastmod ? new Date(s.lastmod).toLocaleString("tr-TR") : "—"}</td>
                         </>
                       )}
+                      <td className="cell-sub">{s.lastmod ? new Date(s.lastmod).toLocaleString("tr-TR") : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -291,7 +330,13 @@ function Satir({ ad, children, uyari }: { ad: string; children: React.ReactNode;
   );
 }
 
-function DenetimKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
+function DenetimKarti({
+  veri,
+  baslikDuzenle,
+}: {
+  veri: SiteHaritasiAyarlari;
+  baslikDuzenle: (adres: string) => void;
+}) {
   const [adres, setAdres] = useState("");
   const [sonuc, setSonuc] = useState<SiteHaritasiAdresDenetimi | null>(null);
   const [haritada, setHaritada] = useState<string | null>(null);
@@ -379,6 +424,13 @@ function DenetimKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
             {hata}
           </div>
         )}
+        {sonuc && sonuc.durum === 200 && (
+          <div className="sh-dugmeler" style={{ marginTop: 12 }}>
+            <button className="btn btn-sm" onClick={() => baslikDuzenle(sonuc.adres)}>
+              Bu sayfanın başlığını/açıklamasını düzenle
+            </button>
+          </div>
+        )}
         {sonuc && kural && (
           <div className="table-wrap" style={{ marginTop: 14 }}>
             <table className="data-table sh-denetim">
@@ -416,7 +468,16 @@ function DenetimKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
                 >
                   {sonuc.canonical ? <span className="sh-yol">{sonuc.canonical}</span> : <span className="muted">yok</span>}
                 </Satir>
-                <Satir ad="Dizine ekleme">
+                <Satir
+                  ad="Dizine ekleme"
+                  uyari={
+                    /noindex/i.test(sonuc.metaRobots ?? "")
+                      ? noindexSebebi(sonuc.yol.replace(/\?.*$/, ""))
+                      : /noindex/i.test(sonuc.xRobotsTag ?? "") && kural.uyan.some((h) => h.noindex)
+                        ? "Panelden konan hariç kalıp (noindex)"
+                        : null
+                  }
+                >
                   {sonuc.metaRobots || sonuc.xRobotsTag ? (
                     <>
                       {sonuc.metaRobots && <div>Sayfa içi: {sonuc.metaRobots}</div>}
@@ -471,6 +532,133 @@ function DenetimKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ALT SAYFA TARAMASI: bir sayfanın ve sekmelerinin dizine eklenme durumu.
+ * Verisi olmayan sekmeler sitenin kuralıyla otomatik "noindex" alır; sebebi
+ * kurala göre yazılır (`noindexSebebi`), panelden konan kalıp ayrıca belirtilir.
+ */
+function AltSayfaKarti({ veri }: { veri: SiteHaritasiAyarlari }) {
+  const [adres, setAdres] = useState("");
+  const [sonuc, setSonuc] = useState<AltSayfaTaramasi | null>(null);
+  const [hata, setHata] = useState<string | null>(null);
+  const [mesgul, setMesgul] = useState(false);
+
+  async function tara() {
+    if (!adres.trim()) return;
+    setMesgul(true);
+    setHata(null);
+    setSonuc(null);
+    try {
+      setSonuc(await apiAltSayfaTaramasi(adres.trim()));
+    } catch (e) {
+      setHata(hataMetni(e, "Taranamadı."));
+    } finally {
+      setMesgul(false);
+    }
+  }
+
+  const panelKalibi = (yol: string) =>
+    veri.haricler.find((h) => h.noindex && kalipRegex(h.kalip).test(yol))?.kalip ?? null;
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <div className="card-title">Alt sayfa taraması (otomatik noindex)</div>
+      </div>
+      <div className="card-pad">
+        <div className="hint" style={{ marginBottom: 12 }}>
+          Bir maç, lig, takım ya da oyuncu sayfasını yazın: sayfanın kendisi ve sekmeleri (fikstür,
+          kadro, sohbet…) okunur, hangisinin arama motorlarına açık, hangisinin &quot;noindex&quot; olduğu
+          ve nedeni görünür. Site, içeriği olmayan ya da her sayfada aynı olan sekmeleri kendiliğinden
+          noindex yapar (kurallar &quot;Nasıl çalışır&quot; sekmesinde).
+        </div>
+        <div className="sh-form">
+          <div className="field" style={{ margin: 0, gridColumn: "span 2" }}>
+            <label className="label">Sayfa adresi</label>
+            <input
+              className="input"
+              value={adres}
+              placeholder="https://www.teleskor.com.tr/mac/..."
+              onChange={(e) => setAdres(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void tara();
+              }}
+            />
+          </div>
+          <div className="sh-form-dugme">
+            <button className="btn btn-primary" disabled={mesgul || !adres.trim()} onClick={() => void tara()}>
+              {mesgul ? "Taranıyor…" : "Tara"}
+            </button>
+          </div>
+        </div>
+        {hata && (
+          <div className="alert alert-error" style={{ marginTop: 10 }}>
+            {hata}
+          </div>
+        )}
+        {sonuc && (
+          <div className="table-wrap" style={{ marginTop: 14 }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Sayfa</th>
+                  <th>Durum</th>
+                  <th>Dizine ekleme</th>
+                  <th>Sebep</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sonuc.satirlar.map((s) => {
+                  const kapali = /noindex/i.test(`${s.metaRobots ?? ""} ${s.xRobotsTag ?? ""}`);
+                  const kalip = panelKalibi(s.yol);
+                  const sebep = !kapali
+                    ? null
+                    : kalip && /noindex/i.test(s.xRobotsTag ?? "")
+                      ? `Panelden: hariç kalıp ${kalip}`
+                      : s.durum === 404
+                        ? "Sayfa yok (bu kayıtta bu sekme hiç oluşmuyor)"
+                        : noindexSebebi(s.yol);
+                  return (
+                    <tr key={s.yol}>
+                      <td className="sh-yol">
+                        <a href={s.adres} target="_blank" rel="noreferrer">
+                          {s.yol === sonuc.satirlar[0].yol ? s.yol : "…/" + s.yol.split("/").pop()}
+                        </a>
+                        {s.baslik && <div className="cell-sub">{s.baslik}</div>}
+                      </td>
+                      <td>
+                        <span
+                          className={`badge ${s.durum === 200 ? "badge-published" : s.durum >= 300 && s.durum < 400 ? "badge-scheduled" : "badge-archived"}`}
+                        >
+                          {s.durum || "ulaşılamadı"}
+                        </span>
+                      </td>
+                      <td>
+                        {s.durum !== 200 && !kapali ? (
+                          <span className="muted">—</span>
+                        ) : kapali ? (
+                          <span className="badge badge-archived">noindex</span>
+                        ) : (
+                          <span className="badge badge-published">dizine açık</span>
+                        )}
+                      </td>
+                      <td className="cell-sub">{sebep ?? ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="cell-sub" style={{ marginTop: 8 }}>
+              Yalnız sayfada bağlantısı olan sekmeler taranır; verisi olmadığı için sekmesi hiç gösterilmeyen
+              sayfalar (örnek: yayın bilgisi olmayan maçın TV sekmesi) zaten noindex ve haritada yok.
+            </div>
           </div>
         )}
       </div>

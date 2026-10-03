@@ -58,7 +58,7 @@ export default function GecmisKarti() {
             </table>
           </div>
         )}
-        <div className="form-actions" style={{ marginTop: 12 }}>
+        <div className="sh-dugmeler" style={{ marginTop: 12 }}>
           <button className="btn btn-sm" disabled={mesgul || sayfa === 0} onClick={() => setSayfa((s) => s - 1)}>
             Daha yeni
           </button>

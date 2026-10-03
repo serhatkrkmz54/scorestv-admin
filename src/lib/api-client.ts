@@ -68,6 +68,8 @@ import type {
   KadroTakimBulgusu,
   KadroTakimKadrosu,
   KadroTakimOzeti,
+  AltSayfaTaramasi,
+  SayfaMetaListesi,
   SiteHaritasiAdresDenetimi,
   SiteHaritasiAyarlari,
   SiteHaritasiDosyasi,
@@ -1497,4 +1499,33 @@ export async function apiSiteHaritasiDenetle(adres: string): Promise<SiteHaritas
 export async function apiSiteHaritasiRobotsTxt(): Promise<{ metin: string }> {
   const res = await fetch("/api/teleskor/site-haritasi/robots-txt", { cache: "no-store" });
   return parse<{ metin: string }>(res);
+}
+
+export async function apiSayfaMetaListe(q: string, sayfa: number): Promise<SayfaMetaListesi> {
+  const res = await fetch(`/api/teleskor/site-haritasi/sayfalar?q=${encodeURIComponent(q)}&sayfa=${sayfa}`, {
+    cache: "no-store",
+  });
+  return parse<SayfaMetaListesi>(res);
+}
+
+export async function apiSayfaMetaYaz(istek: {
+  yol: string;
+  baslik: string;
+  aciklama: string;
+  not: string;
+}): Promise<SayfaMetaListesi> {
+  const res = await fetch("/api/teleskor/site-haritasi/sayfalar", jsonInit("PUT", istek));
+  return parse<SayfaMetaListesi>(res);
+}
+
+export async function apiSayfaMetaSil(id: number): Promise<void> {
+  const res = await fetch(`/api/teleskor/site-haritasi/sayfalar/${id}`, { method: "DELETE" });
+  await parse<unknown>(res);
+}
+
+export async function apiAltSayfaTaramasi(adres: string): Promise<AltSayfaTaramasi> {
+  const res = await fetch(`/api/teleskor/site-haritasi/alt-sayfalar?adres=${encodeURIComponent(adres)}`, {
+    cache: "no-store",
+  });
+  return parse<AltSayfaTaramasi>(res);
 }
