@@ -415,6 +415,53 @@ export interface CeviriSozlukSatiri {
  * <p>Alan adları ham SQL sütunları: uç satırı olduğu gibi döndürüyor.
  * AYNI MESAJ birden çok satırda görünebilir — her satır bir ŞİKAYET.
  */
+/** Maçın künyesi (motordan; motor yoksa alan hiç gelmez). */
+export interface TeleskorSohbetMacKunye {
+  ev?: string;
+  dep?: string;
+  evSkor?: number;
+  depSkor?: number;
+  durum?: string;
+  lig?: string;
+  ligLogo?: string;
+  baslama?: string;
+}
+
+export interface TeleskorSohbetMacSatiri {
+  macId: number;
+  mesaj: number;
+  ilkMesaj: string;
+  sonMesaj: string;
+  bekleyenSikayet: number;
+  mac?: TeleskorSohbetMacKunye;
+}
+
+export interface TeleskorSohbetMacListesi {
+  maclar: TeleskorSohbetMacSatiri[];
+  sonraki?: { once: string; onceMac: number };
+  ozetGuncellendi?: string;
+}
+
+export interface TeleskorSohbetMesaji {
+  id: number;
+  macId: number;
+  metin: string;
+  yazildi: string;
+  silindi?: string;
+  bekleyenSikayet: number;
+  toplamSikayet: number;
+  yazar: { id: number; kullaniciAdi?: string; avatar?: string; durum?: string; susturmaBitis?: string };
+}
+
+export interface TeleskorSohbetMesajSayfasi {
+  mesajlar: TeleskorSohbetMesaji[];
+  sonrakiOncesi?: number;
+  ozet?: { gorunen: number; silinen: number; yazar: number };
+  mac?: TeleskorSohbetMacKunye;
+  /** Üye görünümünde: mesajların geçtiği maçların künyeleri (kimlik → künye). */
+  maclar?: Record<string, TeleskorSohbetMacKunye>;
+}
+
 export interface TeleskorSohbetSikayeti {
   sikayet_id: number;
   reason: string | null;

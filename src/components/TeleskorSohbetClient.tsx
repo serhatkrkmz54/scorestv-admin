@@ -10,6 +10,37 @@ import {
 import type { TeleskorSohbetSikayeti } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import TeleskorOnayModal from "./TeleskorOnayModal";
+import TeleskorMacSohbetleri from "./TeleskorMacSohbetleri";
+
+/**
+ * SOHBET — iki sekme: Şikayetler (bekleyen moderasyon işi) ve Maç sohbetleri
+ * (hangi maçta ne yazılmış; 4 Ekim 2026). Seçili sekme adreste (`?sekme=`).
+ */
+export default function TeleskorSohbetClient() {
+  const [sekme, setSekme] = useState<"sikayet" | "maclar">("sikayet");
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get("sekme");
+    if (s === "maclar") setSekme("maclar");
+  }, []);
+  function sec(s: "sikayet" | "maclar") {
+    setSekme(s);
+    const sp = new URLSearchParams(window.location.search);
+    if (s === "maclar") sp.set("sekme", s); else sp.delete("sekme");
+    window.history.replaceState(null, "", `${window.location.pathname}${sp.size ? `?${sp}` : ""}`);
+  }
+  return (
+    <div className="stack">
+      <div className="spread">
+        <h1 className="page-title">Sohbet</h1>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className={`btn btn-sm${sekme === "sikayet" ? " btn-primary" : ""}`} onClick={() => sec("sikayet")}>Şikayetler</button>
+          <button className={`btn btn-sm${sekme === "maclar" ? " btn-primary" : ""}`} onClick={() => sec("maclar")}>Maç sohbetleri</button>
+        </div>
+      </div>
+      {sekme === "sikayet" ? <SikayetlerSekmesi /> : <TeleskorMacSohbetleri />}
+    </div>
+  );
+}
 
 /**
  * SOHBET MODERASYONU — maç sohbetinde şikayet edilen mesajlar.
@@ -31,7 +62,7 @@ import TeleskorOnayModal from "./TeleskorOnayModal";
  * şikayet ettiği bir bilgi. Aynı mesajın satırları gruplanıyor ki
  * yönetici aynı gövdeyi üst üste okumasın.
  */
-export default function TeleskorSohbetClient() {
+function SikayetlerSekmesi() {
   const [satirlar, setSatirlar] = useState<TeleskorSohbetSikayeti[]>([]);
   const [loading, setLoading] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
@@ -103,12 +134,9 @@ export default function TeleskorSohbetClient() {
   return (
     <div className="stack">
       <div className="spread">
-        <div>
-          <h1 className="page-title">Sohbet Şikayetleri</h1>
-          <div className="muted" style={{ fontSize: 13 }}>
-            Maç sohbetinde kullanıcıların şikayet ettiği mesajlar. Bekleyen
-            şikayetler burada; kapatılanlar listeden düşer.
-          </div>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Maç sohbetinde kullanıcıların şikayet ettiği mesajlar. Bekleyen
+          şikayetler burada; kapatılanlar listeden düşer.
         </div>
         <button className="btn" onClick={load}>
           Yenile

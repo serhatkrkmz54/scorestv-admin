@@ -22,7 +22,7 @@ const BASLIKLAR: [string, string][] = [
   ["/teleskor/uyeler", "Üyeler"],
   ["/teleskor/kitle", "Kitle"],
   ["/teleskor/destek", "Destek"],
-  ["/teleskor/sohbet", "Sohbet Şikayetleri"],
+  ["/teleskor/sohbet", "Sohbet"],
   ["/teleskor/akis", "Akış Şikayetleri"],
   ["/teleskor/market/siparisler", "Market Siparişleri"],
   ["/teleskor/market", "Telepuan Marketi"],

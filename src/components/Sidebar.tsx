@@ -96,7 +96,7 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
       { href: "/teleskor/uyeler", ad: "Üyeler", ikon: UserCog },
       { href: "/teleskor/kitle", ad: "Kitle", ikon: Users },
       { href: "/teleskor/destek", ad: "Destek", ikon: LifeBuoy },
-      { href: "/teleskor/sohbet", ad: "Sohbet Şikayetleri", ikon: ShieldAlert },
+      { href: "/teleskor/sohbet", ad: "Sohbet", ikon: ShieldAlert },
       { href: "/teleskor/akis", ad: "Akış Şikayetleri", ikon: MessagesSquare },
     ],
   },

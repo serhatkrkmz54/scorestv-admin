@@ -28,6 +28,8 @@ import type {
   CeviriSayfasi,
   CeviriSozlukSatiri,
   TeleskorSohbetSikayeti,
+  TeleskorSohbetMacListesi,
+  TeleskorSohbetMesajSayfasi,
   TeleskorAkisSikayeti,
   TeleskorDestekTalebi,
   TeleskorDestekYazismasi,
@@ -467,6 +469,37 @@ export async function apiTeleskorSikayetler(
     method: "GET",
   });
   return parse<TeleskorSohbetSikayeti[]>(res);
+}
+
+function sorguDizesi(p: Record<string, string | number | boolean | undefined | null>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== null && v !== "" && v !== false) sp.set(k, String(v));
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
+/** Sohbeti olan maçlar, en son yazılan önce (imleç: önceki yanıtın `sonraki`si). */
+export async function apiTeleskorSohbetMaclar(p: {
+  once?: string; onceMac?: number; sikayetli?: boolean; limit?: number;
+}): Promise<TeleskorSohbetMacListesi> {
+  const res = await fetch(`/api/teleskor/sohbet/maclar${sorguDizesi(p)}`, { method: "GET" });
+  return parse<TeleskorSohbetMacListesi>(res);
+}
+
+/** Maçın mesajları, en yeni önce (arama, silinenler, üye süzgeci). */
+export async function apiTeleskorSohbetMacMesajlari(macId: number, p: {
+  silinen?: boolean; oncesi?: number; q?: string; kullaniciId?: number; limit?: number;
+}): Promise<TeleskorSohbetMesajSayfasi> {
+  const res = await fetch(`/api/teleskor/sohbet/maclar/${macId}/mesajlar${sorguDizesi(p)}`, { method: "GET" });
+  return parse<TeleskorSohbetMesajSayfasi>(res);
+}
+
+/** Üyenin bütün maçlardaki mesajları (silinenler dâhil). */
+export async function apiTeleskorSohbetUyeMesajlari(kullaniciId: number, p: {
+  oncesi?: number; limit?: number;
+}): Promise<TeleskorSohbetMesajSayfasi> {
+  const res = await fetch(`/api/teleskor/sohbet/kullanicilar/${kullaniciId}/mesajlar${sorguDizesi(p)}`, { method: "GET" });
+  return parse<TeleskorSohbetMesajSayfasi>(res);
 }
 
 /** Mesajı gizler; üstündeki BÜTÜN bekleyen şikayetler kapanır. */
