@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   apiKadroDuzeltmeler,
   apiKadroGeriAl,
@@ -129,6 +129,11 @@ export default function TeleskorKadroClient() {
   const [seciliOyuncu, setSeciliOyuncu] = useState<KadroOyuncuBulgusu | null>(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [formHatasi, setFormHatasi] = useState("");
+  // Form ve sonuç mesajı kadro penceresinin TEPESİNDE; liste aşağı kaydırılmışken
+  // satırdaki "Çıkar"a basınca form görünmeyen yerde açılıyordu (Serhat, 5 Ekim:
+  // "hiç tepki vermiyor"). Açılınca ve sonuç gelince oraya kaydırılır.
+  const formKutusu = useRef<HTMLDivElement>(null);
+  const mesajKutusu = useRef<HTMLDivElement>(null);
 
   // --- lig arama (350 ms bekletici; bayat sonuç ekrana basılmıyor) ---
   useEffect(() => {
@@ -276,6 +281,9 @@ export default function TeleskorKadroClient() {
 
   function formAc(f: Form) {
     formuKapat();
+    // Eski sonuç mesajı yeni işlemle karışmasın; aynı metin yeniden gelince de
+    // mesaja kaydırılsın.
+    setBilgi("");
     setForm(f);
     if (f.tur === "DUZELT") {
       // Mevcut değerlerle açılıyor: yalnız değişeni düzeltmek kolay olsun.
@@ -283,6 +291,17 @@ export default function TeleskorKadroClient() {
       setForma(f.aday.forma ?? "");
     }
   }
+
+  useEffect(() => {
+    const kutu = formKutusu.current;
+    if (!form || !kutu) return;
+    kutu.scrollIntoView({ block: "start", behavior: "smooth" });
+    kutu.querySelector<HTMLElement>("input, select, textarea")?.focus({ preventScroll: true });
+  }, [form]);
+
+  useEffect(() => {
+    if (bilgi || hata) mesajKutusu.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [bilgi, hata]);
 
   // MODAL AÇIKKEN: Esc kapatıyor, arka plan kaydırılmıyor (Veri Düzeltme
   // masasıyla aynı kalıp).
@@ -501,7 +520,7 @@ export default function TeleskorKadroClient() {
         )}
       </div>
 
-      {hata && <div className="alert alert-error">{hata}</div>}
+      {hata && !acik && <div className="alert alert-error">{hata}</div>}
       {bilgi && !acik && <div className="alert alert-success">{bilgi}</div>}
 
       {yukleniyor && (
@@ -719,9 +738,21 @@ export default function TeleskorKadroClient() {
             </div>
 
             <div className="card-pad">
-              {bilgi && <div className="alert alert-success" style={{ marginBottom: 12 }}>{bilgi}</div>}
+              <div ref={mesajKutusu} style={{ scrollMarginTop: 80 }}>
+                {bilgi && (
+                  <div className="alert alert-success" style={{ marginBottom: 12 }}>
+                    {bilgi}
+                  </div>
+                )}
+                {hata && (
+                  <div className="alert alert-error" style={{ marginBottom: 12 }}>
+                    {hata}
+                  </div>
+                )}
+              </div>
 
               {form && (
+                <div ref={formKutusu} style={{ scrollMarginTop: 80 }}>
                 <IslemFormu
                   form={form}
                   takimAd={acik.ad}
@@ -746,6 +777,7 @@ export default function TeleskorKadroClient() {
                   gonder={gonder}
                   vazgec={formuKapat}
                 />
+                </div>
               )}
 
               <div className="tabs" style={{ marginBottom: 12 }}>
