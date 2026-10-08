@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
   q.set("sadeceEksik", sp.get("sadeceEksik") ?? "false");
   q.set("limit", sp.get("limit") ?? "200");
   q.set("offset", sp.get("offset") ?? "0");
+  const dil = sp.get("lang");
+  if (dil) q.set("lang", dil);
 
   const r = await teleskorJson<CeviriSayfasi>(
     `/api/v1/admin/engine/ceviri?${q.toString()}`,

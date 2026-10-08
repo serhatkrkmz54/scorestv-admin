@@ -55,6 +55,21 @@ const SOZLUKLER: [string, string][] = [
   ["promotion", "Puan durumu bölgeleri"],
 ];
 
+/**
+ * DİL (8 Ekim): Teleskor yalnız Türkçe gösterir; öbür diller ScoresTV'nin
+ * çok dilli sayfaları için (ör. Arapçada "جلطة سراي" gibi sağlayıcı hataları).
+ * Türkçe dışındaki düzeltme o dilin sayfalarında hemen görünür.
+ */
+const DILLER: [string, string][] = [
+  ["tr", "Türkçe"],
+  ["en", "İngilizce"],
+  ["es", "İspanyolca"],
+  ["pt", "Portekizce"],
+  ["fr", "Fransızca"],
+  ["ru", "Rusça"],
+  ["ar", "Arapça"],
+];
+
 const SAYFA = 200;
 
 type Durum = "" | "kaydediliyor" | "ok" | "hata";
@@ -65,6 +80,7 @@ export default function TeleskorCeviriClient() {
   const [arama, setArama] = useState("");
   const [q, setQ] = useState("");
   const [sadeceEksik, setSadeceEksik] = useState(false);
+  const [dil, setDil] = useState("tr");
 
   const [satirlar, setSatirlar] = useState<CeviriSatiri[]>([]);
   const [toplam, setToplam] = useState(0);
@@ -104,6 +120,7 @@ export default function TeleskorCeviriClient() {
             sadeceEksik,
             limit: SAYFA,
             offset,
+            lang: dil,
           });
           setSatirlar((eski) => (ekle ? [...eski, ...s.satirlar] : s.satirlar));
           setToplam(s.toplam);
@@ -118,7 +135,7 @@ export default function TeleskorCeviriClient() {
     // satirlar.length bilerek DIŞARIDA: bağımlılık olsaydı her yüklemeden
     // sonra yeniden çalışır ve sonsuz döngü olurdu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [aktif, q, sadeceEksik],
+    [aktif, q, sadeceEksik, dil],
   );
 
   useEffect(() => {
@@ -130,7 +147,7 @@ export default function TeleskorCeviriClient() {
   }
 
   async function duzeltmeKaydet(s: CeviriSatiri, deger: string) {
-    const anahtar = `${aktif}:${s.id}`;
+    const anahtar = `${aktif}:${dil}:${s.id}`;
     // DEĞİŞMEDİYSE İSTEK ATMA: blur her odak kaybında tetikleniyor ve
     // kullanıcı yalnız satıra tıklayıp geçtiğinde de çalışırdı.
     if ((s.duzeltme ?? "") === deger.trim()) {
@@ -138,7 +155,7 @@ export default function TeleskorCeviriClient() {
     }
     durumYaz(anahtar, "kaydediliyor");
     try {
-      const y = await apiCeviriYaz(aktif, s.id, deger.trim());
+      const y = await apiCeviriYaz(aktif, s.id, deger.trim(), dil);
       setSatirlar((eski) =>
         eski.map((x) =>
           x.id === s.id
@@ -237,6 +254,19 @@ export default function TeleskorCeviriClient() {
               marginBottom: 12,
             }}
           >
+            <select
+              className="input"
+              style={{ maxWidth: 160 }}
+              value={dil}
+              onChange={(e) => setDil(e.target.value)}
+              aria-label="Dil"
+            >
+              {DILLER.map(([kod, ad]) => (
+                <option key={kod} value={kod}>
+                  {ad}
+                </option>
+              ))}
+            </select>
             <input
               className="input"
               style={{ maxWidth: 320 }}
@@ -252,7 +282,7 @@ export default function TeleskorCeviriClient() {
                 checked={sadeceEksik}
                 onChange={(e) => setSadeceEksik(e.target.checked)}
               />
-              Yalnız Türkçesi olmayanlar
+              {dil === "tr" ? "Yalnız Türkçesi olmayanlar" : "Yalnız bu dilde adı olmayanlar"}
             </label>
             <div style={{ flex: 1 }} />
             <span className="muted" style={{ fontSize: 12.5 }}>
@@ -284,10 +314,17 @@ export default function TeleskorCeviriClient() {
           />
         ) : (
           <>
+            {dil !== "tr" && (
+              <div className="muted" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                Bu dil yalnız ScoresTV&apos;nin o dildeki sayfalarında kullanılır; Teleskor
+                uygulaması ve sitesi Türkçe adı gösterir.
+              </div>
+            )}
             <AdTablosu
               satirlar={satirlar}
               durumlar={durumlar}
-              anahtarOnEki={aktif}
+              anahtarOnEki={`${aktif}:${dil}`}
+              yerTutucu={dil === "tr" ? "Türkçesini yaz" : "Bu dildeki adı yaz"}
               onKaydet={duzeltmeKaydet}
             />
             {satirlar.length < toplam && (
@@ -325,11 +362,13 @@ function AdTablosu({
   satirlar,
   durumlar,
   anahtarOnEki,
+  yerTutucu,
   onKaydet,
 }: {
   satirlar: CeviriSatiri[];
   durumlar: Record<string, Durum>;
   anahtarOnEki: string;
+  yerTutucu: string;
   onKaydet: (s: CeviriSatiri, deger: string) => void;
 }) {
   if (satirlar.length === 0) {
@@ -353,7 +392,7 @@ function AdTablosu({
         </thead>
         <tbody>
           {satirlar.map((s) => (
-            <tr key={s.id}>
+            <tr key={`${anahtarOnEki}:${s.id}`}>
               <td>
                 {s.ingilizce}
                 {!s.saglayici && !s.duzeltme && (
@@ -366,6 +405,7 @@ function AdTablosu({
               <td>
                 <DuzeltmeKutusu
                   baslangic={s.duzeltme ?? ""}
+                  yerTutucu={yerTutucu}
                   onKaydet={(deger) => onKaydet(s, deger)}
                 />
               </td>
@@ -457,9 +497,11 @@ function SozlukTablosu({
  */
 function DuzeltmeKutusu({
   baslangic,
+  yerTutucu = "Türkçesini yaz",
   onKaydet,
 }: {
   baslangic: string;
+  yerTutucu?: string;
   onKaydet: (deger: string) => void;
 }) {
   const [deger, setDeger] = useState(baslangic);
@@ -482,7 +524,8 @@ function DuzeltmeKutusu({
     <input
       className="input"
       value={deger}
-      placeholder="Türkçesini yaz"
+      dir="auto"
+      placeholder={yerTutucu}
       onChange={(e) => setDeger(e.target.value)}
       onBlur={() => {
         if (iptal.current) {

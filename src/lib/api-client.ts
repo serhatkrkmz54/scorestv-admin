@@ -420,9 +420,12 @@ export async function apiCeviriListe(params: {
   sadeceEksik?: boolean;
   limit?: number;
   offset?: number;
+  /** Boş ya da "tr": Türkçe masa. Başka dil (en, es, pt, fr, ru, ar): o dildeki adlar (ScoresTV). */
+  lang?: string;
 }): Promise<CeviriSayfasi> {
   const q = new URLSearchParams({ tur: params.tur });
   if (params.q) q.set("q", params.q);
+  if (params.lang && params.lang !== "tr") q.set("lang", params.lang);
   if (params.sadeceEksik) q.set("sadeceEksik", "true");
   q.set("limit", String(params.limit ?? 200));
   q.set("offset", String(params.offset ?? 0));
@@ -435,8 +438,10 @@ export async function apiCeviriYaz(
   tur: string,
   id: number,
   ad: string,
+  lang?: string,
 ): Promise<{ gorunen: string | null; duzeltme: string | null }> {
-  const res = await fetch("/api/teleskor/ceviri", jsonInit("PUT", { tur, id, ad }));
+  const govde = lang && lang !== "tr" ? { tur, id, ad, lang } : { tur, id, ad };
+  const res = await fetch("/api/teleskor/ceviri", jsonInit("PUT", govde));
   return parse<{ gorunen: string | null; duzeltme: string | null }>(res);
 }
 
