@@ -17,6 +17,7 @@ const BASLIKLAR: [string, string][] = [
   ["/teleskor/mac-ozeti", "Maç Özeti"],
   ["/teleskor/one-cikan-ligler", "Öne Çıkan Ligler"],
   ["/teleskor/kadro", "Kadro Masası"],
+  ["/teleskor/tv", "TV Kanalı Düzeltme"],
   ["/teleskor/veri", "Veri Düzeltme"],
   ["/teleskor/ceviri", "Çeviri Düzeltme"],
   ["/teleskor/uyeler", "Üyeler"],

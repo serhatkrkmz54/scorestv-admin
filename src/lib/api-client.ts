@@ -4,6 +4,10 @@
 // gider (backend'e ASLA doğrudan değil). Çerezler otomatik iletilir.
 
 import type {
+  TvDefterSatiri,
+  TvDuzeltme,
+  TvMac,
+  TvUlke,
   TeleskorHaberDetayi,
   TeleskorHaberIstegi,
   TeleskorHaberListesi,
@@ -1642,4 +1646,44 @@ export async function apiTeleskorKddHaricSil(playerId: number): Promise<void> {
 export async function apiTeleskorKddIstatistik(gun: string): Promise<KddIstatistik> {
   const res = await fetch(`/api/teleskor/kdd/istatistik${gun ? `?gun=${gun}` : ""}`, { cache: "no-store" });
   return parse<KddIstatistik>(res);
+}
+
+// ---------------------------------------------------------------------------
+// TV KANALI DÜZELTME (motor V118) — /api/teleskor/tv
+// ---------------------------------------------------------------------------
+
+export async function apiTvUlkeler(): Promise<TvUlke[]> {
+  const res = await fetch("/api/teleskor/tv/ulkeler", { cache: "no-store" });
+  return parse<TvUlke[]>(res);
+}
+
+/** `q`: takım adı (en az 2 harf) ya da maç kimliği. */
+export async function apiTvMaclar(gun: string, q: string): Promise<TvMac[]> {
+  const res = await fetch(
+    `/api/teleskor/tv/maclar?gun=${encodeURIComponent(gun)}&q=${encodeURIComponent(q.trim())}`,
+    { cache: "no-store" },
+  );
+  return parse<TvMac[]>(res);
+}
+
+export async function apiTvDuzeltmeler(kaldirilan: boolean): Promise<TvDefterSatiri[]> {
+  const res = await fetch(`/api/teleskor/tv/duzeltmeler?kaldirilan=${kaldirilan}`, {
+    cache: "no-store",
+  });
+  return parse<TvDefterSatiri[]>(res);
+}
+
+export async function apiTvEkle(istek: {
+  macId: number;
+  ulkeId: number;
+  kanal: string;
+  gerekce: string;
+}): Promise<TvDuzeltme> {
+  const res = await fetch("/api/teleskor/tv", jsonInit("POST", istek));
+  return parse<TvDuzeltme>(res);
+}
+
+export async function apiTvKaldir(id: number): Promise<TvDuzeltme> {
+  const res = await fetch(`/api/teleskor/tv/${id}`, { method: "DELETE" });
+  return parse<TvDuzeltme>(res);
 }

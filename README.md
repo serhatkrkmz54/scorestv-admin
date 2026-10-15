@@ -22,7 +22,7 @@ tahmin edilemez bir alt alanda (ad yalnız teleskor-backend
 - Panel gelen isteğin `CF-Connecting-IP` / `CF-IPCountry` başlıklarını ve
   "Yönetim paneli" cihaz adını Teleskor'a iletir (`lib/backend.ts`): giriş
   denemesi kilidi ve "yeni cihazdan giriş" e-postası kişinin kendi IP'siyle.
-- Spor verisi düzeltmeleri (Kadro Masası, Veri/Çeviri Düzeltme, Motor)
+- Spor verisi düzeltmeleri (Kadro Masası, TV Kanalı Düzeltme, Veri/Çeviri Düzeltme, Motor)
   api-1 üzerinden motora gider; panel motorla doğrudan konuşmaz.
 
 ## Yerelde
@@ -38,8 +38,8 @@ Yerel api-1'de hazır yönetici: `serhatadmin` (DevDataSeeder).
 ## Sayfalar
 
 Genel (Sistem Sağlığı) · İçerik (Haberler, Duyurular, Sürüm Notları, Maç
-Özeti) · Spor verisi (Öne Çıkan Ligler, Kadro Masası, Veri Düzeltme, Çeviri
-Düzeltme) · Üyeler ve topluluk (Üyeler, Kitle, Destek, Sohbet/Akış
+Özeti) · Spor verisi (Öne Çıkan Ligler, Kadro Masası, TV Kanalı Düzeltme, Veri
+Düzeltme, Çeviri Düzeltme) · Üyeler ve topluluk (Üyeler, Kitle, Destek, Sohbet/Akış
 Şikayetleri) · Tele Puan (Market, Siparişler) · Sistem (Uygulama Ayarları,
 Sözleşmeler, Denetim Kaydı, Motor, Panel Ayarları).
 

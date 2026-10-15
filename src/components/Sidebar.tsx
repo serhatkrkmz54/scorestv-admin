@@ -14,6 +14,7 @@ import {
   UserCog,
   ClipboardList,
   Shirt,
+  Tv,
   Languages,
   LifeBuoy,
   ShieldAlert,
@@ -85,6 +86,7 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
     baglantilar: [
       { href: "/teleskor/one-cikan-ligler", ad: "Öne Çıkan Ligler", ikon: Star },
       { href: "/teleskor/kadro", ad: "Kadro Masası", ikon: Shirt },
+      { href: "/teleskor/tv", ad: "TV Kanalı Düzeltme", ikon: Tv },
       { href: "/teleskor/veri", ad: "Veri Düzeltme", ikon: ClipboardList },
       { href: "/teleskor/ceviri", ad: "Çeviri Düzeltme", ikon: Languages },
     ],

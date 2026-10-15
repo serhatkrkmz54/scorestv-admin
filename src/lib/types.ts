@@ -1748,3 +1748,62 @@ export interface AltSayfaTaramasi {
     konum: string | null;
   }[];
 }
+
+// ---------------------------------------------------------------------------
+// TV KANALI DÜZELTME (motor V118) — /api/teleskor/tv
+// ---------------------------------------------------------------------------
+
+/** TV listelerinde geçen ülke; `kod` sağlayıcının adı ("Turkey"). */
+export interface TvUlke {
+  id: number;
+  kod: string;
+  ad: string;
+  bayrak?: string;
+  kullanim: number;
+}
+
+export interface TvTakim {
+  id?: number;
+  ad?: string;
+  logo?: string;
+}
+
+/** Sağlayıcının bir ülke bloğu. */
+export interface TvSaglayiciYayin {
+  ulkeId?: number;
+  kod?: string;
+  ulke?: string;
+  kanallar: string[];
+}
+
+export interface TvDuzeltme {
+  id: number;
+  macId: number;
+  ulkeId: number;
+  kod?: string;
+  ulke?: string;
+  kanal: string;
+  gerekce: string;
+  olusturan?: string;
+  olusturuldu: string;
+  kaldirildi?: string;
+  kaldiran?: string;
+}
+
+export interface TvMac {
+  macId: number;
+  baslama?: string;
+  durum?: string;
+  lig?: string;
+  ev: TvTakim;
+  dep: TvTakim;
+  saglayici: TvSaglayiciYayin[];
+  elle: TvDuzeltme[];
+}
+
+export interface TvDefterSatiri {
+  kayit: TvDuzeltme;
+  baslama?: string;
+  ev: TvTakim;
+  dep: TvTakim;
+}
