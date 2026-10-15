@@ -80,6 +80,25 @@ function macAdi(m: { ev: { ad?: string }; dep: { ad?: string } }): string {
   return `${m.ev.ad ?? "?"} - ${m.dep.ad ?? "?"}`;
 }
 
+/**
+ * Kaynak aynı kanalı sonradan vermeye başladıysa: uygulama elle kaydı zaten
+ * atlıyor (kanal bir kez görünür), kayıt yalnız defterde fazlalık. Eşleşme
+ * motorda; yazım farkı yok sayılıyor ("S Sports Plus" ~ "S Sport+").
+ */
+function KaynakIsareti({ d }: { d: TvDuzeltme }) {
+  if (!d.kaynakVeriyor || d.kaldirildi) return null;
+  return (
+    <div style={{ marginTop: 4 }}>
+      <span
+        className="badge badge-scheduled"
+        title="Uygulamada kanal bir kez görünüyor; bu kaydı kaldırabilirsin. Kaynak kanalı sonra listeden düşürürse elle kayıt yeniden görünür."
+      >
+        Kaynak da veriyor{d.kaynakAdi ? `: ${d.kaynakAdi}` : ""} · kaldırabilirsin
+      </span>
+    </div>
+  );
+}
+
 export default function TeleskorTvClient() {
   const [ulkeler, setUlkeler] = useState<TvUlke[]>([]);
   const [gun, setGun] = useState(bugun);
@@ -373,6 +392,7 @@ export default function TeleskorTvClient() {
                             <span className="muted">
                               · elle · {d.ulke ?? ""} · {d.olusturan ?? "—"}, {tarihSaat(d.olusturuldu)}
                             </span>
+                            <KaynakIsareti d={d} />
                           </span>
                           <button className="btn btn-sm" onClick={() => kaldir(d, macAdi(m))}>
                             Kaldır
@@ -512,6 +532,7 @@ export default function TeleskorTvClient() {
                     <td>{s.kayit.ulke ?? "—"}</td>
                     <td>
                       <b>{s.kayit.kanal}</b>
+                      <KaynakIsareti d={s.kayit} />
                     </td>
                     <td style={{ maxWidth: 320 }}>{s.kayit.gerekce}</td>
                     <td style={{ whiteSpace: "nowrap" }}>

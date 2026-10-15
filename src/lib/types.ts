@@ -1788,6 +1788,14 @@ export interface TvDuzeltme {
   olusturuldu: string;
   kaldirildi?: string;
   kaldiran?: string;
+  /**
+   * Veri kaynağı aynı kanalı artık kendisi veriyor (yazımı farklı olabilir:
+   * "S Sports Plus" ~ "S Sport+"). Uygulama kaydı zaten atlıyor; kaldırılabilir.
+   * Yalnız liste uçlarında gelir.
+   */
+  kaynakVeriyor?: boolean;
+  /** Kaynağın yazımı. */
+  kaynakAdi?: string;
 }
 
 export interface TvMac {
