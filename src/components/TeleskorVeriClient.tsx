@@ -16,9 +16,11 @@ import {
   apiVeriGorsel,
   apiVeriYaz,
   apiTeleskorLigAra,
+  apiKadroTakimAra,
   ApiError,
 } from "@/lib/api-client";
 import type {
+  KadroTakimBulgusu,
   TakimEksigi,
   VeriAlanDurumu,
   VeriKaydi,
@@ -65,6 +67,12 @@ export default function TeleskorVeriClient() {
   >([]);
   const [lig, setLig] = useState<{ id: number; ad: string } | null>(null);
 
+  // Takımı DOĞRUDAN adıyla bulmak (Serhat: "takımın ligini bilmiyorum").
+  // Lig seçmeden de düzenleme modalı açılabiliyor; arama uygulamanın
+  // katalog aramasıyla aynı (Kadro Masası'nın takım araması).
+  const [takimAramasi, setTakimAramasi] = useState("");
+  const [takimSecenekleri, setTakimSecenekleri] = useState<KadroTakimBulgusu[]>([]);
+
   const [eksikler, setEksikler] = useState<TakimEksigi[]>([]);
   // Teknik direktör kontrol listesi (motor V107). Ayrı yükleniyor: gelmezse
   // eksik raporu yine çalışır.
@@ -99,6 +107,28 @@ export default function TeleskorVeriClient() {
       clearTimeout(z);
     };
   }, [ligAramasi]);
+
+  // --- takım arama (aynı bekletici kalıbı) ---
+  useEffect(() => {
+    const q = takimAramasi.trim();
+    if (q.length < 2) {
+      setTakimSecenekleri([]);
+      return;
+    }
+    let iptal = false;
+    const z = setTimeout(async () => {
+      try {
+        const r = await apiKadroTakimAra(q);
+        if (!iptal) setTakimSecenekleri(r.slice(0, 12));
+      } catch {
+        if (!iptal) setTakimSecenekleri([]);
+      }
+    }, 350);
+    return () => {
+      iptal = true;
+      clearTimeout(z);
+    };
+  }, [takimAramasi]);
 
   const raporuYukle = useCallback(async (ligId: number) => {
     setYukleniyor(true);
@@ -187,6 +217,44 @@ export default function TeleskorVeriClient() {
     }
   }
 
+  /**
+   * Aramadan seçilen takımı modalda açar. Eksik raporunun satırı yok;
+   * stadyum kimliği takım kaydının `venue_id` alanından okunuyor, sayılar
+   * modalda kullanılmadığı için sıfır. Takım bilgileri hemen açılır.
+   */
+  async function aramadanTakimAc(b: KadroTakimBulgusu) {
+    setTakimSecenekleri([]);
+    setTakimAramasi("");
+    setHata("");
+    const ad = b.ad ?? b.adEn ?? `#${b.id}`;
+    let takimKaydi: VeriKaydi | null = null;
+    try {
+      takimKaydi = await apiVeriKayit("TEAM", b.id);
+    } catch (e) {
+      setHata(e instanceof ApiError ? e.message : "Takım kaydı alınamadı.");
+      return;
+    }
+    const venue = takimKaydi.alanlar.find((a) => a.alan === "venue_id")?.deger;
+    const venueId = venue && /^\d+$/.test(venue) ? Number(venue) : null;
+    await takimAc({
+      takimId: b.id,
+      takim: ad,
+      venueId,
+      stadyum: null,
+      kapasiteVar: true,
+      sehirVar: true,
+      oyuncu: 0,
+      mevkiEksik: 0,
+      dogumEksik: 0,
+      boyEksik: 0,
+      bosOyuncu: 0,
+      kadroKaynak: "",
+      kadro: 0,
+      turetmeMac: 0,
+    });
+    setKayit(takimKaydi);
+  }
+
   async function kayitAc(tur: string, id: number) {
     setKayit(null);
     try {
@@ -207,6 +275,38 @@ export default function TeleskorVeriClient() {
           Yazdığın değer <b>senkronla ezilmez</b>. Takım/oyuncu/stadyum{" "}
           <b>adları</b> için Çeviri Düzeltme sayfasını kullan.
         </p>
+
+        <label className="label" htmlFor="veri-takim-ara">
+          Takımı adıyla bul
+        </label>
+        <input
+          id="veri-takim-ara"
+          className="input"
+          placeholder="Takım ara (en az 2 harf) — örn. Sakaryaspor"
+          value={takimAramasi}
+          onChange={(e) => setTakimAramasi(e.target.value)}
+        />
+
+        {takimSecenekleri.length > 0 && (
+          <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+            {takimSecenekleri.map((t) => (
+              <button
+                key={t.id}
+                className="btn btn-sm"
+                style={{ justifyContent: "flex-start" }}
+                onClick={() => aramadanTakimAc(t)}
+              >
+                {t.ad ?? t.adEn ?? `#${t.id}`}
+                {t.ulke ? <span className="muted"> · {t.ulke}</span> : null}
+                <span className="muted"> · #{t.id}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="muted" style={{ fontSize: 12.5, margin: "16px 0 6px" }}>
+          ya da bir ligin bütün takımlarını eksik raporuyla gör:
+        </div>
 
         <label className="label" htmlFor="veri-lig-ara">
           Lig seç
