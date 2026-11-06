@@ -2073,3 +2073,75 @@ export interface OyuncuSakatlikIstegi {
   yerine?: OyuncuSakatlikAnahtari | null;
   gerekce: string;
 }
+
+// Oyuncu Düzenleme — sezon istatistikleri (motor V121)
+
+export interface OyuncuSezonKalemi {
+  kod: string;
+  ad: string;
+  grup?: string;
+}
+
+export interface OyuncuDuzeltmeLig {
+  id: number;
+  ad: string;
+  logo?: string;
+}
+
+export interface OyuncuLigSezonu {
+  id: number;
+  ad: string;
+  yil?: number;
+}
+
+export interface OyuncuSaglayiciSezon {
+  sezonId: number;
+  sezonAd?: string;
+  yil?: number;
+  lig?: OyuncuDuzeltmeLig;
+  takim?: OyuncuDuzeltmeTakim;
+  /** kalem kodu -> değer; "rating" sezon toplamı x100 */
+  degerler: Record<string, number>;
+  ortalamaPuan?: number;
+  gizlemeId?: number;
+}
+
+export interface OyuncuElleSezon {
+  id: number;
+  /** Bizim sezon kaydımız; metinle girilen sezonda yok */
+  sezonId?: number;
+  sezonAd?: string;
+  yil?: number;
+  lig?: OyuncuDuzeltmeLig;
+  takim?: OyuncuDuzeltmeTakim;
+  takimAdi?: string;
+  degerler: Record<string, number>;
+  ortalamaPuan?: number;
+  yerineId?: number;
+  kaynakVeriyor: boolean;
+  iz: OyuncuDuzeltmeIz;
+}
+
+export interface OyuncuSezonDurumu {
+  oyuncu: OyuncuDuzeltmeOyuncu;
+  saglayici: OyuncuSaglayiciSezon[];
+  elle: OyuncuElleSezon[];
+}
+
+export interface OyuncuSezonAnahtari {
+  sezonId: number;
+  takimId: number;
+}
+
+export interface OyuncuSezonIstegi {
+  islem: "EKLE" | "GIZLE";
+  sezonId?: number | null;
+  sezonAdi?: string | null;
+  ligId?: number | null;
+  takimId?: number | null;
+  takimAdi?: string | null;
+  degerler?: Record<string, number>;
+  ortalamaPuan?: number | null;
+  yerine?: OyuncuSezonAnahtari | null;
+  gerekce: string;
+}

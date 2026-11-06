@@ -13,6 +13,11 @@ import type {
   OyuncuSakatlikIstegi,
   OyuncuSakatlikSebebi,
   OyuncuSakatlikTuru,
+  OyuncuDuzeltmeLig,
+  OyuncuLigSezonu,
+  OyuncuSezonDurumu,
+  OyuncuSezonIstegi,
+  OyuncuSezonKalemi,
   OyuncuTransferTuru,
   TvDefterSatiri,
   TvDuzeltme,
@@ -1815,4 +1820,35 @@ export async function apiOyuncuSakatlikYaz(
 export async function apiOyuncuSakatlikKaldir(duzeltmeId: number): Promise<OyuncuSakatlikDurumu> {
   const res = await fetch(`${OD}/sakatliklar/${duzeltmeId}`, { method: "DELETE" });
   return parse<OyuncuSakatlikDurumu>(res);
+}
+
+export async function apiOyuncuSezonlar(oyuncuId: number): Promise<OyuncuSezonDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/sezonlar`, { cache: "no-store" });
+  return parse<OyuncuSezonDurumu>(res);
+}
+
+export async function apiOyuncuSezonKalemleri(): Promise<OyuncuSezonKalemi[]> {
+  const res = await fetch(`${OD}/sezon-kalemleri`, { cache: "no-store" });
+  return parse<OyuncuSezonKalemi[]>(res);
+}
+
+export async function apiOyuncuLigAra(q: string): Promise<OyuncuDuzeltmeLig[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(`${OD}/lig-ara?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
+  return parse<OyuncuDuzeltmeLig[]>(res);
+}
+
+export async function apiOyuncuLigSezonlari(ligId: number): Promise<OyuncuLigSezonu[]> {
+  const res = await fetch(`${OD}/lig-sezonlari?lig=${ligId}`, { cache: "no-store" });
+  return parse<OyuncuLigSezonu[]>(res);
+}
+
+export async function apiOyuncuSezonYaz(oyuncuId: number, istek: OyuncuSezonIstegi): Promise<OyuncuSezonDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/sezonlar`, jsonInit("POST", istek));
+  return parse<OyuncuSezonDurumu>(res);
+}
+
+export async function apiOyuncuSezonKaldir(duzeltmeId: number): Promise<OyuncuSezonDurumu> {
+  const res = await fetch(`${OD}/sezonlar/${duzeltmeId}`, { method: "DELETE" });
+  return parse<OyuncuSezonDurumu>(res);
 }

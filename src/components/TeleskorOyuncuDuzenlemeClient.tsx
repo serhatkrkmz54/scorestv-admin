@@ -17,6 +17,12 @@ import {
   apiOyuncuSakatlikSebepAra,
   apiOyuncuSakatlikTurleri,
   apiOyuncuSakatlikYaz,
+  apiOyuncuLigAra,
+  apiOyuncuLigSezonlari,
+  apiOyuncuSezonKaldir,
+  apiOyuncuSezonKalemleri,
+  apiOyuncuSezonlar,
+  apiOyuncuSezonYaz,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -38,12 +44,17 @@ import type {
   OyuncuSakatlikDurumu,
   OyuncuSakatlikSebebi,
   OyuncuSakatlikTuru,
+  OyuncuDuzeltmeLig,
+  OyuncuLigSezonu,
+  OyuncuSaglayiciSezon,
+  OyuncuSezonDurumu,
+  OyuncuSezonKalemi,
 } from "@/lib/types";
 
 /**
- * OYUNCU PROFİLİ (motor V119, V120) — oyuncu sayfasının eksiklerini tamamlama.
+ * OYUNCU PROFİLİ (motor V119-V121) — oyuncu sayfasının eksiklerini tamamlama.
  *
- * <p>Üç bölüm: Başarılar, Transferler ve Sakatlıklar. Her bölümde kaynağın
+ * <p>Dört bölüm: Başarılar, Transferler, Sakatlıklar ve İstatistikler (sezon satırları). Her bölümde kaynağın
  * satırları ve elle girilenler yan yana. Kaynağın yanlış satırı gizlenir ya
  * da "Düzelt" ile aynı anda gizlenip doğrusu eklenir. Elle satırlar oyuncu
  * sayfasında (uygulama ve web) hemen görünür; sonraki senkron silmez.
@@ -1123,10 +1134,400 @@ function Sakatliklar({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: strin
 }
 
 // ---------------------------------------------------------------------------
+// 4) Sezon istatistikleri (motor V121)
+// ---------------------------------------------------------------------------
+
+/** Formda her zaman görünen kalemler; gerisi "Diğer istatistikler"de. */
+const ANA_KALEMLER = ["matches", "court", "first", "minutes_played", "goals", "assists", "yellow_cards", "red_cards"];
+
+function sezonOzeti(d: Record<string, number>): string {
+  const p: string[] = [];
+  if (d.court != null) p.push(`${d.court} maç`);
+  else if (d.matches != null) p.push(`${d.matches} maç (kadro)`);
+  if (d.goals != null) p.push(`${d.goals} gol`);
+  if (d.assists != null) p.push(`${d.assists} asist`);
+  if (d.minutes_played != null) p.push(`${d.minutes_played} dk`);
+  return p.join(" · ");
+}
+
+function LigSecici({ deger, degisti }: { deger: OyuncuDuzeltmeLig | null; degisti: (l: OyuncuDuzeltmeLig | null) => void }) {
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<OyuncuDuzeltmeLig[]>([]);
+  useEffect(() => {
+    if (deger || q.trim().length < 2) {
+      setSonuc([]);
+      return;
+    }
+    let iptal = false;
+    const t = setTimeout(() => {
+      apiOyuncuLigAra(q)
+        .then((r) => !iptal && setSonuc(r))
+        .catch(() => !iptal && setSonuc([]));
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(t);
+    };
+  }, [q, deger]);
+  return (
+    <label style={{ display: "block" }}>
+      <div className="label">Turnuva (isteğe bağlı)</div>
+      {deger ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <b>{deger.ad}</b> <span className="muted">#{deger.id}</span>
+          <button type="button" className="btn btn-sm" onClick={() => degisti(null)}>
+            Değiştir
+          </button>
+        </div>
+      ) : (
+        <>
+          <input className="input" placeholder="ör. Süper Lig" value={q} onChange={(e) => setQ(e.target.value)} />
+          {sonuc.length > 0 && (
+            <div style={{ border: "1px solid var(--border)", borderRadius: 8, marginTop: 4, maxHeight: 200, overflowY: "auto" }}>
+              {sonuc.map((l) => (
+                <button
+                  type="button"
+                  key={l.id}
+                  className="btn btn-sm"
+                  style={{ display: "block", width: "100%", textAlign: "left", border: 0 }}
+                  onClick={() => {
+                    degisti(l);
+                    setQ("");
+                  }}
+                >
+                  {l.ad} <span className="muted">#{l.id}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </label>
+  );
+}
+
+function SezonIstatistikleri({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: string) => void }) {
+  const [durum, setDurum] = useState<OyuncuSezonDurumu | null>(null);
+  const [kalemler, setKalemler] = useState<OyuncuSezonKalemi[]>([]);
+  const [hata, setHata] = useState("");
+  const [form, setForm] = useState<{ kaynak: OyuncuSaglayiciSezon | null } | null>(null);
+  const [lig, setLig] = useState<OyuncuDuzeltmeLig | null>(null);
+  const [ligSezonlari, setLigSezonlari] = useState<OyuncuLigSezonu[]>([]);
+  const [sezonId, setSezonId] = useState<string>("");
+  const [sezonAdi, setSezonAdi] = useState("");
+  const [takim, setTakim] = useState<TakimSecimi | null>(null);
+  const [degerler, setDegerler] = useState<Record<string, string>>({});
+  const [ortalama, setOrtalama] = useState("");
+  const [digerAcik, setDigerAcik] = useState(false);
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+
+  useEffect(() => {
+    setDurum(null);
+    setForm(null);
+    apiOyuncuSezonlar(oyuncuId)
+      .then(setDurum)
+      .catch((e) => setHata(hataMetni(e, "Sezon istatistikleri alınamadı.")));
+    apiOyuncuSezonKalemleri().then(setKalemler).catch(() => setKalemler([]));
+  }, [oyuncuId]);
+
+  useEffect(() => {
+    setSezonId("");
+    if (!lig || form?.kaynak) {
+      setLigSezonlari([]);
+      return;
+    }
+    let iptal = false;
+    apiOyuncuLigSezonlari(lig.id)
+      .then((r) => !iptal && setLigSezonlari(r))
+      .catch(() => !iptal && setLigSezonlari([]));
+    return () => {
+      iptal = true;
+    };
+  }, [lig, form?.kaynak]);
+
+  const kalemAdi = (kod: string) => kalemler.find((k) => k.kod === kod)?.ad ?? kod;
+
+  function formuAc(kaynak?: OyuncuSaglayiciSezon) {
+    setHata("");
+    setForm({ kaynak: kaynak ?? null });
+    setLig(kaynak?.lig ?? null);
+    setSezonAdi("");
+    setTakim(takimdan(kaynak?.takim));
+    const d: Record<string, string> = {};
+    for (const [k, v] of Object.entries(kaynak?.degerler ?? {})) {
+      if (k !== "rating") d[k] = String(v);
+    }
+    setDegerler(d);
+    setOrtalama(kaynak?.ortalamaPuan != null ? String(kaynak.ortalamaPuan) : "");
+    setDigerAcik(Object.keys(d).some((k) => !ANA_KALEMLER.includes(k)));
+    setGerekce("");
+  }
+
+  async function kaydet() {
+    const kaynak = form?.kaynak ?? null;
+    const d: Record<string, number> = {};
+    for (const [k, v] of Object.entries(degerler)) {
+      const s = v.trim();
+      if (!s) continue;
+      if (!/^\d+$/.test(s)) {
+        setHata(`${kalemAdi(k)}: yalnız rakam.`);
+        return;
+      }
+      d[k] = Number(s);
+    }
+    if (Object.keys(d).length === 0) {
+      setHata("En az bir istatistik gir (ör. maç, gol).");
+      return;
+    }
+    const ort = ortalama.trim().replace(",", ".");
+    if (ort && !/^\d+(\.\d{1,2})?$/.test(ort)) {
+      setHata("Ortalama puan ör. 7.25 biçiminde olmalı.");
+      return;
+    }
+    if (!kaynak && !sezonId && !sezonAdi.trim()) {
+      setHata("Sezon gerekli: listeden seç ya da yaz (ör. 1995-1996).");
+      return;
+    }
+    if (!takim) {
+      setHata("Kulüp gerekli.");
+      return;
+    }
+    if (gerekce.trim().length < 3) {
+      setHata("Gerekçe zorunlu.");
+      return;
+    }
+    setGonderiliyor(true);
+    setHata("");
+    try {
+      const secili = kaynak ? kaynak.sezonId : sezonId ? Number(sezonId) : null;
+      const dur = await apiOyuncuSezonYaz(oyuncuId, {
+        islem: "EKLE",
+        sezonId: secili,
+        sezonAdi: secili ? null : sezonAdi.trim(),
+        ligId: secili ? null : (lig?.id ?? null),
+        takimId: takim.id,
+        takimAdi: takim.id ? null : takim.ad,
+        degerler: d,
+        ortalamaPuan: ort ? Number(ort) : null,
+        yerine: kaynak && kaynak.takim ? { sezonId: kaynak.sezonId, takimId: kaynak.takim.id } : null,
+        gerekce: gerekce.trim(),
+      });
+      setDurum(dur);
+      setForm(null);
+      bildir(kaynak ? "Sezon satırı düzeltildi." : "Sezon eklendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaydedilemedi."));
+    } finally {
+      setGonderiliyor(false);
+    }
+  }
+
+  async function gizle(s: OyuncuSaglayiciSezon) {
+    if (!s.takim) return;
+    const g = window.prompt(`${s.sezonAd ?? ""} ${s.lig?.ad ?? ""} · ${s.takim.ad ?? ""} satırı gizlensin. Gerekçe?`);
+    if (!g || g.trim().length < 3) return;
+    setHata("");
+    try {
+      setDurum(
+        await apiOyuncuSezonYaz(oyuncuId, {
+          islem: "GIZLE",
+          yerine: { sezonId: s.sezonId, takimId: s.takim.id },
+          gerekce: g.trim(),
+        }),
+      );
+      bildir("Satır gizlendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Gizlenemedi."));
+    }
+  }
+
+  async function geriAl(id: number, soru: string) {
+    if (!window.confirm(soru)) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuSezonKaldir(id));
+      bildir("Geri alındı.");
+    } catch (e) {
+      setHata(hataMetni(e, "Geri alınamadı."));
+    }
+  }
+
+  if (!durum) {
+    return hata ? <div className="alert alert-error">{hata}</div> : <p className="muted">Yükleniyor…</p>;
+  }
+  if (durum.oyuncu.spor !== 1) {
+    return <p className="muted">Elle sezon istatistiği şimdilik yalnız futbolcular için.</p>;
+  }
+
+  const kalemAlani = (kod: string) => (
+    <label key={kod}>
+      <div className="label">{kalemAdi(kod)}</div>
+      <input
+        className="input"
+        inputMode="numeric"
+        value={degerler[kod] ?? ""}
+        onChange={(e) => setDegerler({ ...degerler, [kod]: e.target.value })}
+      />
+    </label>
+  );
+  const kaynak = form?.kaynak ?? null;
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {hata && <div className="alert alert-error">{hata}</div>}
+      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        Elle sezon satırı yalnız oyuncu sayfasının İstatistikler ve Kariyer bölümünde görünür; lig istatistik
+        listelerine, gol krallığına ve karşılaştırma yüzdeliklerine girmez. Sezon bizde kayıtlı değilse (ör. 90'lar)
+        sezonu yazmanız yeterli.
+      </p>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="card-title">Kaynaktan gelenler ({durum.saglayici.length})</div>
+        {!form && (
+          <button className="btn btn-primary btn-sm" onClick={() => formuAc()}>
+            Sezon ekle
+          </button>
+        )}
+      </div>
+
+      {form && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 10 }}>
+          <div className="cell-title">
+            {kaynak
+              ? `Kaynağın satırını düzelt: ${kaynak.sezonAd ?? ""} ${kaynak.lig?.ad ?? ""} · ${kaynak.takim?.ad ?? ""} (eski satır gizlenir)`
+              : "Yeni sezon satırı"}
+          </div>
+          {!kaynak && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+              <LigSecici deger={lig} degisti={setLig} />
+              {lig && ligSezonlari.length > 0 && (
+                <label>
+                  <div className="label">Sezon (bizde kayıtlı olanlar)</div>
+                  <select className="input" value={sezonId} onChange={(e) => setSezonId(e.target.value)}>
+                    <option value="">Listede yok, yazacağım</option>
+                    {ligSezonlari.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.ad}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {!sezonId && (
+                <label>
+                  <div className="label">Sezon</div>
+                  <input
+                    className="input"
+                    maxLength={9}
+                    placeholder="ör. 1995-1996 ya da 1996"
+                    value={sezonAdi}
+                    onChange={(e) => setSezonAdi(e.target.value)}
+                  />
+                </label>
+              )}
+              <TakimSecici etiket="Kulüp" deger={takim} degisti={setTakim} serbestAd />
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+            {ANA_KALEMLER.map(kalemAlani)}
+            <label>
+              <div className="label">Ortalama puan (0-10)</div>
+              <input className="input" inputMode="decimal" placeholder="ör. 7.25" value={ortalama} onChange={(e) => setOrtalama(e.target.value)} />
+            </label>
+          </div>
+          <div>
+            <button type="button" className="btn btn-sm" onClick={() => setDigerAcik(!digerAcik)}>
+              {digerAcik ? "Diğer istatistikleri gizle" : "Diğer istatistikler (şut, pas, savunma...)"}
+            </button>
+          </div>
+          {digerAcik && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
+              {kalemler.filter((k) => !ANA_KALEMLER.includes(k.kod)).map((k) => kalemAlani(k.kod))}
+            </div>
+          )}
+          <div className="cell-sub">Boş bırakılan istatistik oyuncu sayfasında görünmez (sıfır yazılmaz).</div>
+          <GerekceAlani deger={gerekce} degisti={setGerekce} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={gonderiliyor} onClick={kaydet}>
+              {gonderiliyor ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button className="btn btn-sm" onClick={() => setForm(null)}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
+      {durum.saglayici.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Kaynakta bu oyuncunun sezon istatistiği yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {durum.saglayici.map((s) => (
+            <div
+              key={`${s.sezonId}-${s.takim?.id}`}
+              style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center", opacity: s.gizlemeId ? 0.55 : 1 }}
+            >
+              <span>
+                <b>{s.sezonAd ?? "—"}</b>{" "}
+                <span className="muted">
+                  · {s.lig?.ad ?? "turnuva yok"} · {s.takim?.ad ?? "—"}
+                  {sezonOzeti(s.degerler) ? ` · ${sezonOzeti(s.degerler)}` : ""}
+                  {s.ortalamaPuan != null ? ` · ort. ${s.ortalamaPuan}` : ""}
+                </span>
+                {s.gizlemeId ? <Rozet tur="gizli">gizli</Rozet> : null}
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                {s.gizlemeId ? (
+                  <button className="btn btn-sm" onClick={() => geriAl(s.gizlemeId!, "Gizleme kaldırılsın, satır yeniden görünsün mü? (Yerine girilen düzeltme varsa o da kalkar.)")}>
+                    Gizlemeyi geri al
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-sm" onClick={() => formuAc(s)}>Düzelt</button>
+                    <button className="btn btn-sm" onClick={() => gizle(s)}>Gizle</button>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card-title">Elle girilenler ({durum.elle.length})</div>
+      {durum.elle.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Henüz elle girilen sezon yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {durum.elle.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div>
+                <b>{e.sezonAd ?? "—"}</b>{" "}
+                <span className="muted">
+                  · {e.lig?.ad ?? "turnuva yok"} · {e.takim?.ad ?? e.takimAdi ?? "—"}
+                  {sezonOzeti(e.degerler) ? ` · ${sezonOzeti(e.degerler)}` : ""}
+                  {e.ortalamaPuan != null ? ` · ort. ${e.ortalamaPuan}` : ""}
+                </span>
+                <Rozet tur="elle">{e.yerineId ? "düzeltme" : "elle"}</Rozet>
+                {e.kaynakVeriyor && <Rozet tur="kaynak">Kaynak da veriyor · kaldırabilirsin</Rozet>}
+                <IzSatiri iz={e.iz} />
+              </div>
+              <button className="btn btn-sm" onClick={() => geriAl(e.id, `Bu sezon satırı kaldırılsın mı?${e.yerineId ? " Gizlenen kaynak satırı yeniden görünür." : ""}`)}>
+                Kaldır
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sayfa
 // ---------------------------------------------------------------------------
 
-type Sekme = "basarilar" | "transferler" | "sakatliklar";
+type Sekme = "basarilar" | "transferler" | "sakatliklar" | "sezonlar";
 
 export default function TeleskorOyuncuDuzenlemeClient() {
   const [q, setQ] = useState("");
@@ -1190,7 +1591,7 @@ export default function TeleskorOyuncuDuzenlemeClient() {
       <div className="card card-pad">
         <div className="card-title">Oyuncu Profili</div>
         <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-          Oyuncu sayfasındaki eksik başarıları, transferleri ve sakatlıkları tamamlayın. Elle girilenler uygulamada
+          Oyuncu sayfasındaki eksik başarıları, transferleri, sakatlıkları ve sezon istatistiklerini tamamlayın. Elle girilenler uygulamada
           ve web'de oyuncu sayfasına hemen yansır, sonraki veri güncellemesi silmez. Kaynağın yanlış
           satırını gizleyebilir ya da düzeltebilirsiniz. Doğum tarihi, boy, mevki ve fotoğraf için
           Veri Düzeltme sayfasını kullanın.
@@ -1244,13 +1645,18 @@ export default function TeleskorOyuncuDuzenlemeClient() {
             <button className={`btn btn-sm ${sekme === "sakatliklar" ? "btn-primary" : ""}`} onClick={() => setSekme("sakatliklar")}>
               Sakatlıklar
             </button>
+            <button className={`btn btn-sm ${sekme === "sezonlar" ? "btn-primary" : ""}`} onClick={() => setSekme("sezonlar")}>
+              İstatistikler
+            </button>
           </div>
           {sekme === "basarilar" ? (
             <Basarilar oyuncuId={oyuncu.id} bildir={bildir} />
           ) : sekme === "transferler" ? (
             <Transferler oyuncuId={oyuncu.id} bildir={bildir} />
-          ) : (
+          ) : sekme === "sakatliklar" ? (
             <Sakatliklar oyuncuId={oyuncu.id} bildir={bildir} />
+          ) : (
+            <SezonIstatistikleri oyuncuId={oyuncu.id} bildir={bildir} />
           )}
         </div>
       )}
