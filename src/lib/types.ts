@@ -1815,3 +1815,43 @@ export interface TvDefterSatiri {
   ev: TvTakim;
   dep: TvTakim;
 }
+
+/**
+ * WİDGET SİTELERİ (Teleskor V81) — teleskor.com.tr/w/... widget'larını
+ * gömen siteler. `turler` gelmezse site bütün widget türlerini kullanabilir.
+ */
+export interface WidgetSitesi {
+  id: number;
+  ad: string;
+  alanlar: string[];
+  kendi: boolean;
+  acik: boolean;
+  turler?: string[] | null;
+  anahtar: string;
+  not?: string | null;
+  guncelleyen?: string | null;
+  olusturuldu: string;
+  guncellendi: string;
+}
+
+export interface WidgetSitesiSatiri {
+  site: WidgetSitesi;
+  son30: number;
+  bugun: number;
+}
+
+export interface WidgetSitesiIstegi {
+  ad: string;
+  alanlar: string[];
+  kendi: boolean;
+  acik: boolean;
+  turler: string[];
+  not: string;
+}
+
+export interface WidgetKullanimi {
+  gun: number;
+  gunler: { gun: string; siteId: number; tur: string; sayi: number }[];
+  anahtarsizAlanlar: { alan: string; sayi: number; sonGun: string }[];
+  siteToplamlari: Record<string, [number, number]>;
+}

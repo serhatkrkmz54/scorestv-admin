@@ -58,6 +58,10 @@ import type {
   TeleskorOzetUretim,
   OneCikanLigAramaSatiri,
   OneCikanLigIstegi,
+  WidgetSitesi,
+  WidgetSitesiSatiri,
+  WidgetSitesiIstegi,
+  WidgetKullanimi,
   VeriAlani,
   TakimEksigi,
   VeriOyuncusu,
@@ -1686,4 +1690,37 @@ export async function apiTvEkle(istek: {
 export async function apiTvKaldir(id: number): Promise<TvDuzeltme> {
   const res = await fetch(`/api/teleskor/tv/${id}`, { method: "DELETE" });
   return parse<TvDuzeltme>(res);
+}
+
+// ---- Teleskor: widget siteleri (V81) ----
+
+export async function apiTeleskorWidgetSiteleri(): Promise<WidgetSitesiSatiri[]> {
+  const res = await fetch("/api/teleskor/widget-siteleri", { cache: "no-store" });
+  return parse<WidgetSitesiSatiri[]>(res);
+}
+
+export async function apiTeleskorWidgetSitesiEkle(
+  istek: WidgetSitesiIstegi,
+): Promise<WidgetSitesi> {
+  const res = await fetch("/api/teleskor/widget-siteleri", jsonInit("POST", istek));
+  return parse<WidgetSitesi>(res);
+}
+
+export async function apiTeleskorWidgetSitesiGuncelle(
+  id: number,
+  istek: WidgetSitesiIstegi,
+): Promise<WidgetSitesi> {
+  const res = await fetch(`/api/teleskor/widget-siteleri/${id}`, jsonInit("PUT", istek));
+  return parse<WidgetSitesi>(res);
+}
+
+/** Eski anahtar hemen geçersiz olur: o siteye yeni gömme kodu verilmeli. */
+export async function apiTeleskorWidgetAnahtarYenile(id: number): Promise<WidgetSitesi> {
+  const res = await fetch(`/api/teleskor/widget-siteleri/${id}/anahtar-yenile`, jsonInit("POST"));
+  return parse<WidgetSitesi>(res);
+}
+
+export async function apiTeleskorWidgetKullanim(gun = 30): Promise<WidgetKullanimi> {
+  const res = await fetch(`/api/teleskor/widget-siteleri/kullanim?gun=${gun}`, { cache: "no-store" });
+  return parse<WidgetKullanimi>(res);
 }

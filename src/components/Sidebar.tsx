@@ -28,6 +28,7 @@ import {
   Video,
   SlidersHorizontal,
   Map as HaritaIkonu,
+  LayoutGrid,
   LogOut,
   ChevronDown,
   X,
@@ -78,6 +79,7 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
       { href: "/teleskor/duyuru", ad: "Duyurular", ikon: Megaphone },
       { href: "/teleskor/surum-notu", ad: "Sürüm Notları", ikon: Sparkles },
       { href: "/teleskor/mac-ozeti", ad: "Maç Özeti", ikon: Video },
+      { href: "/teleskor/widget-siteleri", ad: "Widget Siteleri", ikon: LayoutGrid },
     ],
   },
   {

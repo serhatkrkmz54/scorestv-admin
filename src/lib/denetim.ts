@@ -117,6 +117,7 @@ export const OLAY_TR: Record<string, string> = {
   BILDIRIM_UZLASTIRILDI: "Bildirim abonelikleri uzlaştırıldı",
   ORANLAR_TAZELENDI: "Oranlar elle tazelendi",
   SITE_HARITASI_DEGISTI: "Site haritası ayarı değişti",
+  WIDGET_SITESI_DEGISTI: "Widget sitesi değişti",
   SAYFA_META_DEGISTI: "Sayfa başlığı/açıklaması değişti",
   KDD_HAVUZ_DEGISTI: "Kim Daha Değerli? havuzu değişti",
 
@@ -175,6 +176,7 @@ export const YONETICI_OLAYLARI = [
   "MOTOR_ISLEMI_CALISTIRILDI",
   "ORANLAR_TAZELENDI",
   "SITE_HARITASI_DEGISTI",
+  "WIDGET_SITESI_DEGISTI",
   "SAYFA_META_DEGISTI",
   "KDD_HAVUZ_DEGISTI",
   "BILDIRIM_UZLASTIRILDI",
