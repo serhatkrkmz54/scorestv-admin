@@ -9,6 +9,10 @@ import type {
   OyuncuOdulIstegi,
   OyuncuTransferDurumu,
   OyuncuTransferIstegi,
+  OyuncuSakatlikDurumu,
+  OyuncuSakatlikIstegi,
+  OyuncuSakatlikSebebi,
+  OyuncuSakatlikTuru,
   OyuncuTransferTuru,
   TvDefterSatiri,
   TvDuzeltme,
@@ -1782,4 +1786,33 @@ export async function apiOyuncuTransferYaz(
 export async function apiOyuncuTransferKaldir(duzeltmeId: number): Promise<OyuncuTransferDurumu> {
   const res = await fetch(`${OD}/transferler/${duzeltmeId}`, { method: "DELETE" });
   return parse<OyuncuTransferDurumu>(res);
+}
+
+export async function apiOyuncuSakatliklar(oyuncuId: number): Promise<OyuncuSakatlikDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/sakatliklar`, { cache: "no-store" });
+  return parse<OyuncuSakatlikDurumu>(res);
+}
+
+export async function apiOyuncuSakatlikTurleri(): Promise<OyuncuSakatlikTuru[]> {
+  const res = await fetch(`${OD}/sakatlik-turleri`, { cache: "no-store" });
+  return parse<OyuncuSakatlikTuru[]>(res);
+}
+
+export async function apiOyuncuSakatlikSebepAra(q: string): Promise<OyuncuSakatlikSebebi[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(`${OD}/sakatlik-sebep-ara?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
+  return parse<OyuncuSakatlikSebebi[]>(res);
+}
+
+export async function apiOyuncuSakatlikYaz(
+  oyuncuId: number,
+  istek: OyuncuSakatlikIstegi,
+): Promise<OyuncuSakatlikDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/sakatliklar`, jsonInit("POST", istek));
+  return parse<OyuncuSakatlikDurumu>(res);
+}
+
+export async function apiOyuncuSakatlikKaldir(duzeltmeId: number): Promise<OyuncuSakatlikDurumu> {
+  const res = await fetch(`${OD}/sakatliklar/${duzeltmeId}`, { method: "DELETE" });
+  return parse<OyuncuSakatlikDurumu>(res);
 }

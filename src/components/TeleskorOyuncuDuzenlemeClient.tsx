@@ -12,6 +12,11 @@ import {
   apiOyuncuTransferler,
   apiOyuncuTransferTurleri,
   apiOyuncuTransferYaz,
+  apiOyuncuSakatlikKaldir,
+  apiOyuncuSakatliklar,
+  apiOyuncuSakatlikSebepAra,
+  apiOyuncuSakatlikTurleri,
+  apiOyuncuSakatlikYaz,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -28,12 +33,17 @@ import type {
   OyuncuTransferAnahtari,
   OyuncuTransferDurumu,
   OyuncuTransferTuru,
+  OyuncuSaglayiciSakatlik,
+  OyuncuSakatlikAnahtari,
+  OyuncuSakatlikDurumu,
+  OyuncuSakatlikSebebi,
+  OyuncuSakatlikTuru,
 } from "@/lib/types";
 
 /**
- * OYUNCU PROFİLİ (motor V119) — oyuncu sayfasının eksiklerini tamamlama.
+ * OYUNCU PROFİLİ (motor V119, V120) — oyuncu sayfasının eksiklerini tamamlama.
  *
- * <p>Bu adımda iki bölüm: Başarılar ve Transferler. Her bölümde kaynağın
+ * <p>Üç bölüm: Başarılar, Transferler ve Sakatlıklar. Her bölümde kaynağın
  * satırları ve elle girilenler yan yana. Kaynağın yanlış satırı gizlenir ya
  * da "Düzelt" ile aynı anda gizlenip doğrusu eklenir. Elle satırlar oyuncu
  * sayfasında (uygulama ve web) hemen görünür; sonraki senkron silmez.
@@ -768,10 +778,355 @@ function Transferler({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: strin
 }
 
 // ---------------------------------------------------------------------------
+// Sakatlıklar (motor V120)
+// ---------------------------------------------------------------------------
+
+function sakatlikBasligi(s: { sebep?: string; turAdi?: string }): string {
+  return s.sebep ?? s.turAdi ?? "Sebep yok";
+}
+
+function sakatlikDonemi(s: { yil?: string; baslangic?: string; bitis?: string }): string {
+  if (s.baslangic) return `${tarih(s.baslangic)} – ${s.bitis ? tarih(s.bitis) : "dönüş belirsiz"}`;
+  return s.yil ?? "";
+}
+
+function sayiMetni(s: { kacirilanMac?: number; kacirilanGun?: number }): string {
+  const p = [];
+  if (s.kacirilanMac != null) p.push(`${s.kacirilanMac} maç`);
+  if (s.kacirilanGun != null) p.push(`${s.kacirilanGun} gün`);
+  return p.length ? ` · ${p.join(", ")}` : "";
+}
+
+function Sakatliklar({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: string) => void }) {
+  const [durum, setDurum] = useState<OyuncuSakatlikDurumu | null>(null);
+  const [turler, setTurler] = useState<OyuncuSakatlikTuru[]>([]);
+  const [hata, setHata] = useState("");
+  const [form, setForm] = useState<{ yerine: OyuncuSakatlikAnahtari | null } | null>(null);
+  const [tur, setTur] = useState<string>("1");
+  const [sebepQ, setSebepQ] = useState("");
+  const [sebep, setSebep] = useState<OyuncuSakatlikSebebi | null>(null);
+  const [sebepSonuc, setSebepSonuc] = useState<OyuncuSakatlikSebebi[]>([]);
+  const [baslangic, setBaslangic] = useState("");
+  const [bitis, setBitis] = useState("");
+  const [yil, setYil] = useState("");
+  const [mac, setMac] = useState("");
+  const [gunSayisi, setGunSayisi] = useState("");
+  const [takimlar, setTakimlar] = useState<TakimSecimi[]>([]);
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+
+  useEffect(() => {
+    setDurum(null);
+    setForm(null);
+    apiOyuncuSakatliklar(oyuncuId)
+      .then(setDurum)
+      .catch((e) => setHata(hataMetni(e, "Sakatlıklar alınamadı.")));
+    apiOyuncuSakatlikTurleri().then(setTurler).catch(() => setTurler([]));
+  }, [oyuncuId]);
+
+  useEffect(() => {
+    if (sebep || sebepQ.trim().length < 2) {
+      setSebepSonuc([]);
+      return;
+    }
+    let iptal = false;
+    const t = setTimeout(() => {
+      apiOyuncuSakatlikSebepAra(sebepQ)
+        .then((r) => !iptal && setSebepSonuc(r))
+        .catch(() => !iptal && setSebepSonuc([]));
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(t);
+    };
+  }, [sebepQ, sebep]);
+
+  function anahtar(s: OyuncuSaglayiciSakatlik): OyuncuSakatlikAnahtari {
+    return {
+      yil: s.yil ?? null,
+      tur: s.tur ?? null,
+      sebepEn: s.sebepEn ?? null,
+      baslangic: s.baslangic ?? null,
+      bitis: s.bitis ?? null,
+    };
+  }
+
+  function formuAc(kaynak?: OyuncuSaglayiciSakatlik) {
+    setHata("");
+    setForm({ yerine: kaynak ? anahtar(kaynak) : null });
+    setTur(kaynak?.tur != null ? String(kaynak.tur) : "1");
+    setSebep(kaynak?.sebepEn ? { en: kaynak.sebepEn, tr: kaynak.sebep ?? kaynak.sebepEn } : null);
+    setSebepQ("");
+    setBaslangic(gunu(kaynak?.baslangic));
+    setBitis(gunu(kaynak?.bitis));
+    setYil(kaynak?.yil ?? "");
+    setMac(kaynak?.kacirilanMac != null ? String(kaynak.kacirilanMac) : "");
+    setGunSayisi(kaynak?.kacirilanGun != null ? String(kaynak.kacirilanGun) : "");
+    setTakimlar((kaynak?.takimlar ?? []).map((t) => ({ id: t.id, ad: t.ad ?? `#${t.id}` })));
+    setGerekce("");
+  }
+
+  async function kaydet() {
+    if (!baslangic && !yil.trim()) {
+      setHata("Başlangıç tarihi ya da yıl gerekli.");
+      return;
+    }
+    if ((mac && !/^\d+$/.test(mac.trim())) || (gunSayisi && !/^\d+$/.test(gunSayisi.trim()))) {
+      setHata("Maç ve gün sayısı yalnız rakam olmalı.");
+      return;
+    }
+    if (gerekce.trim().length < 3) {
+      setHata("Gerekçe zorunlu.");
+      return;
+    }
+    setGonderiliyor(true);
+    setHata("");
+    try {
+      const d = await apiOyuncuSakatlikYaz(oyuncuId, {
+        islem: "EKLE",
+        tur: tur ? Number(tur) : null,
+        sebepEn: sebep?.en ?? null,
+        sebepMetni: sebep ? null : sebepQ.trim() || null,
+        baslangic: baslangic || null,
+        bitis: bitis || null,
+        yil: yil.trim() || null,
+        kacirilanMac: mac.trim() ? Number(mac.trim()) : null,
+        kacirilanGun: gunSayisi.trim() ? Number(gunSayisi.trim()) : null,
+        takimIds: takimlar.flatMap((t) => (t.id ? [t.id] : [])),
+        yerine: form?.yerine ?? null,
+        gerekce: gerekce.trim(),
+      });
+      setDurum(d);
+      setForm(null);
+      bildir(form?.yerine ? "Sakatlık düzeltildi." : "Sakatlık eklendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaydedilemedi."));
+    } finally {
+      setGonderiliyor(false);
+    }
+  }
+
+  async function gizle(s: OyuncuSaglayiciSakatlik) {
+    const g = window.prompt(`${sakatlikBasligi(s)} (${sakatlikDonemi(s)}) gizlensin. Gerekçe?`);
+    if (!g || g.trim().length < 3) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuSakatlikYaz(oyuncuId, { islem: "GIZLE", yerine: anahtar(s), gerekce: g.trim() }));
+      bildir("Satır gizlendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Gizlenemedi."));
+    }
+  }
+
+  async function geriAl(id: number, soru: string) {
+    if (!window.confirm(soru)) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuSakatlikKaldir(id));
+      bildir("Geri alındı.");
+    } catch (e) {
+      setHata(hataMetni(e, "Geri alınamadı."));
+    }
+  }
+
+  if (!durum) {
+    return hata ? <div className="alert alert-error">{hata}</div> : <p className="muted">Yükleniyor…</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {hata && <div className="alert alert-error">{hata}</div>}
+      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        Elle sakatlık yalnız oyuncu sayfasının sakatlık geçmişinde görünür; takımın güncel sakatlar listesine ve bildirimlere girmez.
+      </p>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="card-title">Kaynaktan gelenler ({durum.saglayici.length})</div>
+        {!form && (
+          <button className="btn btn-primary btn-sm" onClick={() => formuAc()}>
+            Sakatlık ekle
+          </button>
+        )}
+      </div>
+
+      {form && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 10 }}>
+          <div className="cell-title">
+            {form.yerine ? "Kaynağın satırını düzelt (eski satır gizlenir)" : "Yeni sakatlık / ceza"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            <label>
+              <div className="label">Tür</div>
+              <select className="input" value={tur} onChange={(e) => setTur(e.target.value)}>
+                <option value="">Belirtilmedi</option>
+                {turler.map((t) => (
+                  <option key={t.kod} value={t.kod}>
+                    {t.ad}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "block" }}>
+              <div className="label">Sebep</div>
+              {sebep ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <b>{sebep.tr}</b>
+                  <button type="button" className="btn btn-sm" onClick={() => setSebep(null)}>
+                    Değiştir
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    className="input"
+                    maxLength={200}
+                    placeholder="ör. diz, menisküs, kırmızı kart"
+                    value={sebepQ}
+                    onChange={(e) => setSebepQ(e.target.value)}
+                  />
+                  {sebepSonuc.length > 0 && (
+                    <div style={{ border: "1px solid var(--border)", borderRadius: 8, marginTop: 4, maxHeight: 200, overflowY: "auto" }}>
+                      {sebepSonuc.map((r) => (
+                        <button
+                          type="button"
+                          key={r.en}
+                          className="btn btn-sm"
+                          style={{ display: "block", width: "100%", textAlign: "left", border: 0 }}
+                          onClick={() => setSebep(r)}
+                        >
+                          {r.tr} <span className="muted">· {r.en}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {sebepQ.trim().length >= 2 && (
+                    <div className="cell-sub">Listeden seçmezsen yazdığın metin olduğu gibi görünür.</div>
+                  )}
+                </>
+              )}
+            </label>
+            <label>
+              <div className="label">Başlangıç</div>
+              <input className="input" type="date" value={baslangic} onChange={(e) => setBaslangic(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Dönüş (boş: belirsiz)</div>
+              <input className="input" type="date" value={bitis} onChange={(e) => setBitis(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Yıl / sezon (tarih yoksa)</div>
+              <input className="input" maxLength={20} placeholder="ör. 1997 ya da 1996-1997" value={yil} onChange={(e) => setYil(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Kaçırdığı maç</div>
+              <input className="input" inputMode="numeric" value={mac} onChange={(e) => setMac(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Kaçırdığı gün</div>
+              <input className="input" inputMode="numeric" value={gunSayisi} onChange={(e) => setGunSayisi(e.target.value)} />
+            </label>
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div className="label">Etkilenen takımlar</div>
+            {takimlar.map((t, i) => (
+              <div key={`${t.id}-${i}`} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span>
+                  <b>{t.ad}</b> <span className="muted">#{t.id}</span>
+                </span>
+                <button type="button" className="btn btn-sm" onClick={() => setTakimlar(takimlar.filter((_, j) => j !== i))}>
+                  Çıkar
+                </button>
+              </div>
+            ))}
+            {takimlar.length < 5 && (
+              <TakimSecici
+                etiket={takimlar.length ? "Takım ekle" : "Takım (isteğe bağlı)"}
+                deger={null}
+                degisti={(t) => t?.id && !takimlar.some((x) => x.id === t.id) && setTakimlar([...takimlar, t])}
+              />
+            )}
+          </div>
+          <GerekceAlani deger={gerekce} degisti={setGerekce} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={gonderiliyor} onClick={kaydet}>
+              {gonderiliyor ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button className="btn btn-sm" onClick={() => setForm(null)}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
+      {durum.saglayici.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Kaynakta bu oyuncunun sakatlık kaydı yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {durum.saglayici.map((s, i) => (
+            <div
+              key={`${s.baslangic}-${s.sebepEn}-${i}`}
+              style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center", opacity: s.gizlemeId ? 0.55 : 1 }}
+            >
+              <span>
+                <b>{sakatlikBasligi(s)}</b>{" "}
+                <span className="muted">
+                  · {s.turAdi ?? "tür yok"} · {sakatlikDonemi(s)}
+                  {sayiMetni(s)}
+                  {s.takimlar.length ? ` · ${s.takimlar.map((t) => t.ad).join(", ")}` : ""}
+                </span>
+                {s.gizlemeId ? <Rozet tur="gizli">gizli</Rozet> : null}
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                {s.gizlemeId ? (
+                  <button className="btn btn-sm" onClick={() => geriAl(s.gizlemeId!, "Gizleme kaldırılsın, satır yeniden görünsün mü? (Yerine girilen düzeltme varsa o da kalkar.)")}>
+                    Gizlemeyi geri al
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-sm" onClick={() => formuAc(s)}>Düzelt</button>
+                    <button className="btn btn-sm" onClick={() => gizle(s)}>Gizle</button>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card-title">Elle girilenler ({durum.elle.length})</div>
+      {durum.elle.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Henüz elle girilen sakatlık yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {durum.elle.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div>
+                <b>{sakatlikBasligi(e)}</b>{" "}
+                <span className="muted">
+                  · {e.turAdi ?? "tür yok"} · {sakatlikDonemi(e)}
+                  {sayiMetni(e)}
+                  {e.takimlar.length ? ` · ${e.takimlar.map((t) => t.ad).join(", ")}` : ""}
+                </span>
+                <Rozet tur="elle">{e.yerineId ? "düzeltme" : "elle"}</Rozet>
+                {e.kaynakVeriyor && <Rozet tur="kaynak">Kaynak da veriyor · kaldırabilirsin</Rozet>}
+                <IzSatiri iz={e.iz} />
+              </div>
+              <button className="btn btn-sm" onClick={() => geriAl(e.id, `Bu sakatlık kaydı kaldırılsın mı?${e.yerineId ? " Gizlenen kaynak satırı yeniden görünür." : ""}`)}>
+                Kaldır
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sayfa
 // ---------------------------------------------------------------------------
 
-type Sekme = "basarilar" | "transferler";
+type Sekme = "basarilar" | "transferler" | "sakatliklar";
 
 export default function TeleskorOyuncuDuzenlemeClient() {
   const [q, setQ] = useState("");
@@ -835,7 +1190,7 @@ export default function TeleskorOyuncuDuzenlemeClient() {
       <div className="card card-pad">
         <div className="card-title">Oyuncu Profili</div>
         <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-          Oyuncu sayfasındaki eksik başarıları ve transferleri tamamlayın. Elle girilenler uygulamada
+          Oyuncu sayfasındaki eksik başarıları, transferleri ve sakatlıkları tamamlayın. Elle girilenler uygulamada
           ve web'de oyuncu sayfasına hemen yansır, sonraki veri güncellemesi silmez. Kaynağın yanlış
           satırını gizleyebilir ya da düzeltebilirsiniz. Doğum tarihi, boy, mevki ve fotoğraf için
           Veri Düzeltme sayfasını kullanın.
@@ -886,11 +1241,16 @@ export default function TeleskorOyuncuDuzenlemeClient() {
             <button className={`btn btn-sm ${sekme === "transferler" ? "btn-primary" : ""}`} onClick={() => setSekme("transferler")}>
               Transferler
             </button>
+            <button className={`btn btn-sm ${sekme === "sakatliklar" ? "btn-primary" : ""}`} onClick={() => setSekme("sakatliklar")}>
+              Sakatlıklar
+            </button>
           </div>
           {sekme === "basarilar" ? (
             <Basarilar oyuncuId={oyuncu.id} bildir={bildir} />
-          ) : (
+          ) : sekme === "transferler" ? (
             <Transferler oyuncuId={oyuncu.id} bildir={bildir} />
+          ) : (
+            <Sakatliklar oyuncuId={oyuncu.id} bildir={bildir} />
           )}
         </div>
       )}

@@ -4,18 +4,18 @@ import { teleskorJson } from "@/lib/teleskor";
 import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
 
 /**
- * OYUNCU DÜZENLEME (motor V119) — oyuncu profilinin başarılar ve transferler
- * bölümü. Tek dosya, çünkü iki yol kalıbı aynı seviyede:
+ * OYUNCU DÜZENLEME (motor V119, V120) — oyuncu profilinin başarılar,
+ * transferler ve sakatlık geçmişi bölümü. Tek dosya, çünkü iki yol kalıbı aynı seviyede:
  *
- *   GET    /{oyuncuId}/oduller | transferler | transfer-turleri
- *   POST   /{oyuncuId}/oduller | transferler
- *   DELETE /oduller/{duzeltmeId} | /transferler/{duzeltmeId}
+ *   GET    /{oyuncuId}/oduller | transferler | transfer-turleri | sakatliklar
+ *   POST   /{oyuncuId}/oduller | transferler | sakatliklar
+ *   DELETE /oduller|transferler|sakatliklar/{duzeltmeId}
  *
  * Kurallar (gerekçe, gizleme eşleşmesi) motorda; yazan kişi ürün
  * backend'inde oturumdan alınıyor.
  */
-const OKUMA = new Set(["oduller", "transferler", "transfer-turleri"]);
-const YAZMA = new Set(["oduller", "transferler"]);
+const OKUMA = new Set(["oduller", "transferler", "transfer-turleri", "sakatliklar"]);
+const YAZMA = new Set(["oduller", "transferler", "sakatliklar"]);
 const KOK = "/api/v1/admin/engine/oyuncu-duzeltme";
 
 type Parametre = { params: Promise<{ a: string; b: string }> };

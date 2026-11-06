@@ -1998,3 +1998,78 @@ export interface OyuncuTransferIstegi {
   yerine?: OyuncuTransferAnahtari | null;
   gerekce: string;
 }
+
+// Oyuncu Düzenleme — sakatlık geçmişi (motor V120)
+
+export interface OyuncuSakatlikTuru {
+  kod: number;
+  ad: string;
+}
+
+export interface OyuncuSakatlikSebebi {
+  en: string;
+  tr: string;
+}
+
+export interface OyuncuSaglayiciSakatlik {
+  yil?: string;
+  tur?: number;
+  turAdi?: string;
+  sebep?: string;
+  sebepEn?: string;
+  baslangic?: string;
+  bitis?: string;
+  kacirilanMac?: number;
+  kacirilanGun?: number;
+  takimlar: OyuncuDuzeltmeTakim[];
+  gizlemeId?: number;
+}
+
+export interface OyuncuElleSakatlik {
+  id: number;
+  yil?: string;
+  tur?: number;
+  turAdi?: string;
+  sebep?: string;
+  sebepEn?: string;
+  sebepMetni?: string;
+  /** YYYY-AA-GG */
+  baslangic?: string;
+  bitis?: string;
+  kacirilanMac?: number;
+  kacirilanGun?: number;
+  takimlar: OyuncuDuzeltmeTakim[];
+  yerineId?: number;
+  kaynakVeriyor: boolean;
+  iz: OyuncuDuzeltmeIz;
+}
+
+export interface OyuncuSakatlikDurumu {
+  oyuncu: OyuncuDuzeltmeOyuncu;
+  saglayici: OyuncuSaglayiciSakatlik[];
+  elle: OyuncuElleSakatlik[];
+}
+
+/** Sağlayıcı satırının anahtarı: GET'teki değerler aynen geri gönderilir. */
+export interface OyuncuSakatlikAnahtari {
+  yil?: string | null;
+  tur?: number | null;
+  sebepEn?: string | null;
+  baslangic?: string | null;
+  bitis?: string | null;
+}
+
+export interface OyuncuSakatlikIstegi {
+  islem: "EKLE" | "GIZLE";
+  yil?: string | null;
+  tur?: number | null;
+  sebepEn?: string | null;
+  sebepMetni?: string | null;
+  baslangic?: string | null;
+  bitis?: string | null;
+  kacirilanMac?: number | null;
+  kacirilanGun?: number | null;
+  takimIds?: number[];
+  yerine?: OyuncuSakatlikAnahtari | null;
+  gerekce: string;
+}
