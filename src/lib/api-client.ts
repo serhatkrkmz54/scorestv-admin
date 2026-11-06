@@ -16,6 +16,7 @@ import type {
   OyuncuDuzeltmeLig,
   OyuncuLigSezonu,
   OyuncuSezonDurumu,
+  OyuncuBiyografiDurumu,
   OyuncuSezonIstegi,
   OyuncuSezonKalemi,
   OyuncuTransferTuru,
@@ -1851,4 +1852,19 @@ export async function apiOyuncuSezonYaz(oyuncuId: number, istek: OyuncuSezonIste
 export async function apiOyuncuSezonKaldir(duzeltmeId: number): Promise<OyuncuSezonDurumu> {
   const res = await fetch(`${OD}/sezonlar/${duzeltmeId}`, { method: "DELETE" });
   return parse<OyuncuSezonDurumu>(res);
+}
+
+export async function apiOyuncuBiyografi(oyuncuId: number): Promise<OyuncuBiyografiDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/biyografi`, { cache: "no-store" });
+  return parse<OyuncuBiyografiDurumu>(res);
+}
+
+export async function apiOyuncuBiyografiYaz(oyuncuId: number, metin: string, gerekce: string): Promise<OyuncuBiyografiDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/biyografi`, jsonInit("POST", { metin, gerekce }));
+  return parse<OyuncuBiyografiDurumu>(res);
+}
+
+export async function apiOyuncuBiyografiKaldir(oyuncuId: number): Promise<OyuncuBiyografiDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/biyografi`, { method: "DELETE" });
+  return parse<OyuncuBiyografiDurumu>(res);
 }

@@ -23,6 +23,9 @@ import {
   apiOyuncuSezonKalemleri,
   apiOyuncuSezonlar,
   apiOyuncuSezonYaz,
+  apiOyuncuBiyografi,
+  apiOyuncuBiyografiKaldir,
+  apiOyuncuBiyografiYaz,
   ApiError,
 } from "@/lib/api-client";
 import type {
@@ -49,12 +52,13 @@ import type {
   OyuncuSaglayiciSezon,
   OyuncuSezonDurumu,
   OyuncuSezonKalemi,
+  OyuncuBiyografiDurumu,
 } from "@/lib/types";
 
 /**
- * OYUNCU PROFİLİ (motor V119-V121) — oyuncu sayfasının eksiklerini tamamlama.
+ * OYUNCU PROFİLİ (motor V119-V122) — oyuncu sayfasının eksiklerini tamamlama.
  *
- * <p>Dört bölüm: Başarılar, Transferler, Sakatlıklar ve İstatistikler (sezon satırları). Her bölümde kaynağın
+ * <p>Beş bölüm: Genel Bakış (metin, V122), Başarılar, Transferler, Sakatlıklar ve İstatistikler (sezon satırları). Her bölümde kaynağın
  * satırları ve elle girilenler yan yana. Kaynağın yanlış satırı gizlenir ya
  * da "Düzelt" ile aynı anda gizlenip doğrusu eklenir. Elle satırlar oyuncu
  * sayfasında (uygulama ve web) hemen görünür; sonraki senkron silmez.
@@ -1527,14 +1531,149 @@ function SezonIstatistikleri({ oyuncuId, bildir }: { oyuncuId: number; bildir: (
 // Sayfa
 // ---------------------------------------------------------------------------
 
-type Sekme = "basarilar" | "transferler" | "sakatliklar" | "sezonlar";
+// ---------------------------------------------------------------------------
+// Genel Bakış metni (V122)
+// ---------------------------------------------------------------------------
+
+const BIYOGRAFI_EN_COK = 5000;
+
+function GenelBakis({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: string) => void }) {
+  const [durum, setDurum] = useState<OyuncuBiyografiDurumu | null>(null);
+  const [hata, setHata] = useState("");
+  const [metin, setMetin] = useState("");
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [gecmisAcik, setGecmisAcik] = useState(false);
+
+  function yukle(d: OyuncuBiyografiDurumu) {
+    setDurum(d);
+    setMetin(d.guncel?.metin ?? "");
+    setGerekce("");
+  }
+
+  useEffect(() => {
+    setDurum(null);
+    setHata("");
+    apiOyuncuBiyografi(oyuncuId)
+      .then(yukle)
+      .catch((e) => setHata(hataMetni(e, "Genel bakış metni alınamadı.")));
+  }, [oyuncuId]);
+
+  async function kaydet() {
+    setHata("");
+    setGonderiliyor(true);
+    try {
+      yukle(await apiOyuncuBiyografiYaz(oyuncuId, metin, gerekce));
+      bildir("Genel bakış metni kaydedildi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaydedilemedi."));
+    } finally {
+      setGonderiliyor(false);
+    }
+  }
+
+  async function kaldir() {
+    if (!window.confirm("Genel bakış metni oyuncu sayfasından kaldırılsın mı? (Önceki sürümler saklanır.)")) return;
+    setHata("");
+    try {
+      yukle(await apiOyuncuBiyografiKaldir(oyuncuId));
+      bildir("Genel bakış metni kaldırıldı.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaldırılamadı."));
+    }
+  }
+
+  if (!durum) {
+    return hata ? <div className="alert alert-error">{hata}</div> : <p className="muted">Yükleniyor…</p>;
+  }
+  const degisti = metin.trim() !== (durum.guncel?.metin ?? "").trim();
+  const uzunluk = metin.trim().length;
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {hata && <div className="alert alert-error">{hata}</div>}
+      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        Oyuncu sayfasının Genel Bakış bölümünde &quot;Hakkında&quot; kartı olarak görünür (uygulama ve web). Düz yazı yazın;
+        paragrafları boş satırla ayırın. Kaynak bu metni vermiyor, tamamen sizin girdiğiniz metin. Her kayıtta önceki sürüm
+        saklanır.
+      </p>
+      {durum.guncel ? (
+        <div className="cell-sub">
+          Yayındaki metin: <IzSatiri iz={durum.guncel.iz} />
+        </div>
+      ) : (
+        <div className="cell-sub">Bu oyuncunun henüz genel bakış metni yok.</div>
+      )}
+      <label style={{ display: "block" }}>
+        <div className="label">Metin</div>
+        <textarea
+          className="input"
+          rows={12}
+          maxLength={BIYOGRAFI_EN_COK + 200}
+          placeholder="ör. Sergen Yalçın, 5 Kasım 1972'de İstanbul'da doğdu. Futbola Beşiktaş altyapısında başladı…"
+          value={metin}
+          onChange={(e) => setMetin(e.target.value)}
+          style={{ resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }}
+        />
+        <div className="cell-sub" style={{ color: uzunluk > BIYOGRAFI_EN_COK ? "var(--danger, #c0392b)" : undefined }}>
+          {uzunluk} / {BIYOGRAFI_EN_COK} karakter
+        </div>
+      </label>
+      <GerekceAlani deger={gerekce} degisti={setGerekce} />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button
+          className="btn btn-primary btn-sm"
+          disabled={gonderiliyor || !degisti || uzunluk === 0 || uzunluk > BIYOGRAFI_EN_COK || gerekce.trim().length < 3}
+          onClick={kaydet}
+        >
+          {gonderiliyor ? "Kaydediliyor…" : durum.guncel ? "Değişikliği kaydet" : "Kaydet"}
+        </button>
+        {degisti && durum.guncel && (
+          <button className="btn btn-sm" onClick={() => setMetin(durum.guncel?.metin ?? "")}>
+            Değişikliği bırak
+          </button>
+        )}
+        {durum.guncel && (
+          <button className="btn btn-sm btn-danger" onClick={kaldir}>
+            Metni kaldır
+          </button>
+        )}
+      </div>
+      {durum.gecmis.length > 0 && (
+        <div>
+          <button className="btn btn-sm" onClick={() => setGecmisAcik(!gecmisAcik)}>
+            {gecmisAcik ? "Önceki sürümleri gizle" : `Önceki sürümler (${durum.gecmis.length})`}
+          </button>
+          {gecmisAcik && (
+            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+              {durum.gecmis.map((s) => (
+                <div key={s.id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10 }}>
+                  <IzSatiri iz={s.iz} />
+                  <div className="cell-sub">
+                    Kaldırıldı: {s.kaldiran ?? "—"}, {tarihSaat(s.kaldirildi)}
+                  </div>
+                  <div style={{ whiteSpace: "pre-wrap", fontSize: 13, marginTop: 6 }}>{s.metin}</div>
+                  <button className="btn btn-sm" style={{ marginTop: 6 }} onClick={() => setMetin(s.metin)}>
+                    Bu sürümü düzenleyiciye al
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type Sekme = "genel" | "basarilar" | "transferler" | "sakatliklar" | "sezonlar";
 
 export default function TeleskorOyuncuDuzenlemeClient() {
   const [q, setQ] = useState("");
   const [sonuc, setSonuc] = useState<KadroOyuncuBulgusu[]>([]);
   const [araniyor, setAraniyor] = useState(false);
   const [oyuncu, setOyuncu] = useState<OyuncuDuzeltmeOyuncu | null>(null);
-  const [sekme, setSekme] = useState<Sekme>("basarilar");
+  const [sekme, setSekme] = useState<Sekme>("genel");
   const [bilgi, setBilgi] = useState("");
   const bilgiZamani = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1591,7 +1730,7 @@ export default function TeleskorOyuncuDuzenlemeClient() {
       <div className="card card-pad">
         <div className="card-title">Oyuncu Profili</div>
         <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-          Oyuncu sayfasındaki eksik başarıları, transferleri, sakatlıkları ve sezon istatistiklerini tamamlayın. Elle girilenler uygulamada
+          Oyuncu sayfasının genel bakış metnini yazın; eksik başarıları, transferleri, sakatlıkları ve sezon istatistiklerini tamamlayın. Elle girilenler uygulamada
           ve web'de oyuncu sayfasına hemen yansır, sonraki veri güncellemesi silmez. Kaynağın yanlış
           satırını gizleyebilir ya da düzeltebilirsiniz. Doğum tarihi, boy, mevki ve fotoğraf için
           Veri Düzeltme sayfasını kullanın.
@@ -1635,7 +1774,10 @@ export default function TeleskorOyuncuDuzenlemeClient() {
               <div className="cell-sub">#{oyuncu.id}</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className={`btn btn-sm ${sekme === "genel" ? "btn-primary" : ""}`} onClick={() => setSekme("genel")}>
+              Genel Bakış
+            </button>
             <button className={`btn btn-sm ${sekme === "basarilar" ? "btn-primary" : ""}`} onClick={() => setSekme("basarilar")}>
               Başarılar
             </button>
@@ -1649,7 +1791,9 @@ export default function TeleskorOyuncuDuzenlemeClient() {
               İstatistikler
             </button>
           </div>
-          {sekme === "basarilar" ? (
+          {sekme === "genel" ? (
+            <GenelBakis oyuncuId={oyuncu.id} bildir={bildir} />
+          ) : sekme === "basarilar" ? (
             <Basarilar oyuncuId={oyuncu.id} bildir={bildir} />
           ) : sekme === "transferler" ? (
             <Transferler oyuncuId={oyuncu.id} bildir={bildir} />

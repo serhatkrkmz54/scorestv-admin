@@ -4,18 +4,20 @@ import { teleskorJson } from "@/lib/teleskor";
 import { teleskorAdmin, teleskorResponse } from "@/lib/teleskor-guard";
 
 /**
- * OYUNCU DÜZENLEME (motor V119-V121) — oyuncu profilinin başarılar,
- * transferler, sakatlık geçmişi ve sezon istatistikleri bölümü. Tek dosya, çünkü iki yol kalıbı aynı seviyede:
+ * OYUNCU DÜZENLEME (motor V119-V122) — oyuncu profilinin başarılar,
+ * transferler, sakatlık geçmişi, sezon istatistikleri ve genel bakış metni. Tek dosya, çünkü iki yol kalıbı aynı seviyede:
  *
- *   GET    /{oyuncuId}/oduller | transferler | transfer-turleri | sakatliklar | sezonlar
- *   POST   /{oyuncuId}/oduller | transferler | sakatliklar | sezonlar
+ *   GET    /{oyuncuId}/oduller | transferler | transfer-turleri | sakatliklar | sezonlar | biyografi
+ *   POST   /{oyuncuId}/oduller | transferler | sakatliklar | sezonlar | biyografi
  *   DELETE /oduller|transferler|sakatliklar|sezonlar/{duzeltmeId}
+ *   DELETE /{oyuncuId}/biyografi  (oyuncunun açık metni; kimlik oyuncunun)
  *
  * Kurallar (gerekçe, gizleme eşleşmesi) motorda; yazan kişi ürün
  * backend'inde oturumdan alınıyor.
  */
-const OKUMA = new Set(["oduller", "transferler", "transfer-turleri", "sakatliklar", "sezonlar"]);
-const YAZMA = new Set(["oduller", "transferler", "sakatliklar", "sezonlar"]);
+const OKUMA = new Set(["oduller", "transferler", "transfer-turleri", "sakatliklar", "sezonlar", "biyografi"]);
+const YAZMA = new Set(["oduller", "transferler", "sakatliklar", "sezonlar", "biyografi"]);
+const SILME = new Set(["oduller", "transferler", "sakatliklar", "sezonlar"]);
 const KOK = "/api/v1/admin/engine/oyuncu-duzeltme";
 
 type Parametre = { params: Promise<{ a: string; b: string }> };
@@ -59,7 +61,8 @@ export async function DELETE(req: NextRequest, { params }: Parametre) {
   const izin = await teleskorAdmin();
   if ("error" in izin) return izin.error;
   const { a, b } = await params;
-  if (!YAZMA.has(a) || !/^\d+$/.test(b)) return gecersiz();
+  const biyografi = /^\d+$/.test(a) && b === "biyografi";
+  if (!biyografi && (!SILME.has(a) || !/^\d+$/.test(b))) return gecersiz();
   const r = await teleskorJson<unknown>(`${KOK}/${a}/${b}`, { method: "DELETE" });
   return teleskorResponse(r, "Geri alınamadı.");
 }

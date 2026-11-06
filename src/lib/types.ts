@@ -2145,3 +2145,18 @@ export interface OyuncuSezonIstegi {
   yerine?: OyuncuSezonAnahtari | null;
   gerekce: string;
 }
+
+/** Motor V122: oyuncu genel bakış metninin bir sürümü (açık sürümde `kaldirildi` yok). */
+export interface OyuncuBiyografiSurumu {
+  id: number;
+  metin: string;
+  iz: OyuncuDuzeltmeIz;
+  kaldirildi?: string;
+  kaldiran?: string;
+}
+
+export interface OyuncuBiyografiDurumu {
+  oyuncu: OyuncuDuzeltmeOyuncu;
+  guncel?: OyuncuBiyografiSurumu;
+  gecmis: OyuncuBiyografiSurumu[];
+}
