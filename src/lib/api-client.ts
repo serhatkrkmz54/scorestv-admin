@@ -4,6 +4,12 @@
 // gider (backend'e ASLA doğrudan değil). Çerezler otomatik iletilir.
 
 import type {
+  OyuncuOdul,
+  OyuncuOdulDurumu,
+  OyuncuOdulIstegi,
+  OyuncuTransferDurumu,
+  OyuncuTransferIstegi,
+  OyuncuTransferTuru,
   TvDefterSatiri,
   TvDuzeltme,
   TvMac,
@@ -1723,4 +1729,57 @@ export async function apiTeleskorWidgetAnahtarYenile(id: number): Promise<Widget
 export async function apiTeleskorWidgetKullanim(gun = 30): Promise<WidgetKullanimi> {
   const res = await fetch(`/api/teleskor/widget-siteleri/kullanim?gun=${gun}`, { cache: "no-store" });
   return parse<WidgetKullanimi>(res);
+}
+
+// ---------------------------------------------------------------------------
+// OYUNCU DÜZENLEME (motor V119) — /api/teleskor/oyuncu-duzeltme
+// ---------------------------------------------------------------------------
+
+const OD = "/api/teleskor/oyuncu-duzeltme";
+
+export async function apiOyuncuOduller(oyuncuId: number): Promise<OyuncuOdulDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/oduller`, { cache: "no-store" });
+  return parse<OyuncuOdulDurumu>(res);
+}
+
+export async function apiOyuncuOdulAra(q: string): Promise<OyuncuOdul[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(`${OD}/odul-ara?q=${encodeURIComponent(q.trim())}`, { cache: "no-store" });
+  return parse<OyuncuOdul[]>(res);
+}
+
+export async function apiOyuncuOdulYaz(
+  oyuncuId: number,
+  istek: OyuncuOdulIstegi,
+): Promise<OyuncuOdulDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/oduller`, jsonInit("POST", istek));
+  return parse<OyuncuOdulDurumu>(res);
+}
+
+export async function apiOyuncuOdulKaldir(duzeltmeId: number): Promise<OyuncuOdulDurumu> {
+  const res = await fetch(`${OD}/oduller/${duzeltmeId}`, { method: "DELETE" });
+  return parse<OyuncuOdulDurumu>(res);
+}
+
+export async function apiOyuncuTransferler(oyuncuId: number): Promise<OyuncuTransferDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/transferler`, { cache: "no-store" });
+  return parse<OyuncuTransferDurumu>(res);
+}
+
+export async function apiOyuncuTransferTurleri(oyuncuId: number): Promise<OyuncuTransferTuru[]> {
+  const res = await fetch(`${OD}/${oyuncuId}/transfer-turleri`, { cache: "no-store" });
+  return parse<OyuncuTransferTuru[]>(res);
+}
+
+export async function apiOyuncuTransferYaz(
+  oyuncuId: number,
+  istek: OyuncuTransferIstegi,
+): Promise<OyuncuTransferDurumu> {
+  const res = await fetch(`${OD}/${oyuncuId}/transferler`, jsonInit("POST", istek));
+  return parse<OyuncuTransferDurumu>(res);
+}
+
+export async function apiOyuncuTransferKaldir(duzeltmeId: number): Promise<OyuncuTransferDurumu> {
+  const res = await fetch(`${OD}/transferler/${duzeltmeId}`, { method: "DELETE" });
+  return parse<OyuncuTransferDurumu>(res);
 }

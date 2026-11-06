@@ -1855,3 +1855,146 @@ export interface WidgetKullanimi {
   anahtarsizAlanlar: { alan: string; sayi: number; sonGun: string }[];
   siteToplamlari: Record<string, [number, number]>;
 }
+
+// ---------------------------------------------------------------------------
+// OYUNCU DÜZENLEME (motor V119) — /api/teleskor/oyuncu-duzeltme
+// Oyuncu profilinin başarılar ve transferler bölümüne elle kayıt.
+// ---------------------------------------------------------------------------
+
+export interface OyuncuDuzeltmeOyuncu {
+  id: number;
+  ad: string;
+  foto?: string;
+  spor: number;
+}
+
+export interface OyuncuDuzeltmeTakim {
+  id: number;
+  ad?: string;
+  logo?: string;
+}
+
+export interface OyuncuDuzeltmeIz {
+  gerekce?: string;
+  olusturan?: string;
+  olusturuldu?: string;
+}
+
+export interface OyuncuOdul {
+  id: number;
+  ad?: string;
+  adEn?: string;
+  logo?: string;
+  /** Panelden açılmış ödül (sağlayıcının sözlüğünde yok). */
+  elle: boolean;
+}
+
+export interface OyuncuSaglayiciOdul {
+  odul: OyuncuOdul;
+  sezon?: string;
+  takim?: OyuncuDuzeltmeTakim;
+  ay?: number;
+  hafta?: number;
+  /** Gizlendiyse gizleme kaydı. */
+  gizlemeId?: number;
+}
+
+export interface OyuncuElleOdul {
+  id: number;
+  odul: OyuncuOdul;
+  sezon?: string;
+  takim?: OyuncuDuzeltmeTakim;
+  ay?: number;
+  hafta?: number;
+  yerineId?: number;
+  kaynakVeriyor: boolean;
+  iz: OyuncuDuzeltmeIz;
+}
+
+export interface OyuncuOdulDurumu {
+  oyuncu: OyuncuDuzeltmeOyuncu;
+  saglayici: OyuncuSaglayiciOdul[];
+  elle: OyuncuElleOdul[];
+}
+
+export interface OyuncuOdulAnahtari {
+  honorId: number;
+  sezon?: string | null;
+  takimId?: number | null;
+}
+
+export interface OyuncuOdulIstegi {
+  islem: "EKLE" | "GIZLE";
+  honorId?: number | null;
+  yeniOdulAdi?: string | null;
+  sezon?: string | null;
+  takimId?: number | null;
+  ay?: number | null;
+  hafta?: number | null;
+  yerine?: OyuncuOdulAnahtari | null;
+  gerekce: string;
+}
+
+export interface OyuncuTransferTuru {
+  kod: number;
+  ad: string;
+}
+
+export interface OyuncuSaglayiciTransfer {
+  tarih?: string;
+  tur?: number;
+  turAdi?: string;
+  cikilan?: OyuncuDuzeltmeTakim;
+  cikilanAdi?: string;
+  gidilen?: OyuncuDuzeltmeTakim;
+  gidilenAdi?: string;
+  bedel?: number;
+  bedelMetni?: string;
+  gizlemeId?: number;
+}
+
+export interface OyuncuElleTransfer {
+  id: number;
+  /** YYYY-AA-GG */
+  tarih?: string;
+  tur?: number;
+  turAdi?: string;
+  cikilan?: OyuncuDuzeltmeTakim;
+  cikilanAdi?: string;
+  gidilen?: OyuncuDuzeltmeTakim;
+  gidilenAdi?: string;
+  bedel?: number;
+  bedelMetni?: string;
+  yerineId?: number;
+  kaynakVeriyor: boolean;
+  iz: OyuncuDuzeltmeIz;
+}
+
+export interface OyuncuTransferDurumu {
+  oyuncu: OyuncuDuzeltmeOyuncu;
+  saglayici: OyuncuSaglayiciTransfer[];
+  elle: OyuncuElleTransfer[];
+}
+
+/** Sağlayıcı satırının anahtarı: GET'teki değerler aynen geri gönderilir. */
+export interface OyuncuTransferAnahtari {
+  cikilanId?: number | null;
+  gidilenId?: number | null;
+  cikilanAdi?: string | null;
+  gidilenAdi?: string | null;
+  tarih?: string | null;
+}
+
+export interface OyuncuTransferIstegi {
+  islem: "EKLE" | "GIZLE";
+  tarih?: string | null;
+  tur?: number | null;
+  cikilanId?: number | null;
+  cikilanAdi?: string | null;
+  gidilenId?: number | null;
+  gidilenAdi?: string | null;
+  bedel?: number | null;
+  bedelMetni?: string | null;
+  yerine?: OyuncuTransferAnahtari | null;
+  gerekce: string;
+}

@@ -1,0 +1,899 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  apiKadroOyuncuAra,
+  apiKadroTakimAra,
+  apiOyuncuOdulAra,
+  apiOyuncuOdulKaldir,
+  apiOyuncuOduller,
+  apiOyuncuOdulYaz,
+  apiOyuncuTransferKaldir,
+  apiOyuncuTransferler,
+  apiOyuncuTransferTurleri,
+  apiOyuncuTransferYaz,
+  ApiError,
+} from "@/lib/api-client";
+import type {
+  KadroOyuncuBulgusu,
+  KadroTakimBulgusu,
+  OyuncuDuzeltmeIz,
+  OyuncuDuzeltmeOyuncu,
+  OyuncuDuzeltmeTakim,
+  OyuncuOdul,
+  OyuncuOdulAnahtari,
+  OyuncuOdulDurumu,
+  OyuncuSaglayiciOdul,
+  OyuncuSaglayiciTransfer,
+  OyuncuTransferAnahtari,
+  OyuncuTransferDurumu,
+  OyuncuTransferTuru,
+} from "@/lib/types";
+
+/**
+ * OYUNCU PROFİLİ (motor V119) — oyuncu sayfasının eksiklerini tamamlama.
+ *
+ * <p>Bu adımda iki bölüm: Başarılar ve Transferler. Her bölümde kaynağın
+ * satırları ve elle girilenler yan yana. Kaynağın yanlış satırı gizlenir ya
+ * da "Düzelt" ile aynı anda gizlenip doğrusu eklenir. Elle satırlar oyuncu
+ * sayfasında (uygulama ve web) hemen görünür; sonraki senkron silmez.
+ *
+ * <p>Künye alanları (doğum, boy, mevki, fotoğraf) Veri Düzeltme sayfasında.
+ */
+
+const GEREKCE_EN_COK = 300;
+
+function tarih(s?: string): string {
+  if (!s) return "—";
+  const d = new Date(s.length === 10 ? `${s}T12:00:00Z` : s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function tarihSaat(s?: string): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function hataMetni(e: unknown, yedek: string): string {
+  return e instanceof ApiError ? e.message : yedek;
+}
+
+function IzSatiri({ iz }: { iz: OyuncuDuzeltmeIz }) {
+  return (
+    <div className="cell-sub">
+      {iz.olusturan ?? "—"}, {tarihSaat(iz.olusturuldu)}
+      {iz.gerekce ? ` · ${iz.gerekce}` : ""}
+    </div>
+  );
+}
+
+function Rozet({ children, tur }: { children: React.ReactNode; tur: "elle" | "gizli" | "kaynak" }) {
+  const renk =
+    tur === "elle"
+      ? { background: "var(--accent-soft, #e8f0ff)", color: "var(--accent, #2457d6)" }
+      : tur === "gizli"
+        ? { background: "#fdecec", color: "#b42318" }
+        : { background: "#eef7ee", color: "#2e7d32" };
+  return (
+    <span
+      style={{
+        ...renk,
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "2px 6px",
+        borderRadius: 6,
+        marginLeft: 6,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Takım seçici (ürünün katalog araması) — transferde katalogda olmayan kulüp
+// için serbest ad da yazılabilir.
+// ---------------------------------------------------------------------------
+
+type TakimSecimi = { id: number | null; ad: string };
+
+function TakimSecici({
+  etiket,
+  deger,
+  degisti,
+  serbestAd,
+}: {
+  etiket: string;
+  deger: TakimSecimi | null;
+  degisti: (t: TakimSecimi | null) => void;
+  serbestAd?: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<KadroTakimBulgusu[]>([]);
+  const [araniyor, setAraniyor] = useState(false);
+
+  useEffect(() => {
+    if (deger || q.trim().length < 2) {
+      setSonuc([]);
+      return;
+    }
+    let iptal = false;
+    const t = setTimeout(async () => {
+      setAraniyor(true);
+      try {
+        const r = await apiKadroTakimAra(q);
+        if (!iptal) setSonuc(r);
+      } catch {
+        if (!iptal) setSonuc([]);
+      } finally {
+        if (!iptal) setAraniyor(false);
+      }
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(t);
+    };
+  }, [q, deger]);
+
+  return (
+    <label style={{ display: "block" }}>
+      <div className="label">{etiket}</div>
+      {deger ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span>
+            <b>{deger.ad}</b>{" "}
+            <span className="muted">{deger.id ? `#${deger.id}` : "(katalogda yok, yalnız ad)"}</span>
+          </span>
+          <button type="button" className="btn btn-sm" onClick={() => degisti(null)}>
+            Değiştir
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            className="input"
+            placeholder="Kulüp adı yaz"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {araniyor && <div className="cell-sub">Aranıyor…</div>}
+          {sonuc.length > 0 && (
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                marginTop: 4,
+                maxHeight: 200,
+                overflowY: "auto",
+              }}
+            >
+              {sonuc.map((t) => (
+                <button
+                  type="button"
+                  key={t.id}
+                  className="btn btn-sm"
+                  style={{ display: "block", width: "100%", textAlign: "left", border: 0 }}
+                  onClick={() => {
+                    degisti({ id: t.id, ad: t.ad ?? t.adEn ?? `#${t.id}` });
+                    setQ("");
+                  }}
+                >
+                  {t.ad ?? t.adEn} <span className="muted">{t.ulke ? `· ${t.ulke}` : ""} #{t.id}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {serbestAd && q.trim().length >= 2 && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              style={{ marginTop: 4 }}
+              onClick={() => degisti({ id: null, ad: q.trim() })}
+            >
+              Listede yok: &quot;{q.trim()}&quot; adıyla yaz
+            </button>
+          )}
+        </>
+      )}
+    </label>
+  );
+}
+
+function takimdan(t?: OyuncuDuzeltmeTakim, ad?: string): TakimSecimi | null {
+  if (t) return { id: t.id, ad: t.ad ?? `#${t.id}` };
+  if (ad) return { id: null, ad };
+  return null;
+}
+
+function GerekceAlani({ deger, degisti }: { deger: string; degisti: (s: string) => void }) {
+  return (
+    <label style={{ display: "block" }}>
+      <div className="label">Gerekçe (zorunlu: bilgi nereden?)</div>
+      <input
+        className="input"
+        maxLength={GEREKCE_EN_COK}
+        placeholder="ör. TFF arşivi, kulübün resmi sitesi"
+        value={deger}
+        onChange={(e) => degisti(e.target.value)}
+      />
+    </label>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Başarılar
+// ---------------------------------------------------------------------------
+
+function Basarilar({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: string) => void }) {
+  const [durum, setDurum] = useState<OyuncuOdulDurumu | null>(null);
+  const [hata, setHata] = useState("");
+  const [form, setForm] = useState<{ yerine: OyuncuOdulAnahtari | null } | null>(null);
+  const [odul, setOdul] = useState<OyuncuOdul | null>(null);
+  const [yeniOdulAdi, setYeniOdulAdi] = useState("");
+  const [odulQ, setOdulQ] = useState("");
+  const [odulSonuc, setOdulSonuc] = useState<OyuncuOdul[]>([]);
+  const [sezon, setSezon] = useState("");
+  const [kulup, setKulup] = useState<TakimSecimi | null>(null);
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+
+  useEffect(() => {
+    setDurum(null);
+    setForm(null);
+    apiOyuncuOduller(oyuncuId)
+      .then(setDurum)
+      .catch((e) => setHata(hataMetni(e, "Başarılar alınamadı.")));
+  }, [oyuncuId]);
+
+  useEffect(() => {
+    if (odul || odulQ.trim().length < 2) {
+      setOdulSonuc([]);
+      return;
+    }
+    let iptal = false;
+    const t = setTimeout(() => {
+      apiOyuncuOdulAra(odulQ)
+        .then((r) => !iptal && setOdulSonuc(r))
+        .catch(() => !iptal && setOdulSonuc([]));
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(t);
+    };
+  }, [odulQ, odul]);
+
+  function formuAc(kaynak?: OyuncuSaglayiciOdul) {
+    setHata("");
+    setForm({
+      yerine: kaynak
+        ? { honorId: kaynak.odul.id, sezon: kaynak.sezon ?? null, takimId: kaynak.takim?.id ?? null }
+        : null,
+    });
+    setOdul(kaynak ? kaynak.odul : null);
+    setYeniOdulAdi("");
+    setOdulQ("");
+    setSezon(kaynak?.sezon ?? "");
+    setKulup(takimdan(kaynak?.takim));
+    setGerekce("");
+  }
+
+  async function kaydet() {
+    if (!odul && yeniOdulAdi.trim().length < 3) {
+      setHata("Ödülü listeden seç ya da yeni ödülün adını yaz.");
+      return;
+    }
+    if (gerekce.trim().length < 3) {
+      setHata("Gerekçe zorunlu.");
+      return;
+    }
+    setGonderiliyor(true);
+    setHata("");
+    try {
+      const d = await apiOyuncuOdulYaz(oyuncuId, {
+        islem: "EKLE",
+        honorId: odul?.id ?? null,
+        yeniOdulAdi: odul ? null : yeniOdulAdi.trim(),
+        sezon: sezon.trim() || null,
+        takimId: kulup?.id ?? null,
+        yerine: form?.yerine ?? null,
+        gerekce: gerekce.trim(),
+      });
+      setDurum(d);
+      setForm(null);
+      bildir(form?.yerine ? "Başarı düzeltildi." : "Başarı eklendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaydedilemedi."));
+    } finally {
+      setGonderiliyor(false);
+    }
+  }
+
+  async function gizle(s: OyuncuSaglayiciOdul) {
+    const g = window.prompt(
+      `"${s.odul.ad}" (${s.sezon ?? "sezonsuz"}) oyuncu sayfasından gizlensin. Gerekçe?`,
+    );
+    if (!g || g.trim().length < 3) return;
+    setHata("");
+    try {
+      setDurum(
+        await apiOyuncuOdulYaz(oyuncuId, {
+          islem: "GIZLE",
+          yerine: { honorId: s.odul.id, sezon: s.sezon ?? null, takimId: s.takim?.id ?? null },
+          gerekce: g.trim(),
+        }),
+      );
+      bildir("Satır gizlendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Gizlenemedi."));
+    }
+  }
+
+  async function geriAl(id: number, soru: string) {
+    if (!window.confirm(soru)) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuOdulKaldir(id));
+      bildir("Geri alındı.");
+    } catch (e) {
+      setHata(hataMetni(e, "Geri alınamadı."));
+    }
+  }
+
+  if (!durum) {
+    return hata ? <div className="alert alert-error">{hata}</div> : <p className="muted">Yükleniyor…</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {hata && <div className="alert alert-error">{hata}</div>}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="card-title">Kaynaktan gelenler ({durum.saglayici.length})</div>
+        {!form && (
+          <button className="btn btn-primary btn-sm" onClick={() => formuAc()}>
+            Başarı ekle
+          </button>
+        )}
+      </div>
+
+      {form && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 10 }}>
+          <div className="cell-title">
+            {form.yerine ? "Kaynağın satırını düzelt (eski satır gizlenir)" : "Yeni başarı"}
+          </div>
+          <label style={{ display: "block" }}>
+            <div className="label">Ödül</div>
+            {odul ? (
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <b>{odul.ad}</b>
+                {odul.adEn && odul.adEn !== odul.ad && <span className="muted">({odul.adEn})</span>}
+                <button type="button" className="btn btn-sm" onClick={() => setOdul(null)}>
+                  Değiştir
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  className="input"
+                  placeholder="ör. Turkish champion, Süper Lig"
+                  value={odulQ}
+                  onChange={(e) => {
+                    setOdulQ(e.target.value);
+                    setYeniOdulAdi("");
+                  }}
+                />
+                {odulSonuc.length > 0 && (
+                  <div style={{ border: "1px solid var(--border)", borderRadius: 8, marginTop: 4, maxHeight: 220, overflowY: "auto" }}>
+                    {odulSonuc.map((o) => (
+                      <button
+                        type="button"
+                        key={o.id}
+                        className="btn btn-sm"
+                        style={{ display: "block", width: "100%", textAlign: "left", border: 0 }}
+                        onClick={() => setOdul(o)}
+                      >
+                        {o.ad} {o.adEn && o.adEn !== o.ad && <span className="muted">({o.adEn})</span>}
+                        {o.elle && <Rozet tur="elle">elle açıldı</Rozet>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {odulQ.trim().length >= 3 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{ marginTop: 4 }}
+                    onClick={() => setYeniOdulAdi(odulQ.trim())}
+                  >
+                    Listede yok: &quot;{odulQ.trim()}&quot; adıyla yeni ödül aç
+                  </button>
+                )}
+                {yeniOdulAdi && (
+                  <div className="cell-sub" style={{ marginTop: 4 }}>
+                    Yeni ödül açılacak: <b>{yeniOdulAdi}</b>. Mümkünse listedeki ödülü seçin; aynı kupa
+                    iki adla açılırsa kupa dolabında iki ayrı satır çıkar.
+                  </div>
+                )}
+              </>
+            )}
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            <label>
+              <div className="label">Sezon</div>
+              <input className="input" placeholder="ör. 1994-1995 ya da 2003" maxLength={40} value={sezon} onChange={(e) => setSezon(e.target.value)} />
+            </label>
+            <TakimSecici etiket="Kulüp (kazandığı takım)" deger={kulup} degisti={(t) => setKulup(t && t.id ? t : null)} />
+          </div>
+          <GerekceAlani deger={gerekce} degisti={setGerekce} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={gonderiliyor} onClick={kaydet}>
+              {gonderiliyor ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button className="btn btn-sm" onClick={() => setForm(null)}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
+      {durum.saglayici.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Kaynakta bu oyuncunun başarısı yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {durum.saglayici.map((s, i) => (
+            <div
+              key={`${s.odul.id}-${s.sezon}-${s.takim?.id}-${i}`}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+                opacity: s.gizlemeId ? 0.55 : 1,
+              }}
+            >
+              <span>
+                <b>{s.odul.ad}</b> <span className="muted">· {s.sezon ?? "sezon yok"} · {s.takim?.ad ?? "kulüp yok"}</span>
+                {s.gizlemeId ? <Rozet tur="gizli">gizli</Rozet> : null}
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                {s.gizlemeId ? (
+                  <button className="btn btn-sm" onClick={() => geriAl(s.gizlemeId!, "Gizleme kaldırılsın, satır yeniden görünsün mü? (Yerine girilen düzeltme varsa o da kalkar.)")}>
+                    Gizlemeyi geri al
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-sm" onClick={() => formuAc(s)}>Düzelt</button>
+                    <button className="btn btn-sm" onClick={() => gizle(s)}>Gizle</button>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card-title">Elle girilenler ({durum.elle.length})</div>
+      {durum.elle.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Henüz elle girilen başarı yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {durum.elle.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div>
+                <b>{e.odul.ad}</b> <span className="muted">· {e.sezon ?? "sezon yok"} · {e.takim?.ad ?? "kulüp yok"}</span>
+                <Rozet tur="elle">{e.yerineId ? "düzeltme" : "elle"}</Rozet>
+                {e.kaynakVeriyor && <Rozet tur="kaynak">Kaynak da veriyor · kaldırabilirsin</Rozet>}
+                <IzSatiri iz={e.iz} />
+              </div>
+              <button className="btn btn-sm" onClick={() => geriAl(e.id, `"${e.odul.ad}" kaydı kaldırılsın mı?${e.yerineId ? " Gizlenen kaynak satırı yeniden görünür." : ""}`)}>
+                Kaldır
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transferler
+// ---------------------------------------------------------------------------
+
+/** Kaynağın saatli tarihinden YYYY-AA-GG (form ön dolumu için, UTC günü). */
+function gunu(s?: string): string {
+  if (!s) return "";
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+function kulupAdi(t?: OyuncuDuzeltmeTakim, ad?: string): string {
+  return t?.ad ?? ad ?? "?";
+}
+
+function Transferler({ oyuncuId, bildir }: { oyuncuId: number; bildir: (m: string) => void }) {
+  const [durum, setDurum] = useState<OyuncuTransferDurumu | null>(null);
+  const [turler, setTurler] = useState<OyuncuTransferTuru[]>([]);
+  const [hata, setHata] = useState("");
+  const [form, setForm] = useState<{ yerine: OyuncuTransferAnahtari | null } | null>(null);
+  const [gun, setGun] = useState("");
+  const [tur, setTur] = useState<string>("");
+  const [cikilan, setCikilan] = useState<TakimSecimi | null>(null);
+  const [gidilen, setGidilen] = useState<TakimSecimi | null>(null);
+  const [bedel, setBedel] = useState("");
+  const [bedelMetni, setBedelMetni] = useState("");
+  const [gerekce, setGerekce] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+
+  useEffect(() => {
+    setDurum(null);
+    setForm(null);
+    apiOyuncuTransferler(oyuncuId)
+      .then(setDurum)
+      .catch((e) => setHata(hataMetni(e, "Transferler alınamadı.")));
+    apiOyuncuTransferTurleri(oyuncuId).then(setTurler).catch(() => setTurler([]));
+  }, [oyuncuId]);
+
+  function anahtar(s: OyuncuSaglayiciTransfer): OyuncuTransferAnahtari {
+    return {
+      cikilanId: s.cikilan?.id ?? null,
+      gidilenId: s.gidilen?.id ?? null,
+      cikilanAdi: s.cikilanAdi ?? null,
+      gidilenAdi: s.gidilenAdi ?? null,
+      tarih: s.tarih ?? null,
+    };
+  }
+
+  function formuAc(kaynak?: OyuncuSaglayiciTransfer) {
+    setHata("");
+    setForm({ yerine: kaynak ? anahtar(kaynak) : null });
+    setGun(gunu(kaynak?.tarih));
+    setTur(kaynak?.tur != null ? String(kaynak.tur) : "");
+    setCikilan(takimdan(kaynak?.cikilan, kaynak?.cikilanAdi));
+    setGidilen(takimdan(kaynak?.gidilen, kaynak?.gidilenAdi));
+    setBedel(kaynak?.bedel != null ? String(kaynak.bedel) : "");
+    setBedelMetni(kaynak?.bedelMetni ?? "");
+    setGerekce("");
+  }
+
+  async function kaydet() {
+    if (!cikilan && !gidilen) {
+      setHata("Çıkılan ya da gidilen kulüpten en az biri gerekli.");
+      return;
+    }
+    if (bedel && !/^\d+$/.test(bedel.trim())) {
+      setHata("Bedel yalnız rakam olmalı (birimi açıklamaya yazın).");
+      return;
+    }
+    if (gerekce.trim().length < 3) {
+      setHata("Gerekçe zorunlu.");
+      return;
+    }
+    setGonderiliyor(true);
+    setHata("");
+    try {
+      const d = await apiOyuncuTransferYaz(oyuncuId, {
+        islem: "EKLE",
+        tarih: gun || null,
+        tur: tur ? Number(tur) : null,
+        cikilanId: cikilan?.id ?? null,
+        cikilanAdi: cikilan && !cikilan.id ? cikilan.ad : null,
+        gidilenId: gidilen?.id ?? null,
+        gidilenAdi: gidilen && !gidilen.id ? gidilen.ad : null,
+        bedel: bedel.trim() ? Number(bedel.trim()) : null,
+        bedelMetni: bedelMetni.trim() || null,
+        yerine: form?.yerine ?? null,
+        gerekce: gerekce.trim(),
+      });
+      setDurum(d);
+      setForm(null);
+      bildir(form?.yerine ? "Transfer düzeltildi." : "Transfer eklendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Kaydedilemedi."));
+    } finally {
+      setGonderiliyor(false);
+    }
+  }
+
+  async function gizle(s: OyuncuSaglayiciTransfer) {
+    const g = window.prompt(
+      `${kulupAdi(s.cikilan, s.cikilanAdi)} → ${kulupAdi(s.gidilen, s.gidilenAdi)} (${tarih(s.tarih)}) gizlensin. Gerekçe?`,
+    );
+    if (!g || g.trim().length < 3) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuTransferYaz(oyuncuId, { islem: "GIZLE", yerine: anahtar(s), gerekce: g.trim() }));
+      bildir("Satır gizlendi.");
+    } catch (e) {
+      setHata(hataMetni(e, "Gizlenemedi."));
+    }
+  }
+
+  async function geriAl(id: number, soru: string) {
+    if (!window.confirm(soru)) return;
+    setHata("");
+    try {
+      setDurum(await apiOyuncuTransferKaldir(id));
+      bildir("Geri alındı.");
+    } catch (e) {
+      setHata(hataMetni(e, "Geri alınamadı."));
+    }
+  }
+
+  if (!durum) {
+    return hata ? <div className="alert alert-error">{hata}</div> : <p className="muted">Yükleniyor…</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {hata && <div className="alert alert-error">{hata}</div>}
+      <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+        Elle transfer yalnız oyuncu sayfasında görünür; transfer akışına ve takım kadrolarına girmez.
+      </p>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="card-title">Kaynaktan gelenler ({durum.saglayici.length})</div>
+        {!form && (
+          <button className="btn btn-primary btn-sm" onClick={() => formuAc()}>
+            Transfer ekle
+          </button>
+        )}
+      </div>
+
+      {form && (
+        <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 10 }}>
+          <div className="cell-title">
+            {form.yerine ? "Kaynağın satırını düzelt (eski satır gizlenir)" : "Yeni transfer"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+            <TakimSecici etiket="Çıkılan kulüp" deger={cikilan} degisti={setCikilan} serbestAd />
+            <TakimSecici etiket="Gidilen kulüp" deger={gidilen} degisti={setGidilen} serbestAd />
+            <label>
+              <div className="label">Tarih</div>
+              <input className="input" type="date" value={gun} onChange={(e) => setGun(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Tür</div>
+              <select className="input" value={tur} onChange={(e) => setTur(e.target.value)}>
+                <option value="">Belirtilmedi</option>
+                {turler.map((t) => (
+                  <option key={t.kod} value={t.kod}>
+                    {t.ad}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <div className="label">Bedel (yalnız rakam)</div>
+              <input className="input" inputMode="numeric" placeholder="ör. 2500000" value={bedel} onChange={(e) => setBedel(e.target.value)} />
+            </label>
+            <label>
+              <div className="label">Bedel açıklaması (birimiyle)</div>
+              <input className="input" maxLength={120} placeholder="ör. 2,5 milyon $" value={bedelMetni} onChange={(e) => setBedelMetni(e.target.value)} />
+            </label>
+          </div>
+          <GerekceAlani deger={gerekce} degisti={setGerekce} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={gonderiliyor} onClick={kaydet}>
+              {gonderiliyor ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button className="btn btn-sm" onClick={() => setForm(null)}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      )}
+
+      {durum.saglayici.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Kaynakta bu oyuncunun transferi yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 6 }}>
+          {durum.saglayici.map((s, i) => (
+            <div
+              key={`${s.tarih}-${s.cikilan?.id}-${s.gidilen?.id}-${i}`}
+              style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center", opacity: s.gizlemeId ? 0.55 : 1 }}
+            >
+              <span>
+                <b>
+                  {kulupAdi(s.cikilan, s.cikilanAdi)} → {kulupAdi(s.gidilen, s.gidilenAdi)}
+                </b>{" "}
+                <span className="muted">
+                  · {tarih(s.tarih)} · {s.turAdi ?? "tür yok"}
+                  {s.bedelMetni ? ` · ${s.bedelMetni}` : ""}
+                </span>
+                {s.gizlemeId ? <Rozet tur="gizli">gizli</Rozet> : null}
+              </span>
+              <span style={{ display: "flex", gap: 6 }}>
+                {s.gizlemeId ? (
+                  <button className="btn btn-sm" onClick={() => geriAl(s.gizlemeId!, "Gizleme kaldırılsın, satır yeniden görünsün mü? (Yerine girilen düzeltme varsa o da kalkar.)")}>
+                    Gizlemeyi geri al
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-sm" onClick={() => formuAc(s)}>Düzelt</button>
+                    <button className="btn btn-sm" onClick={() => gizle(s)}>Gizle</button>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card-title">Elle girilenler ({durum.elle.length})</div>
+      {durum.elle.length === 0 ? (
+        <p className="muted" style={{ fontSize: 13 }}>Henüz elle girilen transfer yok.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {durum.elle.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+              <div>
+                <b>
+                  {kulupAdi(e.cikilan, e.cikilanAdi)} → {kulupAdi(e.gidilen, e.gidilenAdi)}
+                </b>{" "}
+                <span className="muted">
+                  · {tarih(e.tarih)} · {e.turAdi ?? "tür yok"}
+                  {e.bedelMetni ? ` · ${e.bedelMetni}` : ""}
+                </span>
+                <Rozet tur="elle">{e.yerineId ? "düzeltme" : "elle"}</Rozet>
+                {e.kaynakVeriyor && <Rozet tur="kaynak">Kaynak da veriyor · kaldırabilirsin</Rozet>}
+                <IzSatiri iz={e.iz} />
+              </div>
+              <button className="btn btn-sm" onClick={() => geriAl(e.id, `Bu transfer kaydı kaldırılsın mı?${e.yerineId ? " Gizlenen kaynak satırı yeniden görünür." : ""}`)}>
+                Kaldır
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sayfa
+// ---------------------------------------------------------------------------
+
+type Sekme = "basarilar" | "transferler";
+
+export default function TeleskorOyuncuDuzenlemeClient() {
+  const [q, setQ] = useState("");
+  const [sonuc, setSonuc] = useState<KadroOyuncuBulgusu[]>([]);
+  const [araniyor, setAraniyor] = useState(false);
+  const [oyuncu, setOyuncu] = useState<OyuncuDuzeltmeOyuncu | null>(null);
+  const [sekme, setSekme] = useState<Sekme>("basarilar");
+  const [bilgi, setBilgi] = useState("");
+  const bilgiZamani = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Adres çubuğundaki ?oyuncu= ile doğrudan açılış (paylaşılabilir bağlantı).
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("oyuncu"));
+    if (Number.isInteger(id) && id > 0) {
+      apiOyuncuOduller(id)
+        .then((d) => setOyuncu(d.oyuncu))
+        .catch(() => undefined);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (q.trim().length < 2) {
+      setSonuc([]);
+      return;
+    }
+    let iptal = false;
+    const t = setTimeout(async () => {
+      setAraniyor(true);
+      try {
+        const r = await apiKadroOyuncuAra(q);
+        if (!iptal) setSonuc(r);
+      } catch {
+        if (!iptal) setSonuc([]);
+      } finally {
+        if (!iptal) setAraniyor(false);
+      }
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(t);
+    };
+  }, [q]);
+
+  function sec(o: OyuncuDuzeltmeOyuncu) {
+    setOyuncu(o);
+    setQ("");
+    setSonuc([]);
+    const u = new URL(window.location.href);
+    u.searchParams.set("oyuncu", String(o.id));
+    window.history.replaceState(null, "", u.toString());
+  }
+
+  function bildir(m: string) {
+    setBilgi(m);
+    if (bilgiZamani.current) clearTimeout(bilgiZamani.current);
+    bilgiZamani.current = setTimeout(() => setBilgi(""), 5000);
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 16 }}>
+      <div className="card card-pad">
+        <div className="card-title">Oyuncu Profili</div>
+        <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>
+          Oyuncu sayfasındaki eksik başarıları ve transferleri tamamlayın. Elle girilenler uygulamada
+          ve web'de oyuncu sayfasına hemen yansır, sonraki veri güncellemesi silmez. Kaynağın yanlış
+          satırını gizleyebilir ya da düzeltebilirsiniz. Doğum tarihi, boy, mevki ve fotoğraf için
+          Veri Düzeltme sayfasını kullanın.
+        </p>
+        <label style={{ display: "block", marginTop: 10 }}>
+          <div className="label">Oyuncu ara</div>
+          <input className="input" placeholder="ör. Sergen Yalçın" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        {araniyor && <div className="cell-sub">Aranıyor…</div>}
+        {sonuc.length > 0 && (
+          <div style={{ border: "1px solid var(--border)", borderRadius: 8, marginTop: 6, maxHeight: 260, overflowY: "auto" }}>
+            {sonuc.map((o) => (
+              <button
+                key={o.id}
+                className="btn btn-sm"
+                style={{ display: "block", width: "100%", textAlign: "left", border: 0 }}
+                onClick={() => sec({ id: o.id, ad: o.ad, foto: o.foto, spor: 1 })}
+              >
+                {o.ad}{" "}
+                <span className="muted">
+                  {o.kartTakim?.ad ? `· ${o.kartTakim.ad}` : ""}
+                  {o.dogum ? ` · ${tarih(o.dogum)}` : ""} #{o.id}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {bilgi && <div className="alert alert-success">{bilgi}</div>}
+
+      {oyuncu && (
+        <div className="card card-pad" style={{ display: "grid", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            {oyuncu.foto && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={oyuncu.foto} alt="" width={48} height={48} style={{ borderRadius: 24, objectFit: "cover" }} />
+            )}
+            <div>
+              <div className="cell-title">{oyuncu.ad}</div>
+              <div className="cell-sub">#{oyuncu.id}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className={`btn btn-sm ${sekme === "basarilar" ? "btn-primary" : ""}`} onClick={() => setSekme("basarilar")}>
+              Başarılar
+            </button>
+            <button className={`btn btn-sm ${sekme === "transferler" ? "btn-primary" : ""}`} onClick={() => setSekme("transferler")}>
+              Transferler
+            </button>
+          </div>
+          {sekme === "basarilar" ? (
+            <Basarilar oyuncuId={oyuncu.id} bildir={bildir} />
+          ) : (
+            <Transferler oyuncuId={oyuncu.id} bildir={bildir} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -20,6 +20,7 @@ const BASLIKLAR: [string, string][] = [
   ["/teleskor/kadro", "Kadro Masası"],
   ["/teleskor/tv", "TV Kanalı Düzeltme"],
   ["/teleskor/veri", "Veri Düzeltme"],
+  ["/teleskor/oyuncu-duzenleme", "Oyuncu Profili"],
   ["/teleskor/ceviri", "Çeviri Düzeltme"],
   ["/teleskor/uyeler", "Üyeler"],
   ["/teleskor/kitle", "Kitle"],

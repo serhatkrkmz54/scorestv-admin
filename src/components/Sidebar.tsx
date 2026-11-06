@@ -33,6 +33,7 @@ import {
   ChevronDown,
   X,
   type LucideIcon,
+  UserPen,
 } from "lucide-react";
 import { useMobilMenu } from "@/components/MobilMenu";
 import { apiLogout } from "@/lib/api-client";
@@ -90,6 +91,7 @@ const MENU: { id: SectionId; baslik: string; baglantilar: Baglanti[] }[] = [
       { href: "/teleskor/kadro", ad: "Kadro Masası", ikon: Shirt },
       { href: "/teleskor/tv", ad: "TV Kanalı Düzeltme", ikon: Tv },
       { href: "/teleskor/veri", ad: "Veri Düzeltme", ikon: ClipboardList },
+      { href: "/teleskor/oyuncu-duzenleme", ad: "Oyuncu Profili", ikon: UserPen },
       { href: "/teleskor/ceviri", ad: "Çeviri Düzeltme", ikon: Languages },
     ],
   },
