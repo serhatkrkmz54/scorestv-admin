@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import TeleskorKitleGunluk from "./TeleskorKitleGunluk";
 
 type Kitle = {
-  anlik: { acikSoket: number; izlenenMac: number; tekKopya: boolean };
+  anlik: {
+    acikSoket: number;
+    izlenenMac: number;
+    tekKopya: boolean;
+    /** api-1 V82: platform başına online cihaz; eski sunucuda yok. */
+    online?: { ANDROID: number; IOS: number; WEB: number } | null;
+    onlineToplam?: number;
+  };
   cihaz: {
     aktif: number;
     gun: number;
@@ -101,6 +109,20 @@ export default function TeleskorKitleClient() {
         ) : (
           <>
             <div className="stat-grid">
+              {a.online && (
+                <>
+                  <div className="stat-card">
+                    <div className="stat-value">{sayi(a.onlineToplam)}</div>
+                    <div className="stat-label">Şu an uygulamada (online)</div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-value">
+                      {sayi(a.online.ANDROID)} / {sayi(a.online.IOS)}
+                    </div>
+                    <div className="stat-label">Online Android / iOS</div>
+                  </div>
+                </>
+              )}
               <div className="stat-card">
                 <div className="stat-value">{sayi(a.acikSoket)}</div>
                 <div className="stat-label">Açık canlı bağlantı</div>
@@ -111,8 +133,9 @@ export default function TeleskorKitleClient() {
               </div>
             </div>
             <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-              Bu sayı, maç ekranı <b>açık olan</b> cihazları gösteriyor -
-              uygulamayı kullanan herkesi değil. Bağlantı uygulama kapanınca
+              &quot;Online&quot;: son birkaç dakikada uygulamayı ekranda açık tutan
+              cihaz (yeni mağaza sürümüyle başlıyor). Canlı bağlantı yalnız maç ekranı
+              <b>açık olan</b> cihazları gösteriyor. Bağlantı uygulama kapanınca
               düşüyor, yani gece 03:00&apos;te sıfıra yakın olması normal.
               {a.tekKopya && (
                 <>
@@ -125,6 +148,8 @@ export default function TeleskorKitleClient() {
           </>
         )}
       </div>
+
+      <TeleskorKitleGunluk />
 
       {/* CİHAZLAR */}
       <div className="card card-pad">
