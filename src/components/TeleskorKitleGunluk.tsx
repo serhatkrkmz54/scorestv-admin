@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { Download, Globe, MonitorSmartphone, Radio } from "lucide-react";
+import TeleskorKitleKaynaklar from "./TeleskorKitleKaynaklar";
 
 /**
  * KİTLE GÜN GÜN (api-1 V82 + V83).
@@ -736,6 +737,8 @@ export default function TeleskorKitleGunluk() {
               />
             </GrafikKarti>
           </div>
+
+          <TeleskorKitleKaynaklar dis={dis} gunler={noktalar.map((n) => n.gun)} bugun={bugun} playAcik={playAcik} />
 
           <div className="card card-pad" style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", gap: 10 }}>

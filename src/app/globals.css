@@ -4238,11 +4238,19 @@ td .switch {
   --grafik-android: #0a9a82;
   --grafik-ios: #1677ff;
   --grafik-web: #dd4b22;
+  /* Play trafik kaynağı (arama / keşfet / dış bağlantı); aynı denetleyiciden
+     geçti, keşfet açık yüzeyde 2,8:1 → yanında tablo var. */
+  --grafik-kaynak-arama: #2a78d6;
+  --grafik-kaynak-kesfet: #1baf7a;
+  --grafik-kaynak-dis: #eb6834;
 }
 :root[data-theme="dark"] {
   --grafik-android: #10a48b;
   --grafik-ios: #3b8cff;
   --grafik-web: #ea5a2e;
+  --grafik-kaynak-arama: #3987e5;
+  --grafik-kaynak-kesfet: #199e70;
+  --grafik-kaynak-dis: #d95926;
 }
 
 .kitle-grafikler {
