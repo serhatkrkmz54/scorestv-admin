@@ -70,7 +70,7 @@ function kisaGun(g: string): string {
   return `${gn}.${a}`;
 }
 
-type Olcu = "aktif" | "yeniCihaz" | "online" | "yeniUye" | "playKurulum";
+type Olcu = "aktif" | "yeniCihaz" | "online" | "yeniUye" | "playKurulum" | "magazaIlk";
 
 const OLCULER: { k: Olcu; ad: string }[] = [
   { k: "aktif", ad: "Uygulamayı açan cihaz" },
@@ -78,12 +78,21 @@ const OLCULER: { k: Olcu; ad: string }[] = [
   { k: "online", ad: "Aynı anda en çok online" },
   { k: "yeniUye", ad: "Yeni üye" },
   { k: "playKurulum", ad: "Google Play kurulum" },
+  { k: "magazaIlk", ad: "Mağaza ilk indirme (Play + App Store)" },
 ];
 
-/** Play ölçüsü (yoksa null = rapor o günü vermedi ya da henüz okunmadı). */
-function play(dis: Dis | undefined, gun: string, olcu: string): number | null {
-  const v = dis?.[gun]?.PLAY?.[olcu];
+/** Kaynak ölçüsü (yoksa null = rapor o günü vermedi ya da henüz okunmadı). */
+function dis_(dis: Dis | undefined, gun: string, kaynak: string, olcu: string): number | null {
+  const v = dis?.[gun]?.[kaynak]?.[olcu];
   return typeof v === "number" ? v : null;
+}
+
+function play(dis: Dis | undefined, gun: string, olcu: string): number | null {
+  return dis_(dis, gun, "PLAY", olcu);
+}
+
+function appStore(dis: Dis | undefined, gun: string, olcu: string): number | null {
+  return dis_(dis, gun, "APPSTORE", olcu);
 }
 
 /** Grafikte bir günün üst üste dilimleri. */
@@ -100,6 +109,11 @@ function dilimler(g: Gun, o: Olcu, dis?: Dis): { renk: string; v: number }[] {
       return [d(g.yeniUye, RENK.web)];
     case "playKurulum":
       return [d(play(dis, g.gun, "daily_device_installs"), RENK.android)];
+    case "magazaIlk":
+      return [
+        d(play(dis, g.gun, "daily_device_installs"), RENK.android),
+        d(appStore(dis, g.gun, "ilk_indirme"), RENK.ios),
+      ];
   }
 }
 
@@ -243,6 +257,24 @@ export default function TeleskorKitleGunluk() {
     }
   }, [donem, yukle]);
 
+  const [appDurum, setAppDurum] = useState<string | null>(null);
+  const [appOkunuyor, setAppOkunuyor] = useState(false);
+  const appOku = useCallback(async () => {
+    setAppOkunuyor(true);
+    try {
+      const r = await fetch("/api/teleskor/kitle/appstore-tazele", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b?.message);
+      const ozet = `${b.sorulan} gün soruldu, ${b.yazilanGun} yazıldı, ${b.hazirDegil} gün henüz hazır değil`;
+      setAppDurum(b.hata ? `App Store raporu okunamadı: ${b.hata} (${ozet})` : `App Store raporu okundu: ${ozet}.`);
+      await yukle(donem);
+    } catch (e) {
+      setAppDurum(e instanceof Error && e.message ? e.message : "App Store raporu okunamadı.");
+    } finally {
+      setAppOkunuyor(false);
+    }
+  }, [donem, yukle]);
+
   // Tabloda her gün görünsün: kitle_gunluk'ta satırı olmayan ama Play'de
   // olan günler de (V82 öncesi tarih).
   const satirlar: Gun[] = veri ? [veri.bugun, ...veri.gunler] : [];
@@ -255,6 +287,7 @@ export default function TeleskorKitleGunluk() {
   }
   const dis = veri?.dis;
   const playAcik = veri?.kaynaklar?.PLAY ?? false;
+  const appAcik = veri?.kaynaklar?.APPSTORE ?? false;
 
   return (
     <div className="card card-pad" style={{ display: "grid", gap: 14 }}>
@@ -264,6 +297,11 @@ export default function TeleskorKitleGunluk() {
           <select className="input" style={{ width: "auto" }} value={olcu} onChange={(e) => setOlcu(e.target.value as Olcu)}>
             {OLCULER.map((o) => <option key={o.k} value={o.k}>{o.ad}</option>)}
           </select>
+          {appAcik && (
+            <button className="btn btn-ghost" onClick={() => void appOku()} disabled={appOkunuyor}>
+              {appOkunuyor ? "Okunuyor…" : "App Store raporunu şimdi oku"}
+            </button>
+          )}
           {playAcik && (
             <button className="btn btn-ghost" onClick={() => void playOku()} disabled={playOkunuyor}>
               {playOkunuyor ? "Okunuyor…" : "Play raporunu şimdi oku"}
@@ -280,11 +318,18 @@ export default function TeleskorKitleGunluk() {
 
       {hata && <div className="alert alert-error">{hata}</div>}
       {playDurum && <div className="muted" style={{ fontSize: 13 }}>{playDurum}</div>}
+      {appDurum && <div className="muted" style={{ fontSize: 13 }}>{appDurum}</div>}
 
       {veri && (
         <>
           <SutunGrafigi gunler={satirlar} olcu={olcu} secili={secili ?? veri.bugun.gun} sec={setSecili} dis={dis} />
           <div className="muted" style={{ fontSize: 12 }}>
+            {olcu === "magazaIlk" ? (
+              <>
+                <Aciklama renk={RENK.android} ad="Google Play kurulum" />
+                <Aciklama renk={RENK.ios} ad="App Store ilk indirme" />
+              </>
+            ) : null}
             {olcu === "aktif" || olcu === "yeniCihaz" ? (
               <>
                 <Aciklama renk={RENK.android} ad="Android" />
@@ -329,6 +374,8 @@ export default function TeleskorKitleGunluk() {
                   <th>7 / 30 gün aktif cihaz</th>
                   <th>Play kurulum / kaldırma</th>
                   <th>Play cihazda kurulu</th>
+                  <th>App Store ilk / yeniden indirme</th>
+                  <th>App Store güncelleme</th>
                 </tr>
               </thead>
               <tbody>
@@ -356,6 +403,11 @@ export default function TeleskorKitleGunluk() {
                       {s(play(dis, g.gun, "daily_device_uninstalls"))}
                     </td>
                     <td>{s(play(dis, g.gun, "active_device_installs"))}</td>
+                    <td>
+                      {s(appStore(dis, g.gun, "ilk_indirme"))} /{" "}
+                      {s(appStore(dis, g.gun, "yeniden_indirme"))}
+                    </td>
+                    <td>{s(appStore(dis, g.gun, "guncelleme"))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -373,7 +425,11 @@ export default function TeleskorKitleGunluk() {
             raporu, o gün uygulamayı kuran / kaldıran Android cihaz; <b>cihazda kurulu</b>
             o gün uygulamanın kurulu olduğu Android cihaz. Rapor 6 saatte bir okunur,
             Google son günleri birkaç gün gecikmeli verir (bugün ve dün çoğu zaman
-            &quot;-&quot;). App Store ve web sayıları sonraki adımda. &quot;-&quot; = o gün ölçüm yok.
+            &quot;-&quot;). <b>App Store ilk indirme</b>: Apple&apos;ın satış raporu, o gün
+            uygulamayı ilk kez indiren Apple hesabı; <b>yeniden</b>: aynı hesabın tekrar
+            indirmesi; Apple kaldırma sayısı vermez, günü Pasifik saatine göredir. İki
+            mağaza indirmeyi farklı tanımlar (Play cihaz, Apple hesap sayar); grafikte üst
+            üste durur ama aynı şey değildir. Web sayıları sonraki adımda. &quot;-&quot; = o gün ölçüm yok.
           </div>
         </>
       )}
