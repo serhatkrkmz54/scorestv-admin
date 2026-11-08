@@ -11,6 +11,10 @@ import { useCallback, useEffect, useState } from "react";
  * "-" (sıfır değil). Yeni üye ve yeni bildirim cihazı kayıt anlarından,
  * geriye dönük dolu.
  *
+ * <p>Mağaza/web sayıları (V83) ayrı bir sözlükte gelir: gün → kaynak → ölçü.
+ * Google Play kaynağın kendi tanımıyla ("Daily Device Installs" = o gün
+ * uygulamayı kuran cihaz); App Store ve web sayılarıyla TOPLANMAZ.
+ *
  * <p>Grafikler elle çizilmiş SVG (kütüphane yok): sütunlar platform platform
  * üst üste, seçili günün online eğrisi dakika dakika.
  */
@@ -35,6 +39,9 @@ type Gun = {
   yeniBildirimIos?: number | null;
   olcumDakika?: number;
 };
+
+/** Gün → kaynak (PLAY …) → ölçü → sayı. */
+type Dis = Record<string, Record<string, Record<string, number>>>;
 
 type Dakika = { an: string; android: number; ios: number; web: number; soket: number };
 
@@ -63,17 +70,24 @@ function kisaGun(g: string): string {
   return `${gn}.${a}`;
 }
 
-type Olcu = "aktif" | "yeniCihaz" | "online" | "yeniUye";
+type Olcu = "aktif" | "yeniCihaz" | "online" | "yeniUye" | "playKurulum";
 
 const OLCULER: { k: Olcu; ad: string }[] = [
   { k: "aktif", ad: "Uygulamayı açan cihaz" },
   { k: "yeniCihaz", ad: "Yeni cihaz" },
   { k: "online", ad: "Aynı anda en çok online" },
   { k: "yeniUye", ad: "Yeni üye" },
+  { k: "playKurulum", ad: "Google Play kurulum" },
 ];
 
+/** Play ölçüsü (yoksa null = rapor o günü vermedi ya da henüz okunmadı). */
+function play(dis: Dis | undefined, gun: string, olcu: string): number | null {
+  const v = dis?.[gun]?.PLAY?.[olcu];
+  return typeof v === "number" ? v : null;
+}
+
 /** Grafikte bir günün üst üste dilimleri. */
-function dilimler(g: Gun, o: Olcu): { renk: string; v: number }[] {
+function dilimler(g: Gun, o: Olcu, dis?: Dis): { renk: string; v: number }[] {
   const d = (v: number | null | undefined, renk: string) => ({ renk, v: typeof v === "number" ? v : 0 });
   switch (o) {
     case "aktif":
@@ -84,25 +98,28 @@ function dilimler(g: Gun, o: Olcu): { renk: string; v: number }[] {
       return [d(g.onlineTepe, RENK.web)];
     case "yeniUye":
       return [d(g.yeniUye, RENK.web)];
+    case "playKurulum":
+      return [d(play(dis, g.gun, "daily_device_installs"), RENK.android)];
   }
 }
 
-function SutunGrafigi({ gunler, olcu, secili, sec }: {
+function SutunGrafigi({ gunler, olcu, secili, sec, dis }: {
   gunler: Gun[];
   olcu: Olcu;
+  dis?: Dis;
   secili: string | null;
   sec: (g: string) => void;
 }) {
   const sirali = [...gunler].reverse();
   const G = 760, Y = 180, alt = 22, ust = 10;
-  const enCok = Math.max(1, ...sirali.map((g) => dilimler(g, olcu).reduce((a, b) => a + b.v, 0)));
+  const enCok = Math.max(1, ...sirali.map((g) => dilimler(g, olcu, dis).reduce((a, b) => a + b.v, 0)));
   const w = G / Math.max(sirali.length, 1);
   return (
     <svg viewBox={`0 0 ${G} ${Y}`} style={{ width: "100%", height: "auto", display: "block" }}>
       <text x={0} y={ust} fontSize={10} fill="var(--text-faint)">{s(enCok)}</text>
       {sirali.map((g, i) => {
         let yTaban = Y - alt;
-        const parca = dilimler(g, olcu);
+        const parca = dilimler(g, olcu, dis);
         const toplam = parca.reduce((a, b) => a + b.v, 0);
         return (
           <g key={g.gun} onClick={() => sec(g.gun)} style={{ cursor: "pointer" }}>
@@ -168,7 +185,14 @@ function Aciklama({ renk, ad, kesik }: { renk: string; ad: string; kesik?: boole
 export default function TeleskorKitleGunluk() {
   const [donem, setDonem] = useState(30);
   const [olcu, setOlcu] = useState<Olcu>("aktif");
-  const [veri, setVeri] = useState<{ bugun: Gun; gunler: Gun[] } | null>(null);
+  const [veri, setVeri] = useState<{
+    bugun: Gun;
+    gunler: Gun[];
+    dis?: Dis;
+    kaynaklar?: Record<string, boolean>;
+  } | null>(null);
+  const [playDurum, setPlayDurum] = useState<string | null>(null);
+  const [playOkunuyor, setPlayOkunuyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const [secili, setSecili] = useState<string | null>(null);
   const [dakika, setDakika] = useState<Dakika[] | null>(null);
@@ -200,17 +224,52 @@ export default function TeleskorKitleGunluk() {
     };
   }, [secili]);
 
-  const satirlar = veri ? [veri.bugun, ...veri.gunler] : [];
+  const playOku = useCallback(async () => {
+    setPlayOkunuyor(true);
+    try {
+      const r = await fetch("/api/teleskor/kitle/play-tazele", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b?.message);
+      if (b.hata) {
+        setPlayDurum(`Play raporu okunamadı: ${b.hata}`);
+      } else {
+        setPlayDurum(`Play raporu okundu: ${b.dosya} dosya, ${b.indirilen} indirildi, ${b.degisen} değer değişti.`);
+        await yukle(donem);
+      }
+    } catch (e) {
+      setPlayDurum(e instanceof Error && e.message ? e.message : "Play raporu okunamadı.");
+    } finally {
+      setPlayOkunuyor(false);
+    }
+  }, [donem, yukle]);
+
+  // Tabloda her gün görünsün: kitle_gunluk'ta satırı olmayan ama Play'de
+  // olan günler de (V82 öncesi tarih).
+  const satirlar: Gun[] = veri ? [veri.bugun, ...veri.gunler] : [];
+  if (veri?.dis) {
+    const var_ = new Set(satirlar.map((g) => g.gun));
+    for (const gun of Object.keys(veri.dis)) {
+      if (!var_.has(gun)) satirlar.push({ gun });
+    }
+    satirlar.sort((a, b) => (a.gun < b.gun ? 1 : a.gun > b.gun ? -1 : 0));
+  }
+  const dis = veri?.dis;
+  const playAcik = veri?.kaynaklar?.PLAY ?? false;
 
   return (
     <div className="card card-pad" style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div className="card-title" style={{ margin: 0 }}>Gün gün</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <select className="input" value={olcu} onChange={(e) => setOlcu(e.target.value as Olcu)}>
+          <select className="input" style={{ width: "auto" }} value={olcu} onChange={(e) => setOlcu(e.target.value as Olcu)}>
             {OLCULER.map((o) => <option key={o.k} value={o.k}>{o.ad}</option>)}
           </select>
-          <select className="input" value={donem} onChange={(e) => setDonem(Number(e.target.value))}>
+          {playAcik && (
+            <button className="btn btn-ghost" onClick={() => void playOku()} disabled={playOkunuyor}>
+              {playOkunuyor ? "Okunuyor…" : "Play raporunu şimdi oku"}
+            </button>
+          )}
+          <select className="input" style={{ width: "auto" }} value={donem} onChange={(e) => setDonem(Number(e.target.value))}>
             <option value={7}>Son 7 gün</option>
             <option value={30}>Son 30 gün</option>
             <option value={90}>Son 90 gün</option>
@@ -220,10 +279,11 @@ export default function TeleskorKitleGunluk() {
       </div>
 
       {hata && <div className="alert alert-error">{hata}</div>}
+      {playDurum && <div className="muted" style={{ fontSize: 13 }}>{playDurum}</div>}
 
       {veri && (
         <>
-          <SutunGrafigi gunler={satirlar} olcu={olcu} secili={secili ?? veri.bugun.gun} sec={setSecili} />
+          <SutunGrafigi gunler={satirlar} olcu={olcu} secili={secili ?? veri.bugun.gun} sec={setSecili} dis={dis} />
           <div className="muted" style={{ fontSize: 12 }}>
             {olcu === "aktif" || olcu === "yeniCihaz" ? (
               <>
@@ -267,6 +327,8 @@ export default function TeleskorKitleGunluk() {
                   <th>Yeni üye</th>
                   <th>Yeni bildirim cihazı (A / i)</th>
                   <th>7 / 30 gün aktif cihaz</th>
+                  <th>Play kurulum / kaldırma</th>
+                  <th>Play cihazda kurulu</th>
                 </tr>
               </thead>
               <tbody>
@@ -289,6 +351,11 @@ export default function TeleskorKitleGunluk() {
                     <td>{s(g.yeniUye)}</td>
                     <td>{s(g.yeniBildirimAndroid)} / {s(g.yeniBildirimIos)}</td>
                     <td>{s(g.aktif7gun)} / {s(g.aktif30gun)}</td>
+                    <td>
+                      {s(play(dis, g.gun, "daily_device_installs"))} /{" "}
+                      {s(play(dis, g.gun, "daily_device_uninstalls"))}
+                    </td>
+                    <td>{s(play(dis, g.gun, "active_device_installs"))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -302,8 +369,11 @@ export default function TeleskorKitleGunluk() {
             uygulama ekranda açık olan cihaz, dakikada bir ölçülüyor. <b>Canlı bağlantı</b>:
             yalnız maç ekranı açık olanlar. <b>Aktif üye</b>: o gün oturumu yenilenen üye
             (eski sürümler dâhil). <b>Yeni bildirim cihazı</b> geçmişe dönük dolu; yeni
-            kurulumun yaklaşık göstergesi. Mağaza indirme sayıları bir sonraki adımda
-            Play Console ve App Store Connect&apos;ten gelecek. &quot;-&quot; = o gün ölçüm yok.
+            kurulumun yaklaşık göstergesi. <b>Play kurulum / kaldırma</b>: Google Play&apos;in
+            raporu, o gün uygulamayı kuran / kaldıran Android cihaz; <b>cihazda kurulu</b>
+            o gün uygulamanın kurulu olduğu Android cihaz. Rapor 6 saatte bir okunur,
+            Google son günleri birkaç gün gecikmeli verir (bugün ve dün çoğu zaman
+            &quot;-&quot;). App Store ve web sayıları sonraki adımda. &quot;-&quot; = o gün ölçüm yok.
           </div>
         </>
       )}
