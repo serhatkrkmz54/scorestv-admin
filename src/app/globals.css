@@ -4229,3 +4229,64 @@ td .switch {
   max-height: 90vh;
   overflow: auto;
 }
+
+/* ---------- Kitle grafikleri ----------
+   Platform renkleri: her grafikte aynı varlık aynı renk (Android, iOS, Web).
+   Renk denetleyicisiyle sınandı: açık ve koyu yüzeyde parlaklık bandı,
+   renk körlüğü ayrımı ve 3:1 karşıtlık geçiyor. */
+:root {
+  --grafik-android: #0a9a82;
+  --grafik-ios: #1677ff;
+  --grafik-web: #dd4b22;
+}
+:root[data-theme="dark"] {
+  --grafik-android: #10a48b;
+  --grafik-ios: #3b8cff;
+  --grafik-web: #ea5a2e;
+}
+
+.kitle-grafikler {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+@media (max-width: 1080px) {
+  .kitle-grafikler {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.kitle-ipucu {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  padding: 8px 10px;
+  font-size: 12.5px;
+  min-width: 160px;
+}
+.kitle-ipucu-satir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+}
+.kitle-ipucu-satir b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.kitle-isaret {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.kitle-tablo th,
+.kitle-tablo td {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.kitle-tablo .grup-bas {
+  border-left: 1px solid var(--border);
+}

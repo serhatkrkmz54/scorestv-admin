@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Activity, Radio, RefreshCw, Smartphone, UserPlus } from "lucide-react";
 import TeleskorKitleGunluk from "./TeleskorKitleGunluk";
 
 type Kitle = {
@@ -80,185 +81,145 @@ export default function TeleskorKitleClient() {
   const a = veri?.anlik;
   const c = veri?.cihaz;
   const u = veri?.uye;
+  const bos = yukleniyor ? "…" : "-";
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <h1 className="page-title">Kitle</h1>
+    <div style={{ display: "grid", gap: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <h1 className="page-title">Kitle</h1>
+          <div className="section-hint" style={{ margin: 0 }}>
+            Kaç kişi kurdu, kaçı kullanıyor, kaçı şu an içeride. Üstteki sayılar 30 saniyede bir tazelenir.
+          </div>
+        </div>
         <button className="btn" onClick={() => void yukle()}>
-          Yenile
+          <RefreshCw size={15} /> Yenile
         </button>
       </div>
 
       {hata && <div className="alert alert-error">{hata}</div>}
 
-      {/* ŞU AN BAĞLI */}
-      <div className="card card-pad">
-        <div className="card-title">Şu an bağlı</div>
-        {!a ? (
-          <div className="muted" style={{ fontSize: 13 }}>
-            {yukleniyor ? "Yükleniyor…" : "Alınamadı."}
-          </div>
-        ) : (
-          <>
-            <div className="stat-grid">
-              {a.online && (
-                <>
-                  <div className="stat-card">
-                    <div className="stat-value">{sayi(a.onlineToplam)}</div>
-                    <div className="stat-label">Şu an uygulamada (online)</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">
-                      {sayi(a.online.ANDROID)} / {sayi(a.online.IOS)}
-                    </div>
-                    <div className="stat-label">Online Android / iOS</div>
-                  </div>
-                </>
-              )}
-              <div className="stat-card">
-                <div className="stat-value">{sayi(a.acikSoket)}</div>
-                <div className="stat-label">Açık canlı bağlantı</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(a.izlenenMac)}</div>
-                <div className="stat-label">İzlenen maç</div>
-              </div>
-            </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-              &quot;Online&quot;: son birkaç dakikada uygulamayı ekranda açık tutan
-              cihaz (yeni mağaza sürümüyle başlıyor). Canlı bağlantı yalnız maç ekranı
-              <b>açık olan</b> cihazları gösteriyor. Bağlantı uygulama kapanınca
-              düşüyor, yani gece 03:00&apos;te sıfıra yakın olması normal.
-              {a.tekKopya && (
-                <>
-                  {" "}
-                  Sayı tek api sunucusundan okunuyor; ikinci sunucu
-                  eklendiğinde toplam için ikisi de sorulmalı.
-                </>
-              )}
-            </div>
-          </>
-        )}
+      {/* ŞU AN */}
+      <div className="stat-grid">
+        <Kutu
+          baslik="Şu an uygulamada"
+          deger={a?.online ? sayi(a.onlineToplam) : bos}
+          ipucu={
+            a?.online
+              ? `Android ${sayi(a.online.ANDROID)} · iOS ${sayi(a.online.IOS)} · Web ${sayi(a.online.WEB)}`
+              : "Son birkaç dakikada ekranı açık olan cihaz"
+          }
+          ikon={<Activity size={20} />}
+          renk="success"
+        />
+        <Kutu
+          baslik="Canlı skor bağlantısı"
+          deger={a ? sayi(a.acikSoket) : bos}
+          ipucu={a ? `${sayi(a.izlenenMac)} maç izleniyor` : "Maç ekranı açık olanlar"}
+          ikon={<Radio size={20} />}
+        />
+        <Kutu
+          baslik="Son 24 saatte yeni cihaz"
+          deger={c ? sayi(c.yeni) : bos}
+          ipucu="İlk kez açılan kurulum; reklamın en hızlı göstergesi"
+          ikon={<Smartphone size={20} />}
+          renk="warning"
+        />
+        <Kutu
+          baslik="Son 24 saatte yeni üye"
+          deger={u ? sayi(u.bugun) : bos}
+          ipucu={u ? `Son 7 günde ${sayi(u.hafta)}` : ""}
+          ikon={<UserPlus size={20} />}
+          renk="neutral"
+        />
       </div>
 
       <TeleskorKitleGunluk />
 
-      {/* CİHAZLAR */}
-      <div className="card card-pad">
-        <div className="card-title">Bildirim için kayıtlı cihazlar</div>
-        {!c ? (
-          <div className="muted" style={{ fontSize: 13 }}>
-            {yukleniyor ? "Yükleniyor…" : "Alınamadı."}
+      {/* TOPLAMLAR */}
+      <div className="card card-pad" style={{ display: "grid", gap: 14 }}>
+        <div>
+          <div className="section-title">Genel toplamlar</div>
+          <div className="section-hint" style={{ margin: 0 }}>
+            Bugüne kadar biriken sayılar. &quot;Görülen&quot;: uygulamayı ya da siteyi o süre içinde en az bir kez kullanan.
           </div>
-        ) : (
-          <>
-            <div className="stat-grid">
-              <div className="stat-card">
-                <div className="stat-value">{sayi(c.aktif)}</div>
-                <div className="stat-label">Toplam aktif</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(c.yeni)}</div>
-                <div className="stat-label">Son 24 saatte yeni</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(c.gun)}</div>
-                <div className="stat-label">Son 24 saatte görüldü</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(c.hafta)}</div>
-                <div className="stat-label">Son 7 günde görüldü</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(c.ay)}</div>
-                <div className="stat-label">Son 30 günde görüldü</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">
-                  {sayi(c.android)} / {sayi(c.ios)}
-                </div>
-                <div className="stat-label">Android / iOS</div>
-              </div>
-            </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-              &quot;Son 24 saatte yeni&quot; reklam çalışmasının en doğrudan
-              göstergesi: her yeni kurulum uygulamayı ilk açtığında bir cihaz
-              kaydı bırakıyor. Bunların {sayi(c.uyeli)} tanesi bir hesaba
-              bağlı, gerisi misafir.
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ÜYELER */}
-      <div className="card card-pad">
-        <div className="card-title">Üyeler</div>
-        {!u ? (
-          <div className="muted" style={{ fontSize: 13 }}>
-            {yukleniyor ? "Yükleniyor…" : "Alınamadı."}
-          </div>
-        ) : (
-          <>
-            <div className="stat-grid">
-              <div className="stat-card">
-                <div className="stat-value">{sayi(u.toplam)}</div>
-                <div className="stat-label">Toplam üye</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(u.bugun)}</div>
-                <div className="stat-label">Son 24 saatte kayıt</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(u.hafta)}</div>
-                <div className="stat-label">Son 7 günde kayıt</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(u.aktifgun)}</div>
-                <div className="stat-label">
-                  <Link href="/teleskor/uyeler?sonGorulme=GUN&sirala=sonGorulme">Son 24 saatte görülen</Link>
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(u.aktifhafta)}</div>
-                <div className="stat-label">
-                  <Link href="/teleskor/uyeler?sonGorulme=HAFTA&sirala=sonGorulme">Son 7 günde görülen</Link>
-                </div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{sayi(veri?.misafirCihaz)}</div>
-                <div className="stat-label">Favorili misafir cihaz</div>
-              </div>
-            </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-              &quot;Görülen&quot; sayıları üyenin uygulamayı ya da siteyi en son
-              kullandığı ana bakıyor (oturum yenilemesi; açıkken yaklaşık 15
-              dakikada bir). Misafir kullanıcılar burada yok; günlük aktif
-              kullanıcının tamamı için Firebase Console.
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* FIREBASE */}
-      <div className="card card-pad">
-        <div className="card-title">Firebase Analytics&apos;te ne var</div>
-        <div className="muted" style={{ fontSize: 13, lineHeight: 1.6 }}>
-          Bu sayfa yalnız kendi sunucumuzdan okunanları gösteriyor. Kurulum
-          sayısı, günlük/aylık aktif kullanıcı, hangi ekranda ne kadar kalındığı,
-          elde tutma ve reklam kampanyasının kaynak kırılımı Firebase
-          Console&apos;da (Analytics). Uygulama mağaza sürümünde olay
-          gönderiyor: onboarding adımları, favori ekleme/çıkarma, maç detayı,
-          arama, giriş yöntemi, bildirim izni, oyunlar ve paylaşım.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+          <Liste
+            baslik="Üyeler"
+            satirlar={[
+              ["Toplam üye", sayi(u?.toplam)],
+              ["Son 7 günde kayıt", sayi(u?.hafta)],
+              [<Link key="g" href="/teleskor/uyeler?sonGorulme=GUN&sirala=sonGorulme">Son 24 saatte görülen</Link>, sayi(u?.aktifgun)],
+              [<Link key="h" href="/teleskor/uyeler?sonGorulme=HAFTA&sirala=sonGorulme">Son 7 günde görülen</Link>, sayi(u?.aktifhafta)],
+              ["Son 30 günde görülen", sayi(u?.aktifay)],
+            ]}
+          />
+          <Liste
+            baslik="Bildirim alan cihazlar"
+            satirlar={[
+              ["Toplam aktif", sayi(c?.aktif)],
+              ["Android / iOS", `${sayi(c?.android)} / ${sayi(c?.ios)}`],
+              ["Hesaba bağlı / misafir", c ? `${sayi(c.uyeli)} / ${sayi(c.aktif - c.uyeli)}` : "-"],
+              ["Son 24 saatte / 7 günde / 30 günde görülen", c ? `${sayi(c.gun)} / ${sayi(c.hafta)} / ${sayi(c.ay)}` : "-"],
+              ["Favorisi olan misafir cihaz", sayi(veri?.misafirCihaz)],
+            ]}
+          />
+        </div>
+        <div className="muted" style={{ fontSize: 12 }}>
+          Ekranda ne kadar kalındığı, elde tutma ve reklam kaynağı kırılımı Firebase Console&apos;da (Analytics).
+          {a?.tekKopya && " Anlık sayılar tek api sunucusundan okunuyor; ikinci sunucu eklenince ikisi de sorulmalı."}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Kutu({
+  baslik,
+  deger,
+  ipucu,
+  ikon,
+  renk,
+}: {
+  baslik: string;
+  deger: string;
+  ipucu: string;
+  ikon: React.ReactNode;
+  renk?: "success" | "warning" | "neutral";
+}) {
+  return (
+    <div className="stat-card">
+      <div style={{ minWidth: 0 }}>
+        <div className="stat-label">{baslik}</div>
+        <div className="stat-value">{deger}</div>
+        <div className="stat-hint">{ipucu}</div>
+      </div>
+      <div className={`stat-icon${renk ? ` ${renk}` : ""}`}>{ikon}</div>
+    </div>
+  );
+}
+
+function Liste({ baslik, satirlar }: { baslik: string; satirlar: [React.ReactNode, string][] }) {
+  return (
+    <div>
+      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{baslik}</div>
+      {satirlar.map(([ad, deger], i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "7px 0",
+            borderTop: i ? "1px solid var(--border)" : undefined,
+            fontSize: 13,
+          }}
+        >
+          <span className="muted">{ad}</span>
+          <b style={{ fontVariantNumeric: "tabular-nums" }}>{deger}</b>
+        </div>
+      ))}
     </div>
   );
 }
