@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, MonitorSmartphone, Radio, UserPlus } from "lucide-react";
+import { Download, Globe, MonitorSmartphone, Radio } from "lucide-react";
 
 /**
  * KİTLE GÜN GÜN (api-1 V82 + V83).
@@ -125,6 +125,8 @@ type Nokta = {
   yeniCihaz: number | null;
   playKurulum: number | null;
   appIlk: number | null;
+  webSayfa: number | null;
+  webZiyaretci: number | null;
   onlineTepe: number | null;
   soketTepe: number | null;
   yeniUye: number | null;
@@ -164,7 +166,7 @@ function Ipucu({
           <b>{s(deger(x.anahtar))}</b>
         </div>
       ))}
-      {toplam !== null && seriler.length > 1 && !seriler.some((x) => x.anahtar === "playKurulum") && (
+      {toplam !== null && seriler.length > 1 && !seriler.some((x) => x.anahtar === "playKurulum" || x.anahtar === "webSayfa") && (
         <div className="kitle-ipucu-satir" style={{ borderTop: "1px solid var(--border)", paddingTop: 4 }}>
           Toplam<b>{s(toplam)}</b>
         </div>
@@ -266,7 +268,7 @@ function GunGrafigi({
           >
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis dataKey="gun" tickFormatter={kisaGun} tick={EKSEN} tickLine={false} axisLine={{ stroke: "var(--border-strong)" }} minTickGap={18} />
-            <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} width={44} tickFormatter={(v: number) => v.toLocaleString("tr-TR")} />
+            <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} width={52} tickFormatter={(v: number) => v.toLocaleString("tr-TR")} />
             <Tooltip
               cursor={{ fill: "var(--surface-2)" }}
               content={(p) => <Ipucu {...(p as object)} seriler={seriler} bugun={bugun} />}
@@ -329,7 +331,7 @@ function OnlineEgrisi({ olcumler }: { olcumler: Dakika[] }) {
               tickLine={false}
               axisLine={{ stroke: "var(--border-strong)" }}
             />
-            <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} width={44} />
+            <YAxis tick={EKSEN} tickLine={false} axisLine={false} allowDecimals={false} width={52} />
             <Tooltip
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
@@ -484,6 +486,23 @@ export default function TeleskorKitleGunluk() {
     }
   }, [donem, yukle]);
 
+  const [cfDurum, setCfDurum] = useState<string | null>(null);
+  const [cfOkunuyor, setCfOkunuyor] = useState(false);
+  const cfOku = useCallback(async () => {
+    setCfOkunuyor(true);
+    try {
+      const r = await fetch("/api/teleskor/kitle/cloudflare-tazele", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b?.message);
+      setCfDurum(b.hata ? `Okunamadı: ${b.hata}` : `Okundu: ${b.gun} gün, ${b.degisen} değer değişti.`);
+      await yukle(donem);
+    } catch (e) {
+      setCfDurum(e instanceof Error && e.message ? e.message : "Okunamadı.");
+    } finally {
+      setCfOkunuyor(false);
+    }
+  }, [donem, yukle]);
+
   // Her gün bir satır: kitle_gunluk'ta satırı olmayan ama mağaza raporunda
   // olan günler de (V82 öncesi tarih). Yeniden eskiye.
   const satirlar: Gun[] = useMemo(() => {
@@ -501,6 +520,7 @@ export default function TeleskorKitleGunluk() {
   const seciliGun = secili ?? bugun;
   const playAcik = veri?.kaynaklar?.PLAY ?? false;
   const appAcik = veri?.kaynaklar?.APPSTORE ?? false;
+  const cfAcik = veri?.kaynaklar?.CLOUDFLARE ?? false;
 
   // Grafikler eskiden yeniye.
   const noktalar: Nokta[] = useMemo(
@@ -513,6 +533,8 @@ export default function TeleskorKitleGunluk() {
         yeniCihaz: g.gun === bugun ? null : topla(g.yeniAndroid, g.yeniIos, g.yeniWeb),
         playKurulum: dis_(dis, g.gun, "PLAY", "daily_device_installs"),
         appIlk: dis_(dis, g.gun, "APPSTORE", "ilk_indirme"),
+        webSayfa: dis_(dis, g.gun, "CLOUDFLARE", "sayfa_goruntuleme"),
+        webZiyaretci: dis_(dis, g.gun, "CLOUDFLARE", "tekil_ziyaretci"),
         onlineTepe: g.onlineTepe ?? null,
         soketTepe: g.soketTepe ?? null,
         yeniUye: g.yeniUye ?? null,
@@ -531,6 +553,11 @@ export default function TeleskorKitleGunluk() {
     return {
       play: topla_((n) => n.playKurulum),
       app: topla_((n) => n.appIlk),
+      webSayfa: topla_((n) => n.webSayfa),
+      webZiyaretciOrt: (() => {
+        const v = tamam.map((n) => n.webZiyaretci).filter(sayiMi);
+        return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+      })(),
       acanOrt: acan.length ? Math.round(acan.reduce((a, b) => a + b, 0) / acan.length) : null,
       acanDun: dun ? topla(dun.android, dun.ios, dun.web) : null,
       acanGun: acan.length,
@@ -598,19 +625,22 @@ export default function TeleskorKitleGunluk() {
             <OzetKutusu
               baslik="Uygulamayı açan cihaz (dün)"
               deger={s(ozet.acanDun)}
-              ipucu={ozet.acanOrt !== null ? `Günde ortalama ${s(ozet.acanOrt)} (${ozet.acanGun} ölçülen gün)` : "Ölçüm yeni mağaza sürümüyle başlıyor"}
+              ipucu={
+                ozet.acanOrt !== null
+                  ? `Günde ortalama ${s(ozet.acanOrt)}${ozet.tepe ? ` · aynı anda en çok ${s(ozet.tepe.v)} online` : ""}`
+                  : "Ölçüm yeni mağaza sürümüyle başlıyor"
+              }
               ikon={<MonitorSmartphone size={20} />}
             />
             <OzetKutusu
-              baslik={`Yeni üye · ${donemAdi}`}
-              deger={s(ozet.yeniUye)}
+              baslik={`Web sayfa görüntüleme · ${donemAdi}`}
+              deger={cfAcik || sayiMi(ozet.webSayfa) ? s(ozet.webSayfa) : "-"}
               ipucu={
-                <>
-                  Dün {s(ozet.yeniUyeDun)}
-                  {ozet.tepe && <> · En çok aynı anda online {s(ozet.tepe.v)} ({kisaGun(ozet.tepe.gun)})</>}
-                </>
+                cfAcik || sayiMi(ozet.webSayfa)
+                  ? `Günde ortalama ${s(ozet.webZiyaretciOrt)} tekil ziyaretçi`
+                  : "Cloudflare raporu bağlı değil"
               }
-              ikon={<UserPlus size={20} />}
+              ikon={<Globe size={20} />}
             />
           </div>
 
@@ -630,6 +660,30 @@ export default function TeleskorKitleGunluk() {
             </GrafikKarti>
 
             <GrafikKarti
+              baslik="Web sitesi"
+              alt="Sayfa görüntüleme (yalnız HTML sayfalar) ve tekil ziyaretçi (IP). Cloudflare'in günü, UTC."
+              bos={
+                !cfAcik && !var_((n) => n.webSayfa)
+                  ? "Cloudflare raporu henüz bağlı değil."
+                  : !var_((n) => n.webSayfa)
+                    ? "Bu dönemde Cloudflare'den sayı yok."
+                    : null
+              }
+            >
+              <GunGrafigi
+                veri={noktalar}
+                seriler={[
+                  { anahtar: "webSayfa", ad: "Sayfa görüntüleme", renk: RENK.web },
+                  { anahtar: "webZiyaretci", ad: "Tekil ziyaretçi", renk: RENK.notr },
+                ]}
+                ustUste={false}
+                bugun={bugun}
+                secili={seciliGun}
+                sec={setSecili}
+              />
+            </GrafikKarti>
+
+            <GrafikKarti
               baslik="Uygulamayı açan cihaz"
               alt="O gün uygulamayı en az bir kez açan tekil cihaz, platforma göre."
               bos={var_((n) => topla(n.android, n.ios, n.web)) ? null : "Bu dönemde ölçüm yok. Sayım yeni mağaza sürümüyle başlıyor; güncelleme yayıldıkça artar."}
@@ -645,6 +699,21 @@ export default function TeleskorKitleGunluk() {
               <GunGrafigi
                 veri={noktalar}
                 seriler={[{ anahtar: "onlineTepe", ad: "Online tepe", renk: RENK.web }]}
+                ustUste={false}
+                bugun={bugun}
+                secili={seciliGun}
+                sec={setSecili}
+              />
+            </GrafikKarti>
+
+            <GrafikKarti
+              baslik="Yeni cihaz"
+              alt="O gün uygulamayı ilk kez açan kurulum (gece hesaplanır, bugün yok)."
+              bos={var_((n) => n.yeniCihaz) ? null : "Bu dönemde ölçüm yok. Sayım yeni mağaza sürümüyle başlıyor."}
+            >
+              <GunGrafigi
+                veri={noktalar}
+                seriler={[{ anahtar: "yeniCihaz", ad: "Yeni cihaz", renk: RENK.web }]}
                 ustUste={false}
                 bugun={bugun}
                 secili={seciliGun}
@@ -717,6 +786,7 @@ export default function TeleskorKitleGunluk() {
                     <th colSpan={3} className="grup-bas">Üye ve bildirim</th>
                     <th colSpan={3} className="grup-bas">Google Play</th>
                     <th colSpan={3} className="grup-bas">App Store</th>
+                    <th colSpan={3} className="grup-bas">Web (Cloudflare)</th>
                   </tr>
                   <tr>
                     <th>Gün</th>
@@ -736,6 +806,9 @@ export default function TeleskorKitleGunluk() {
                     <th className="grup-bas">İlk indirme</th>
                     <th>Yeniden</th>
                     <th>Güncelleme</th>
+                    <th className="grup-bas">Sayfa görüntüleme</th>
+                    <th>Tekil ziyaretçi</th>
+                    <th>Toplam istek</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -768,6 +841,9 @@ export default function TeleskorKitleGunluk() {
                       <td className="grup-bas">{s(dis_(dis, g.gun, "APPSTORE", "ilk_indirme"))}</td>
                       <td>{s(dis_(dis, g.gun, "APPSTORE", "yeniden_indirme"))}</td>
                       <td>{s(dis_(dis, g.gun, "APPSTORE", "guncelleme"))}</td>
+                      <td className="grup-bas">{s(dis_(dis, g.gun, "CLOUDFLARE", "sayfa_goruntuleme"))}</td>
+                      <td>{s(dis_(dis, g.gun, "CLOUDFLARE", "tekil_ziyaretci"))}</td>
+                      <td>{s(dis_(dis, g.gun, "CLOUDFLARE", "istek"))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -786,6 +862,8 @@ export default function TeleskorKitleGunluk() {
               <dd style={{ margin: 0 }}>Google&apos;ın raporu: o gün kuran / kaldıran Android cihaz ve uygulamanın kurulu olduğu cihaz. Son 2-3 gün gecikmeli.</dd>
               <dt><b>App Store</b></dt>
               <dd style={{ margin: 0 }}>Apple&apos;ın satış raporu: ilk kez indiren Apple hesabı, aynı hesabın tekrar indirmesi, güncelleme. Apple kaldırma vermez; günü Pasifik saatine göre.</dd>
+              <dt><b>Web</b></dt>
+              <dd style={{ margin: 0 }}>Cloudflare&apos;in günlük raporu, gün UTC. Sayfa görüntüleme: yanıtı HTML olan istek (bot dâhil, uygulamanın API istekleri girmez). Tekil ziyaretçi: tekil IP. Toplam istek: bütün alt alanlar (api, cdn, görseller dâhil).</dd>
               <dt><b>&quot;-&quot;</b></dt>
               <dd style={{ margin: 0 }}>O gün ölçüm yok (sıfır değil).</dd>
             </dl>
@@ -793,13 +871,14 @@ export default function TeleskorKitleGunluk() {
 
           <div className="card card-pad" style={{ display: "grid", gap: 12 }}>
             <div>
-              <div className="section-title">Mağaza raporları</div>
+              <div className="section-title">Dış raporlar</div>
               <div className="section-hint" style={{ margin: 0 }}>
-                Sunucu ikisini de 6 saatte bir kendisi okur. Beklemek istemezsen buradan hemen okutabilirsin.
+                Sunucu mağaza raporlarını 6 saatte, web trafiğini saatte bir kendisi okur. Beklemek istemezsen buradan hemen okutabilirsin.
               </div>
             </div>
             <Kaynak ad="Google Play" acik={playAcik} okunuyor={playOkunuyor} oku={playOku} durum={playDurum} />
             <Kaynak ad="App Store" acik={appAcik} okunuyor={appOkunuyor} oku={appOku} durum={appDurum} />
+            <Kaynak ad="Web (Cloudflare)" acik={cfAcik} okunuyor={cfOkunuyor} oku={cfOku} durum={cfDurum} />
           </div>
         </>
       )}
