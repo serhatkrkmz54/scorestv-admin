@@ -1219,7 +1219,7 @@ export interface SurumNotuIstegi {
 // ---------------------------------------------------------------------------
 
 export interface VeriAlani {
-  tur: "VENUE" | "TEAM" | "PLAYER";
+  tur: "VENUE" | "TEAM" | "PLAYER" | "COMPETITION";
   alan: string;
   etiket: string;
   tip: "metin" | "tamsayi" | "tarih" | "referans" | "gorsel" | "renk";
@@ -1351,7 +1351,7 @@ export interface YeniStadyum {
 }
 
 export interface VeriKaydi {
-  tur: "VENUE" | "TEAM" | "PLAYER";
+  tur: "VENUE" | "TEAM" | "PLAYER" | "COMPETITION";
   id: number;
   ad: string;
   alanlar: VeriAlanDurumu[];

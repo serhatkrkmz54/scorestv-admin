@@ -352,6 +352,31 @@ export default function TeleskorVeriClient() {
             <button className="btn btn-sm" onClick={() => raporuYukle(lig.id)}>
               Yenile
             </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => kayitAc("COMPETITION", lig.id)}
+            >
+              Lig logoları
+            </button>
+          </div>
+        )}
+        {/* Lig kaydı (motor V124: koyu/açık zemin logosu) takım modalının
+            dışında, lig satırının altında açılır. */}
+        {!acikTakim && kayit && kayit.tur === "COMPETITION" && (
+          <div ref={kayitRef} style={{ marginTop: 14 }}>
+            <KayitDuzenle
+              kayit={kayit}
+              onDegisti={async () => {
+                setKayit(await apiVeriKayit(kayit.tur, kayit.id));
+              }}
+            />
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ marginTop: 8 }}
+              onClick={() => setKayit(null)}
+            >
+              Kapat
+            </button>
           </div>
         )}
       </div>
@@ -1297,7 +1322,7 @@ function AlanSatiri({
     setMesaj("");
     try {
       await apiVeriGorsel(takimId, {
-        tur: tur as "PLAYER" | "TEAM",
+        tur: tur as "PLAYER" | "TEAM" | "COMPETITION",
         id,
         dosya,
         gerekce,

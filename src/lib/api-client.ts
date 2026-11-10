@@ -1283,11 +1283,11 @@ export async function apiVeriVatandaslikYaz(istek: {
  * @param takimId panelde açık takım — kadro önbelleği de silinsin
  */
 export async function apiVeriGorsel(takimId: number | undefined, istek: {
-  tur: "PLAYER" | "TEAM";
+  tur: "PLAYER" | "TEAM" | "COMPETITION";
   id: number;
   dosya: string;
   gerekce: string;
-  /** Hangi görsel alanı (motor V123: takımda logo_koyu_url / logo_acik_url); yoksa logo_url. */
+  /** Hangi görsel alanı (motor V123/V124: takımda ve ligde logo_koyu_url / logo_acik_url); yoksa logo_url. */
   alan?: string;
 }): Promise<{ yazildi: boolean; adres: string }> {
   const yol = takimId ? `/api/teleskor/veri/gorsel?takim=${takimId}` : "/api/teleskor/veri/gorsel";
