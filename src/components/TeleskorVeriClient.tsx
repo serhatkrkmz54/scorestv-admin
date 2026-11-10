@@ -1252,6 +1252,10 @@ function AlanSatiri({
   // Kulüp rengi (motor V110): armadan otomatik hesaplanıyor; burada yazılan
   // elle düzeltme. Motor "#RRGGBB" dışını reddediyor.
   const renkAlani = alan.tip === "renk";
+  // Zemine göre logo (motor V123): önizleme o zeminde çizilsin ki siyah
+  // logonun koyu zeminde kaybolduğu burada da görünsün.
+  const onizlemeZemini =
+    alan.alan === "logo_koyu_url" ? "#111318" : alan.alan === "logo_acik_url" ? "#ffffff" : null;
   const [ulkeAd, setUlkeAd] = useState<string | null>(alan.degerAd ?? null);
   const [dosya, setDosya] = useState<string | null>(null);
   const [deger, setDeger] = useState(alan.yama ?? alan.deger ?? "");
@@ -1297,6 +1301,7 @@ function AlanSatiri({
         id,
         dosya,
         gerekce,
+        alan: alan.alan,
       });
       setDurum("ok");
     } catch (e) {
@@ -1437,7 +1442,7 @@ function AlanSatiri({
                 flex: "0 0 64px",
                 borderRadius: 8,
                 border: "1px solid var(--border)",
-                background: "var(--surface-2, #f4f4f5)",
+                background: onizlemeZemini ?? "var(--surface-2, #f4f4f5)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1466,6 +1471,13 @@ function AlanSatiri({
                 PNG, JPG, WebP ya da SVG, en fazla 4 MB. Kare görsel önerilir;
                 256 piksele küçültülür.
               </span>
+              {onizlemeZemini && (
+                <span className="muted" style={{ fontSize: 11 }}>
+                  {alan.alan === "logo_koyu_url"
+                    ? "Uygulama ve web karanlık temada bu logoyu çizer. Boşsa varsayılan logo."
+                    : "Uygulama ve web aydınlık temada bu logoyu çizer. Boşsa varsayılan logo."}
+                </span>
+              )}
             </div>
           </div>
         ) : renkAlani ? (
